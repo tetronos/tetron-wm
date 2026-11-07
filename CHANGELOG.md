@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.2] — 2026-11-07
+
 ### Changed
 - The Start Page is now tetron-browser's bookmarks file `~/.config/tetron-browser/bookmarks.html` (one list for both; it works without tetron-browser): a Netscape bookmarks file (the format every major browser imports and exports) with the search box on top, instead of `bookmarks.txt` rendered to `start.html`. `tetron-wm-startpage` converts an existing `bookmarks.txt` once and keeps it; `add TITLE URL [FOLDER]` adds at the top of the folder, `list` prints "Folder | Title | URL". tetron-browser's home and bookmark buttons use the same file.
 
