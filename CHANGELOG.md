@@ -7,7 +7,7 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Fixed
-- macOS binaries build again: GitHub retired the macos-14 runner image (jobs were cancelled with "configuration not supported"), so 0.15.1 and 0.15.2 shipped Linux only. The release workflow uses macos-15.
+- macOS binaries build again: GitHub retired the macos-14 runner image (jobs were cancelled with "configuration not supported"), so 0.15.1 and 0.15.2 shipped Linux only. The release workflow uses macos-latest, like the other suite repos, so a retired image can not stop it again.
 
 ## [0.15.2] — 2026-11-07
 
