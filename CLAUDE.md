@@ -20,7 +20,7 @@ Packaging requirements are specs in `spec/` (libspec, pinned in `pyproject.toml`
 
 ## Versioning & release channels
 
-`Cargo.toml` carries the semver version (currently 0.15.2); update `CHANGELOG.md`
+`Cargo.toml` carries the semver version (currently 0.15.3); update `CHANGELOG.md`
 in the same commit as user-visible changes (roll `[Unreleased]` into a new
 `[x.y.z]` heading).
 

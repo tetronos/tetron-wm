@@ -3417,7 +3417,7 @@ dependencies = [
 
 [[package]]
 name = "tetron-wm"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "alacritty_terminal",
  "base64 0.22.1",
