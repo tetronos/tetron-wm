@@ -4345,7 +4345,7 @@
   "name": "Start Page",
   "bin": "tetron-wm-startpage",
   "category": "Web",
-  "description": "Your bookmarks (~/.config/tetron-wm/bookmarks.txt) as a start page with a search box, opened in tetron-browser, else w3m. `tetron-wm-startpage add TITLE URL [SECTION]` adds one.",
+  "description": "Your bookmarks as a start page with a search box, opened in tetron-browser, else w3m. The page is ~/.config/tetron-wm/bookmarks.html, a Netscape bookmarks file other browsers import and export, shared with tetron-browser's bookmark button. `tetron-wm-startpage add TITLE URL [FOLDER]` adds one.",
   "homepage": "https://github.com/tetronos/tetron-wm/tree/main/scripts"
  },
  {

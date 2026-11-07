@@ -1,34 +1,61 @@
 #!/usr/bin/env python3
-"""tetron-wm-startpage: render a bookmarks file to a static HTML start page for text browsers (tetron-browser, w3m).
-Usage: tetron-wm-startpage                          regenerate the page, then open it in tetron-browser (else w3m; never carbonyl, it crashes)
-       tetron-wm-startpage build                    regenerate the page only
-       tetron-wm-startpage add TITLE URL [SECTION]  append a bookmark (default section: Links) and regenerate
-       tetron-wm-startpage list                     print the bookmarks file
-       tetron-wm-startpage edit                     open the bookmarks file in $EDITOR, then regenerate
-Files: ~/.config/tetron-wm/bookmarks.txt (source), ~/.config/tetron-wm/start.html (output)
-Bookmarks format: a [Section] line starts a group, then one "Title | URL" per line. # starts a comment.
+"""tetron-wm-startpage: your bookmarks as a start page with a search box, for text browsers (tetron-browser, w3m).
+Usage: tetron-wm-startpage                          open the page in tetron-browser (else w3m)
+       tetron-wm-startpage build                    create the page if missing (from bookmarks.txt once), print its path
+       tetron-wm-startpage add TITLE URL [FOLDER]   add a bookmark at the top of FOLDER (default: Links)
+       tetron-wm-startpage list                     print the bookmarks, one "Folder | Title | URL" per line
+       tetron-wm-startpage edit                     open the page in $EDITOR
+File: ~/.config/tetron-wm/bookmarks.html, a Netscape bookmark file: the page itself, and the format
+other browsers import and export (copy it to import or export). tetron-browser's bookmark button adds
+to the same file. An older ~/.config/tetron-wm/bookmarks.txt is converted once and kept.
 """
-import html, os, shutil, subprocess, sys
+import html, os, re, shutil, subprocess, sys, time
 
-DIR = os.path.expanduser("~/.config/tetron-wm")
-SRC, OUT = os.path.join(DIR, "bookmarks.txt"), os.path.join(DIR, "start.html")
-SEED = """# Edit by hand, or: tetron-wm-startpage add TITLE URL [SECTION]
-[Search]
-DuckDuckGo Lite | https://lite.duckduckgo.com/lite
-Google AI Mode | https://www.google.com/search?udm=50
-[Reference]
-Wikipedia | https://en.wikipedia.org
-Gemini API docs | https://ai.google.dev/gemini-api/docs
-[News]
-Hacker News | https://news.ycombinator.com
-[Projects]
-tetron-wm | https://tetronos.github.io/tetron-wm/
+DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "tetron-wm")
+PAGE, OLD = os.path.join(DIR, "bookmarks.html"), os.path.join(DIR, "bookmarks.txt")
+DEFAULT = [
+    ("Search", [("DuckDuckGo Lite", "https://lite.duckduckgo.com/lite"),
+                ("Google AI Mode", "https://www.google.com/search?udm=50")]),
+    ("Reference", [("Wikipedia", "https://en.wikipedia.org"),
+                   ("Gemini API docs", "https://ai.google.dev/gemini-api/docs")]),
+    ("News", [("Hacker News", "https://news.ycombinator.com")]),
+    ("Projects", [("tetron-wm", "https://tetronos.github.io/tetron-wm/")]),
+]
+HEAD = """<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- The tetron-wm start page and a bookmarks file in the Netscape format that
+     other browsers import and export. Edit it by hand: a <DT><H3> starts a
+     folder, a <DT><A HREF> is one bookmark. -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<form action="https://lite.duckduckgo.com/lite/" method="get">
+<input name="q" size="40" autofocus> <input type="submit" value="Search">
+</form>
+<H1>Bookmarks</H1>
 """
 
 
-def parse():
+def esc(s):
+    """Escape & " < > only, exactly as tetron-browser does, so both find the same URL."""
+    return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def entry(title, url):
+    return '<DT><A HREF="%s" ADD_DATE="%d">%s</A>' % (esc(url), int(time.time()), esc(title.strip() or url))
+
+
+def page(groups):
+    out = [HEAD.rstrip("\n"), "<DL><p>"]
+    for folder, items in groups:
+        out += ["    <DT><H3>%s</H3>" % esc(folder), "    <DL><p>"]
+        out += ["        " + entry(t, u) for t, u in items]
+        out.append("    </DL><p>")
+    return "\n".join(out + ["</DL><p>"]) + "\n"
+
+
+def parse_txt(path):
+    """The older format: a [Folder] line starts a group, then one "Title | URL" per line."""
     groups, cur = [], None
-    for ln in open(SRC):
+    for ln in open(path):
         ln = ln.strip()
         if not ln or ln.startswith("#"):
             continue
@@ -36,63 +63,91 @@ def parse():
             cur = (ln[1:-1], [])
             groups.append(cur)
         elif "|" in ln:
-            t, u = (p.strip() for p in ln.split("|", 1))
             if cur is None:
                 cur = ("Links", [])
                 groups.append(cur)
-            cur[1].append((t, u))
+            cur[1].append(tuple(p.strip() for p in ln.split("|", 1)))
     return groups
 
 
-def render():
-    e = html.escape
-    body = "".join("<h2>%s</h2>\n<ul>\n%s</ul>\n" % (
-        e(g), "".join('<li><a href="%s">%s</a></li>\n' % (e(u, quote=True), e(t)) for t, u in items))
-        for g, items in parse())
-    open(OUT, "w").write("""<!doctype html>
-<html><head><meta charset="utf-8"><title>Start</title></head>
-<body>
-<form action="https://lite.duckduckgo.com/lite/" method="get">
-<input name="q" size="40" autofocus> <input type="submit" value="Search">
-</form>
-%s</body></html>
-""" % body)
+def ensure():
+    """Create the page: from bookmarks.txt once when it exists (kept), else the default list."""
+    if os.path.exists(PAGE):
+        return
+    os.makedirs(DIR, exist_ok=True)
+    groups = parse_txt(OLD) if os.path.exists(OLD) else DEFAULT
+    write(page(groups))
+
+
+def write(text):
+    tmp = PAGE + ".tmp"
+    open(tmp, "w").write(text)
+    os.replace(tmp, PAGE)
+
+
+def has_url(line, url):
+    """A bookmark line for url, with or without a trailing / (as tetron-browser matches)."""
+    bare = url[:-1] if url.endswith("/") else url
+    line = line.lower()
+    return any(('HREF="%s"' % esc(u)).lower() in line for u in (bare, bare + "/"))
+
+
+def add(text, title, url, folder):
+    """Same rules as tetron-browser's bookmark button: top of the folder, a new
+    folder at the end of the top list when missing, nothing when already there."""
+    lines = text.rstrip("\n").split("\n")
+    if any(has_url(l, url) for l in lines):
+        return text
+    heading = "<h3>%s</h3>" % esc(folder).lower()
+    for i, l in enumerate(lines):
+        if heading in l.lower():
+            for j in range(i, len(lines)):
+                if lines[j].lstrip().upper().startswith("<DL>"):
+                    indent = " " * (len(l) - len(l.lstrip()) + 4)
+                    lines.insert(j + 1, indent + entry(title, url))
+                    return "\n".join(lines) + "\n"
+    new = ["    <DT><H3>%s</H3>" % esc(folder), "    <DL><p>", "        " + entry(title, url), "    </DL><p>"]
+    close = max((i for i, l in enumerate(lines) if l.lstrip().upper().startswith("</DL>")), default=None)
+    if close is None:
+        lines += ["<DL><p>"] + new + ["</DL><p>"]
+    else:
+        lines[close:close] = new
+    return "\n".join(lines) + "\n"
+
+
+def listing(text):
+    folder = ""
+    for l in text.split("\n"):
+        m = re.search(r"<H3[^>]*>(.*?)</H3>", l, re.I)
+        if m:
+            folder = html.unescape(m.group(1))
+            continue
+        m = re.search(r'<A [^>]*HREF="([^"]*)"[^>]*>(.*?)</A>', l, re.I)
+        if m:
+            yield "%s | %s | %s" % (folder, html.unescape(m.group(2)), html.unescape(m.group(1)))
 
 
 def main():
-    os.makedirs(DIR, exist_ok=True)
-    if not os.path.exists(SRC):
-        open(SRC, "w").write(SEED)
+    ensure()
     a = sys.argv[1:]
     if a[:1] == ["list"]:
-        return print(open(SRC).read(), end="")
-    if a[:1] == ["edit"]:
-        subprocess.run([os.environ.get("EDITOR", "vim"), SRC])
+        for line in listing(open(PAGE).read()):
+            print(line)
+    elif a[:1] == ["edit"]:
+        subprocess.run([os.environ.get("EDITOR", "vim"), PAGE])
     elif a[:1] == ["add"]:
         if len(a) < 3:
-            sys.exit("usage: tetron-wm-startpage add TITLE URL [SECTION]")
-        title, url, sec = a[1], a[2], (a[3] if len(a) > 3 else "Links")
-        lines = open(SRC).read().rstrip("\n").split("\n")
-        hdr = "[%s]" % sec
-        if hdr in lines:  # insert at the end of that section
-            i = lines.index(hdr) + 1
-            while i < len(lines) and not lines[i].startswith("["):
-                i += 1
-            while i > 0 and not lines[i - 1].strip():
-                i -= 1
-            lines.insert(i, "%s | %s" % (title, url))
-        else:
-            lines += [hdr, "%s | %s" % (title, url)]
-        open(SRC, "w").write("\n".join(lines) + "\n")
-    elif a and a != ["build"]:
+            sys.exit("usage: tetron-wm-startpage add TITLE URL [FOLDER]")
+        write(add(open(PAGE).read(), a[1], a[2], a[3] if len(a) > 3 else "Links"))
+    elif a == ["build"]:
+        print(PAGE)
+    elif a:
         sys.exit(__doc__)
-    render()
-    if a:
-        return print("wrote", OUT)
-    browser = shutil.which("tetron-browser") or shutil.which("w3m")
-    if not browser:
-        sys.exit("wrote %s; install tetron-browser or w3m to view it" % OUT)
-    os.execv(browser, [browser, "file://" + OUT])
+    else:
+        browser = shutil.which("tetron-browser") or shutil.which("w3m")
+        if not browser:
+            sys.exit("%s is ready; install tetron-browser or w3m to view it" % PAGE)
+        os.execv(browser, [browser, "file://" + PAGE])
 
 
 if __name__ == "__main__":

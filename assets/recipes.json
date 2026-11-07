@@ -5898,7 +5898,7 @@
    "macos",
    "linux"
   ],
-  "tip": "Edit your bookmarks with `tetron-wm-startpage edit` or `tetron-wm-startpage add TITLE URL [SECTION]`. Opens in carbonyl if installed, else w3m.",
+  "tip": "Edit your bookmarks with `tetron-wm-startpage edit` or `tetron-wm-startpage add TITLE URL [FOLDER]`, or the bookmark button in tetron-browser. Opens in tetron-browser if installed, else w3m.",
   "verified": true
  }
 }

@@ -59,7 +59,9 @@ def check_suite_apps() -> dict:
     """CON-WD05: assets/suite-apps.txt is what the generator makes, and its tests pass."""
     import subprocess
     gen = subprocess.run([sys.executable, "scripts/gen_suite_lists.py", "--check"], capture_output=True, text=True)
-    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_gen_suite_lists.py"],
+    # The bundled tetron-wm-startpage helper's tests ride along with the suite list's.
+    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_gen_suite_lists.py",
+                            "scripts/test_tetron_wm_startpage.py"],
                            capture_output=True, text=True)
     return {"current": gen.returncode == 0 and tests.returncode == 0,
             "generator": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
