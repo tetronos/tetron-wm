@@ -5,14 +5,17 @@ Usage: tetron-wm-startpage                          open the page in tetron-brow
        tetron-wm-startpage add TITLE URL [FOLDER]   add a bookmark at the top of FOLDER (default: Links)
        tetron-wm-startpage list                     print the bookmarks, one "Folder | Title | URL" per line
        tetron-wm-startpage edit                     open the page in $EDITOR
-File: ~/.config/tetron-wm/bookmarks.html, a Netscape bookmark file: the page itself, and the format
-other browsers import and export (copy it to import or export). tetron-browser's bookmark button adds
-to the same file. An older ~/.config/tetron-wm/bookmarks.txt is converted once and kept.
+File: ~/.config/tetron-browser/bookmarks.html, tetron-browser's bookmarks (its home page; its bookmark
+button adds to it), shown here even without tetron-browser. A Netscape bookmark file: the page itself,
+and the format other browsers import and export (copy it to import or export). An older
+~/.config/tetron-wm/bookmarks.txt is converted once and kept.
 """
 import html, os, re, shutil, subprocess, sys, time
 
-DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "tetron-wm")
-PAGE, OLD = os.path.join(DIR, "bookmarks.html"), os.path.join(DIR, "bookmarks.txt")
+CONFIG = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+# The page belongs to tetron-browser (which works without tetron-wm); both use it.
+DIR = os.path.join(CONFIG, "tetron-browser")
+PAGE, OLD = os.path.join(DIR, "bookmarks.html"), os.path.join(CONFIG, "tetron-wm", "bookmarks.txt")
 DEFAULT = [
     ("Search", [("DuckDuckGo Lite", "https://lite.duckduckgo.com/lite"),
                 ("Google AI Mode", "https://www.google.com/search?udm=50")]),

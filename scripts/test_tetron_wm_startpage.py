@@ -28,8 +28,12 @@ class StartPage(unittest.TestCase):
         self.assertIn('action="https://lite.duckduckgo.com/lite/"', text)
         self.assertIn("Search | DuckDuckGo Lite | https://lite.duckduckgo.com/lite", list(self.sp.listing(text)))
 
+    def test_page_is_tetron_browsers_file(self):
+        self.assertEqual(self.sp.PAGE, os.path.join(self.tmp.name, "tetron-browser", "bookmarks.html"))
+        self.assertEqual(self.sp.OLD, os.path.join(self.tmp.name, "tetron-wm", "bookmarks.txt"))
+
     def test_converts_bookmarks_txt_once_and_keeps_it(self):
-        os.makedirs(self.sp.DIR)
+        os.makedirs(os.path.dirname(self.sp.OLD))
         open(self.sp.OLD, "w").write("# c\nLoose | https://l.org\n[News]\nHN | https://news.ycombinator.com\n")
         self.sp.ensure()
         rows = list(self.sp.listing(open(self.sp.PAGE).read()))
