@@ -31,6 +31,7 @@
   nav { position:sticky; top:0; z-index:10; background:var(--nav-bg); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
   nav .wrap { display:flex; gap:18px; align-items:center; height:48px; font-family:var(--mono); font-size:.85rem; }
   nav .brand { color:var(--accent); font-weight:700; margin-right:auto; text-decoration:none; }
+  nav .crumb { display:flex; align-items:center; gap:6px; margin-right:auto; } nav .crumb .brand { margin-right:0; } nav .crumb .sep { color:var(--muted); }
   nav a { color:var(--muted); text-decoration:none; } nav a:hover { color:var(--fg); }
   nav .links { display:contents; }
   h1 { font-size:clamp(2.2rem,7vw,4rem); line-height:1.05; letter-spacing:-.03em; margin:0 0 1rem; text-wrap:balance; }
@@ -130,7 +131,7 @@
 </head>
 <body>
 <nav><div class="wrap">
-  <a class="brand" href="index.html">tetron-wm</a>
+  <span class="crumb"><a class="org" href="https://tetronos.github.io/">tetronos</a><span class="sep">/</span><a class="brand" href="index.html">tetron-wm</a></span>
   <span class="links"><a href="index.html#themes">home</a><a href="tetron-wm_theming_guide.html">theming guide</a><a href="tetron-wm_bare_console_guide.html">bare console</a></span>
   <button class="tbtn" id="theme" type="button" aria-label="Switch between light and dark theme">light</button>
 <a href="https://github.com/tetronos/tetron-wm">github</a>
