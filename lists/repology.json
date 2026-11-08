@@ -1,0 +1,937 @@
+{
+ "source": "https://repology.org",
+ "names": {
+  "ATAC": {
+   "pacman": "atac",
+   "brew": "atac"
+  },
+  "Aider": {
+   "brew": "aider"
+  },
+  "Bagels": {
+   "brew": "bagels"
+  },
+  "Chawan": {
+   "pacman": "chawan",
+   "brew": "chawan"
+  },
+  "Durdraw": {
+   "apt": "durdraw",
+   "brew": "durdraw"
+  },
+  "Feluda": {
+   "brew": "feluda"
+  },
+  "Gemini CLI": {
+   "pacman": "gemini-cli"
+  },
+  "GitType": {
+   "brew": "gittype"
+  },
+  "Glances": {
+   "apt": "glances",
+   "dnf": "glances",
+   "pacman": "glances",
+   "brew": "glances"
+  },
+  "Glow": {
+   "apt": "glow",
+   "dnf": "glow",
+   "pacman": "glow",
+   "brew": "glow"
+  },
+  "Goaccess": {
+   "apt": "goaccess",
+   "dnf": "goaccess",
+   "pacman": "goaccess",
+   "brew": "goaccess"
+  },
+  "LYNX": {
+   "apt": "lynx",
+   "dnf": "lynx",
+   "pacman": "lynx"
+  },
+  "Lagrange": {
+   "dnf": "lagrange"
+  },
+  "LazySSH": {
+   "brew": "lazyssh"
+  },
+  "Mutt": {
+   "apt": "mutt",
+   "dnf": "mutt",
+   "pacman": "mutt",
+   "brew": "mutt"
+  },
+  "NetHack": {
+   "apt": "nethack-common",
+   "dnf": "nethack",
+   "pacman": "nethack",
+   "brew": "nethack"
+  },
+  "Podman-tui": {
+   "dnf": "podman-tui",
+   "brew": "podman-tui"
+  },
+  "Profanity": {
+   "apt": "profanity",
+   "dnf": "profanity",
+   "pacman": "profanity",
+   "brew": "profanity"
+  },
+  "Qwen Code": {
+   "pacman": "qwen-code",
+   "brew": "qwen-code"
+  },
+  "Rebels in the sky": {
+   "pacman": "rebels-in-the-sky"
+  },
+  "Slumber": {
+   "pacman": "slumber",
+   "brew": "slumber"
+  },
+  "TUIOS": {
+   "brew": "tuios"
+  },
+  "Tabiew": {
+   "pacman": "tabiew",
+   "brew": "tabiew"
+  },
+  "Tock": {
+   "brew": "tock"
+  },
+  "Trophy": {
+   "apt": "trophy",
+   "dnf": "trophy"
+  },
+  "VT Code": {
+   "brew": "vtcode"
+  },
+  "Vifm": {
+   "apt": "vifm",
+   "dnf": "vifm",
+   "pacman": "vifm",
+   "brew": "vifm"
+  },
+  "Visidata": {
+   "apt": "visidata",
+   "dnf": "visidata",
+   "pacman": "visidata",
+   "brew": "visidata"
+  },
+  "Weechat": {
+   "apt": "weechat",
+   "dnf": "weechat",
+   "pacman": "weechat",
+   "brew": "weechat"
+  },
+  "Yozefu": {
+   "brew": "yozefu"
+  },
+  "abook": {
+   "apt": "abook",
+   "dnf": "abook",
+   "brew": "abook"
+  },
+  "aerc": {
+   "apt": "aerc",
+   "brew": "aerc"
+  },
+  "alpine": {
+   "apt": "alpine",
+   "dnf": "alpine",
+   "brew": "alpine"
+  },
+  "apachetop": {
+   "apt": "apachetop",
+   "dnf": "apachetop",
+   "brew": "apachetop"
+  },
+  "asak": {
+   "brew": "asak"
+  },
+  "astroterm": {
+   "dnf": "astroterm",
+   "pacman": "astroterm",
+   "brew": "astroterm"
+  },
+  "atop": {
+   "apt": "atop",
+   "dnf": "atop",
+   "pacman": "atop",
+   "brew": "atop"
+  },
+  "bandwhich": {
+   "pacman": "bandwhich",
+   "brew": "bandwhich"
+  },
+  "bashtop": {
+   "apt": "bashtop",
+   "pacman": "bashtop"
+  },
+  "bastet": {
+   "apt": "bastet",
+   "dnf": "bastet",
+   "brew": "bastet"
+  },
+  "below": {
+   "dnf": "below"
+  },
+  "binsider": {
+   "pacman": "binsider",
+   "brew": "binsider"
+  },
+  "bluetui": {
+   "pacman": "bluetui"
+  },
+  "bmon": {
+   "dnf": "bmon",
+   "pacman": "bmon",
+   "brew": "bmon"
+  },
+  "bombadillo": {
+   "apt": "bombadillo",
+   "brew": "bombadillo"
+  },
+  "bookokrat": {
+   "brew": "bookokrat"
+  },
+  "bottom": {
+   "apt": "btm",
+   "pacman": "bottom",
+   "brew": "bottom"
+  },
+  "bpytop": {
+   "apt": "bpytop",
+   "pacman": "bpytop",
+   "brew": "bpytop"
+  },
+  "broot": {
+   "pacman": "broot"
+  },
+  "btop++": {
+   "apt": "btop",
+   "dnf": "btop",
+   "pacman": "btop",
+   "brew": "btop"
+  },
+  "bulletty": {
+   "pacman": "bulletty",
+   "brew": "bulletty"
+  },
+  "calcure": {
+   "brew": "calcure"
+  },
+  "calcurse": {
+   "apt": "calcurse",
+   "dnf": "calcurse",
+   "pacman": "calcurse",
+   "brew": "calcurse"
+  },
+  "cava": {
+   "dnf": "cava",
+   "pacman": "cava",
+   "brew": "cava"
+  },
+  "cbonsai": {
+   "apt": "cbonsai",
+   "dnf": "cbonsai",
+   "brew": "cbonsai"
+  },
+  "cfdisk": {
+   "apt": "util-linux",
+   "pacman": "util-linux-libs",
+   "brew": "util-linux"
+  },
+  "cgdb": {
+   "apt": "cgdb",
+   "dnf": "cgdb",
+   "pacman": "cgdb",
+   "brew": "cgdb"
+  },
+  "chafa": {
+   "apt": "chafa",
+   "dnf": "chafa",
+   "pacman": "chafa",
+   "brew": "chafa"
+  },
+  "chdig": {
+   "brew": "chdig"
+  },
+  "chess-tui": {
+   "pacman": "chess-tui"
+  },
+  "chiko": {
+   "brew": "chiko"
+  },
+  "cloudflare-speed-cli": {
+   "pacman": "cloudflare-speed-cli",
+   "brew": "cloudflare-speed-cli"
+  },
+  "cmus": {
+   "apt": "cmus",
+   "pacman": "cmus",
+   "brew": "cmus"
+  },
+  "concord": {
+   "brew": "concord"
+  },
+  "csvlens": {
+   "pacman": "csvlens",
+   "brew": "csvlens"
+  },
+  "csysdig": {
+   "apt": "sysdig",
+   "pacman": "sysdig",
+   "brew": "sysdig"
+  },
+  "dblab": {
+   "brew": "dblab"
+  },
+  "diary": {
+   "brew": "diary"
+  },
+  "diskonaut": {
+   "dnf": "diskonaut",
+   "pacman": "diskonaut",
+   "brew": "diskonaut"
+  },
+  "dive": {
+   "pacman": "dive",
+   "brew": "dive"
+  },
+  "dockly": {
+   "brew": "dockly"
+  },
+  "dolphie": {
+   "brew": "dolphie"
+  },
+  "doxx": {
+   "pacman": "doxx",
+   "brew": "doxx"
+  },
+  "dry": {
+   "brew": "dry"
+  },
+  "dtop": {
+   "brew": "dtop"
+  },
+  "dua": {
+   "dnf": "dua-cli",
+   "pacman": "dua-cli",
+   "brew": "dua-cli"
+  },
+  "ducker": {
+   "pacman": "ducker",
+   "brew": "ducker"
+  },
+  "e1s": {
+   "brew": "e1s"
+  },
+  "ekphos": {
+   "brew": "ekphos"
+  },
+  "elinks": {
+   "apt": "elinks",
+   "dnf": "elinks",
+   "pacman": "elinks"
+  },
+  "fancy-cat": {
+   "brew": "fancy-cat"
+  },
+  "far2l": {
+   "apt": "far2l"
+  },
+  "fjira": {
+   "brew": "fjira"
+  },
+  "flawz": {
+   "pacman": "flawz",
+   "brew": "flawz"
+  },
+  "flowrs": {
+   "brew": "flowrs"
+  },
+  "framework-tool-tui": {
+   "brew": "framework-tool-tui"
+  },
+  "fx": {
+   "pacman": "fx",
+   "brew": "fx"
+  },
+  "fzf": {
+   "apt": "fzf",
+   "dnf": "fzf",
+   "pacman": "fzf",
+   "brew": "fzf"
+  },
+  "gdu": {
+   "apt": "gdu",
+   "dnf": "gdu",
+   "pacman": "gdu",
+   "brew": "gdu"
+  },
+  "ggc": {
+   "brew": "ggc"
+  },
+  "ghcup": {
+   "brew": "ghcup"
+  },
+  "git-crecord": {
+   "apt": "git-crecord"
+  },
+  "gitlogue": {
+   "pacman": "gitlogue",
+   "brew": "gitlogue"
+  },
+  "gitui": {
+   "dnf": "gitui",
+   "pacman": "gitui"
+  },
+  "gocheat": {
+   "brew": "gocheat"
+  },
+  "godap": {
+   "brew": "godap"
+  },
+  "gomuks": {
+   "apt": "gomuks",
+   "pacman": "gomuks"
+  },
+  "gonzo": {
+   "brew": "gonzo"
+  },
+  "gotop": {
+   "brew": "gotop"
+  },
+  "gpg-tui": {
+   "pacman": "gpg-tui"
+  },
+  "gping": {
+   "apt": "gping",
+   "pacman": "gping",
+   "brew": "gping"
+  },
+  "harlequin": {
+   "brew": "harlequin"
+  },
+  "herdr": {
+   "brew": "herdr"
+  },
+  "heretek": {
+   "pacman": "heretek"
+  },
+  "himalaya": {
+   "brew": "himalaya"
+  },
+  "hledger-ui": {
+   "apt": "hledger-ui",
+   "pacman": "hledger-ui"
+  },
+  "htop": {
+   "apt": "htop",
+   "dnf": "htop",
+   "pacman": "htop",
+   "brew": "htop"
+  },
+  "hunk": {
+   "brew": "hunk"
+  },
+  "hwatch": {
+   "brew": "hwatch"
+  },
+  "iamb": {
+   "brew": "iamb"
+  },
+  "impala": {
+   "pacman": "impala"
+  },
+  "intelli-shell": {
+   "pacman": "intelli-shell",
+   "brew": "intelli-shell"
+  },
+  "invidtui": {
+   "apt": "invidtui"
+  },
+  "irssi": {
+   "apt": "irssi",
+   "dnf": "irssi",
+   "pacman": "irssi",
+   "brew": "irssi"
+  },
+  "jcode": {
+   "brew": "jcode"
+  },
+  "jiratui": {
+   "brew": "jiratui"
+  },
+  "jqp": {
+   "apt": "jqp",
+   "brew": "jqp"
+  },
+  "jrnl": {
+   "dnf": "jrnl",
+   "pacman": "jrnl",
+   "brew": "jrnl"
+  },
+  "k9s": {
+   "dnf": "k9s",
+   "pacman": "k9s"
+  },
+  "kakoune": {
+   "apt": "kakoune",
+   "dnf": "kakoune",
+   "pacman": "kakoune",
+   "brew": "kakoune"
+  },
+  "kaskade": {
+   "brew": "kaskade"
+  },
+  "kdash": {
+   "brew": "kdash"
+  },
+  "kew": {
+   "apt": "kew",
+   "brew": "kew"
+  },
+  "khard": {
+   "pacman": "khard",
+   "brew": "khard"
+  },
+  "kmon": {
+   "apt": "kmon",
+   "pacman": "kmon"
+  },
+  "ktop": {
+   "brew": "ktop"
+  },
+  "kubetui": {
+   "pacman": "kubetui",
+   "brew": "kubetui"
+  },
+  "lazycontainer": {
+   "brew": "lazycontainer"
+  },
+  "lazydocker": {
+   "pacman": "lazydocker",
+   "brew": "lazydocker"
+  },
+  "lazygit": {
+   "apt": "lazygit",
+   "pacman": "lazygit",
+   "brew": "lazygit"
+  },
+  "lazyjournal": {
+   "brew": "lazyjournal"
+  },
+  "lazymake": {
+   "brew": "lazymake"
+  },
+  "lazysql": {
+   "brew": "lazysql"
+  },
+  "lf": {
+   "apt": "lf",
+   "pacman": "lf",
+   "brew": "lf"
+  },
+  "lfk": {
+   "brew": "lfk"
+  },
+  "linecast": {
+   "brew": "linecast"
+  },
+  "litecli": {
+   "apt": "litecli",
+   "dnf": "litecli",
+   "brew": "litecli"
+  },
+  "lnav": {
+   "apt": "lnav",
+   "dnf": "lnav",
+   "pacman": "lnav",
+   "brew": "lnav"
+  },
+  "mac-cleanup-go": {
+   "brew": "mac-cleanup-go"
+  },
+  "macmon": {
+   "brew": "macmon"
+  },
+  "maki": {
+   "brew": "maki"
+  },
+  "mapscii": {
+   "brew": "mapscii"
+  },
+  "mcabber": {
+   "apt": "mcabber",
+   "dnf": "mcabber",
+   "brew": "mcabber"
+  },
+  "mcfly": {
+   "pacman": "mcfly",
+   "brew": "mcfly"
+  },
+  "micro": {
+   "dnf": "micro"
+  },
+  "mitmproxy": {
+   "apt": "mitmproxy",
+   "pacman": "mitmproxy"
+  },
+  "moc": {
+   "apt": "moc",
+   "brew": "moc"
+  },
+  "moon-buggy": {
+   "apt": "moon-buggy",
+   "dnf": "moon-buggy",
+   "brew": "moon-buggy"
+  },
+  "moribito": {
+   "brew": "moribito"
+  },
+  "mqttui": {
+   "pacman": "mqttui",
+   "brew": "mqttui"
+  },
+  "mycli": {
+   "apt": "mycli",
+   "dnf": "mycli",
+   "brew": "mycli"
+  },
+  "nInvaders": {
+   "brew": "ninvaders"
+  },
+  "nb": {
+   "brew": "nb"
+  },
+  "ncdu": {
+   "apt": "ncdu",
+   "pacman": "ncdu",
+   "brew": "ncdu"
+  },
+  "ncspot": {
+   "pacman": "ncspot",
+   "brew": "ncspot"
+  },
+  "nemu": {
+   "brew": "nemu"
+  },
+  "nethogs": {
+   "apt": "nethogs",
+   "dnf": "nethogs",
+   "pacman": "nethogs",
+   "brew": "nethogs"
+  },
+  "netscanner": {
+   "pacman": "netscanner",
+   "brew": "netscanner"
+  },
+  "newsboat": {
+   "apt": "newsboat",
+   "dnf": "newsboat",
+   "pacman": "newsboat",
+   "brew": "newsboat"
+  },
+  "nnn": {
+   "apt": "nnn",
+   "dnf": "nnn",
+   "pacman": "nnn",
+   "brew": "nnn"
+  },
+  "nudoku": {
+   "apt": "nudoku",
+   "dnf": "nudoku",
+   "brew": "nudoku"
+  },
+  "nvtop": {
+   "apt": "nvtop",
+   "dnf": "nvtop",
+   "pacman": "nvtop",
+   "brew": "nvtop"
+  },
+  "oha": {
+   "pacman": "oha",
+   "brew": "oha"
+  },
+  "opencode": {
+   "pacman": "opencode",
+   "brew": "opencode"
+  },
+  "oryx": {
+   "pacman": "oryx"
+  },
+  "oxker": {
+   "brew": "oxker"
+  },
+  "patat": {
+   "apt": "patat",
+   "dnf": "patat",
+   "brew": "patat"
+  },
+  "pgcli": {
+   "apt": "pgcli",
+   "dnf": "pgcli",
+   "pacman": "pgcli",
+   "brew": "pgcli"
+  },
+  "posting": {
+   "brew": "posting"
+  },
+  "presenterm": {
+   "pacman": "presenterm",
+   "brew": "presenterm"
+  },
+  "process-compose": {
+   "pacman": "process-compose"
+  },
+  "proxelar": {
+   "brew": "proxelar"
+  },
+  "pudb": {
+   "apt": "python3-pudb"
+  },
+  "qo": {
+   "brew": "qo"
+  },
+  "rainfrog": {
+   "pacman": "rainfrog",
+   "brew": "rainfrog"
+  },
+  "ranger": {
+   "apt": "ranger",
+   "dnf": "ranger",
+   "pacman": "ranger",
+   "brew": "ranger"
+  },
+  "recoverpy": {
+   "brew": "recoverpy"
+  },
+  "redu": {
+   "brew": "redu"
+  },
+  "resterm": {
+   "brew": "resterm"
+  },
+  "rmpc": {
+   "pacman": "rmpc",
+   "brew": "rmpc"
+  },
+  "rtorrent": {
+   "apt": "rtorrent",
+   "dnf": "rtorrent",
+   "pacman": "rtorrent",
+   "brew": "rtorrent"
+  },
+  "runme": {
+   "brew": "runme"
+  },
+  "rustnet": {
+   "pacman": "rustnet",
+   "brew": "rustnet"
+  },
+  "s-tui": {
+   "apt": "s-tui",
+   "dnf": "s-tui",
+   "pacman": "s-tui"
+  },
+  "sabiql": {
+   "brew": "sabiql"
+  },
+  "sc-im": {
+   "apt": "sc-im",
+   "dnf": "sc-im",
+   "brew": "sc-im"
+  },
+  "sen": {
+   "apt": "sen",
+   "dnf": "sen"
+  },
+  "serie": {
+   "pacman": "serie",
+   "brew": "serie"
+  },
+  "sheets": {
+   "brew": "sheets"
+  },
+  "soft-serve": {
+   "pacman": "soft-serve",
+   "brew": "soft-serve"
+  },
+  "spotify-player": {
+   "pacman": "spotify-player",
+   "brew": "spotify_player"
+  },
+  "sq": {
+   "brew": "sq"
+  },
+  "stu": {
+   "brew": "stu"
+  },
+  "superfile": {
+   "pacman": "superfile",
+   "brew": "superfile"
+  },
+  "taskline": {
+   "brew": "taskline"
+  },
+  "taskwarrior-tui": {
+   "pacman": "taskwarrior-tui",
+   "brew": "taskwarrior-tui"
+  },
+  "tdf": {
+   "pacman": "tdf",
+   "brew": "tdf"
+  },
+  "television": {
+   "pacman": "television",
+   "brew": "television"
+  },
+  "tenere": {
+   "brew": "tenere"
+  },
+  "termscp": {
+   "pacman": "termscp",
+   "brew": "termscp"
+  },
+  "termshark": {
+   "apt": "termshark",
+   "pacman": "termshark",
+   "brew": "termshark"
+  },
+  "termusic": {
+   "pacman": "termusic",
+   "brew": "termusic"
+  },
+  "tig": {
+   "apt": "tig",
+   "dnf": "tig",
+   "pacman": "tig",
+   "brew": "tig"
+  },
+  "timg": {
+   "apt": "timg",
+   "dnf": "timg",
+   "brew": "timg"
+  },
+  "tmux": {
+   "apt": "tmux",
+   "dnf": "tmux",
+   "pacman": "tmux",
+   "brew": "tmux"
+  },
+  "toot": {
+   "apt": "toot",
+   "dnf": "toot",
+   "pacman": "toot",
+   "brew": "toot"
+  },
+  "topydo": {
+   "apt": "topydo",
+   "brew": "topydo"
+  },
+  "toxic": {
+   "apt": "toxic",
+   "pacman": "toxic"
+  },
+  "treemd": {
+   "pacman": "treemd",
+   "brew": "treemd"
+  },
+  "trippy": {
+   "apt": "trippy",
+   "pacman": "trippy",
+   "brew": "trippy"
+  },
+  "try-rs": {
+   "brew": "try-rs"
+  },
+  "tty-solitaire": {
+   "apt": "tty-solitaire",
+   "pacman": "tty-solitaire",
+   "brew": "tty-solitaire"
+  },
+  "ttyper": {
+   "pacman": "ttyper"
+  },
+  "ttyplot": {
+   "apt": "ttyplot",
+   "dnf": "ttyplot",
+   "brew": "ttyplot"
+  },
+  "tuisky": {
+   "brew": "tuisky"
+  },
+  "turbo": {
+   "pacman": "turbo"
+  },
+  "tweakcc": {
+   "brew": "tweakcc"
+  },
+  "twitch-tui": {
+   "pacman": "twitch-tui"
+  },
+  "typtea": {
+   "brew": "typtea"
+  },
+  "vhs": {
+   "dnf": "vhs",
+   "pacman": "vhs",
+   "brew": "vhs"
+  },
+  "vlc": {
+   "apt": "vlc",
+   "dnf": "vlc",
+   "pacman": "vlc"
+  },
+  "vortix": {
+   "pacman": "vortix",
+   "brew": "vortix"
+  },
+  "w3m": {
+   "dnf": "w3m",
+   "brew": "w3m"
+  },
+  "wavemon": {
+   "apt": "wavemon",
+   "dnf": "wavemon",
+   "pacman": "wavemon",
+   "brew": "wavemon"
+  },
+  "wego": {
+   "apt": "wego",
+   "brew": "wego"
+  },
+  "wifitui": {
+   "brew": "wifitui"
+  },
+  "wiremix": {
+   "dnf": "wiremix",
+   "pacman": "wiremix"
+  },
+  "x-cmd": {
+   "brew": "x-cmd"
+  },
+  "xplr": {
+   "pacman": "xplr",
+   "brew": "xplr"
+  },
+  "yazi": {
+   "pacman": "yazi"
+  },
+  "ytfzf": {
+   "apt": "ytfzf",
+   "pacman": "ytfzf"
+  },
+  "zellij": {
+   "pacman": "zellij",
+   "brew": "zellij"
+  },
+  "zenith": {
+   "pacman": "zenith",
+   "brew": "zenith"
+  }
+ }
+}

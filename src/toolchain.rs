@@ -6,6 +6,17 @@
 //! Pure string/shell generation — the store runs the result in a PTY window.
 
 /// A language / package toolchain a recipe depends on.
+/// Loads an installed Homebrew into the current shell (its install places on
+/// macOS and Linux), for a brew that is installed but not on PATH.
+macro_rules! brew_env {
+    () => {
+        "for _b in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew \"$HOME/.linuxbrew/bin/brew\"; do [ -x \"$_b\" ] && { eval \"$(\"$_b\" shellenv)\"; break; }; done"
+    };
+}
+
+/// [`brew_env`] as a string: put an installed Homebrew on PATH in this shell.
+pub const BREW_ENV: &str = brew_env!();
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Toolchain {
     Go,
@@ -61,27 +72,34 @@ impl Toolchain {
             Toolchain::Cargo => {
                 "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && . \"$HOME/.cargo/env\""
             }
+            // The host's own manager first (WMCAT-005): the distribution's on
+            // Linux, Homebrew on macOS (where none of the others exist).
             Toolchain::Go => {
-                "( command -v brew >/dev/null 2>&1 && brew install go ) \
-|| ( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y golang ) \
+                "( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y golang ) \
 || ( command -v dnf >/dev/null 2>&1 && sudo dnf install -y golang ) \
-|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm go )"
+|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm go ) \
+|| ( command -v brew >/dev/null 2>&1 && brew install go )"
             }
             Toolchain::Node => {
-                "( command -v brew >/dev/null 2>&1 && brew install node ) \
-|| ( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y nodejs npm ) \
+                "( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y nodejs npm ) \
 || ( command -v dnf >/dev/null 2>&1 && sudo dnf install -y nodejs npm ) \
-|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm nodejs npm )"
+|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm nodejs npm ) \
+|| ( command -v brew >/dev/null 2>&1 && brew install node )"
             }
             Toolchain::Python => {
-                "( command -v brew >/dev/null 2>&1 && brew install python ) \
-|| ( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y python3 python3-pip ) \
+                "( command -v apt-get >/dev/null 2>&1 && sudo apt-get install -y python3 python3-pip ) \
 || ( command -v dnf >/dev/null 2>&1 && sudo dnf install -y python3 python3-pip ) \
-|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm python python-pip )"
+|| ( command -v pacman >/dev/null 2>&1 && sudo pacman -S --noconfirm python python-pip ) \
+|| ( command -v brew >/dev/null 2>&1 && brew install python )"
             }
             // Homebrew's official bootstrap (interactive; may prompt for sudo).
+            // It does not put brew on PATH, so load it into this shell after.
             Toolchain::Brew => {
-                "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                concat!(
+                    "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\" && { ",
+                    brew_env!(),
+                    "; command -v brew >/dev/null 2>&1; }"
+                )
             }
         }
     }
@@ -101,8 +119,10 @@ pub fn preamble(app: &str, method: &str, homepage: &str) -> String {
     let probe = tc.probe_bin();
     let label = tc.label();
     let snippet = tc.install_snippet();
+    // A Homebrew installed earlier but not on PATH is used, not reinstalled.
+    let env = if tc == Toolchain::Brew { format!("{BREW_ENV}; ") } else { String::new() };
     format!(
-        "if ! command -v {probe} >/dev/null 2>&1; then \
+        "{env}if ! command -v {probe} >/dev/null 2>&1; then \
 echo '{app} needs {label}, which is not installed.'; \
 printf 'Install {label} now? [y/N] '; read -r _tc_ans; \
 case \"$_tc_ans\" in \

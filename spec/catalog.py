@@ -63,3 +63,30 @@ class UpdateListFetch(Requirement):
     `suite-apps.txt` from the same versioned location, then from the
     repository, so a list for a newer core never reaches an older one.
     """
+
+
+class PackageNamesPerManager(Requirement):
+    """REQUIREMENT-ID: WMCAT-005
+
+    tetron-wm runs on Debian, Ubuntu, Fedora, Arch and macOS, so a catalog
+    entry carries its package name per package manager, `pkg` (`apt`, `dnf`,
+    `pacman`, `brew`), never Debian names alone. The names come from Repology
+    (`scripts/match_repology.py` writes `lists/repology.json`: apt from Debian
+    13, else Ubuntu 24.04, else Debian 12; dnf from the newest Fedora; pacman
+    from Arch, not the AUR; brew from Homebrew formulae); a `pkg` table in
+    `lists/tetron.toml` overrides them name by name (`""` removes one). A
+    recipe is the upstream way only (binary, cargo, go, uv, script, …), never a
+    distribution package manager command.
+
+    The Store installs with the host's own package manager first, when it has
+    the package (Homebrew on macOS; apt, dnf or pacman on Linux, checked with
+    the manager before installing, so a name missing on one release falls
+    through), else the verified upstream recipe, else Homebrew on Linux as
+    the last resort, else a best-effort chain (the host's manager by command
+    name, cargo, go, an installed brew). A Homebrew installed by the Store is
+    loaded into the same shell before the app install, and an installed brew
+    not on PATH is used rather than installed again. Toolchains (Go, Node,
+    Python) come from the distribution's manager first. Only plain package
+    names reach the shell. An app with a package for this OS is listed even
+    when its recipe names other systems.
+    """

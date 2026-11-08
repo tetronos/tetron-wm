@@ -49,6 +49,31 @@ pub struct CatalogApp {
     /// The smallest suite size that brings it (`desktop`, `extras`), if any.
     #[serde(default)]
     pub set: Option<String>,
+    /// Package names per package manager (WMCAT-005), from Repology
+    /// (lists/repology.json) and lists/tetron.toml. Empty: no package known.
+    #[serde(default)]
+    pub pkg: Packages,
+}
+
+/// An app's package name for each package manager the Store uses; an empty
+/// field means that manager has no package for it.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+pub struct Packages {
+    #[serde(default)]
+    pub apt: String,
+    #[serde(default)]
+    pub dnf: String,
+    #[serde(default)]
+    pub pacman: String,
+    #[serde(default)]
+    pub brew: String,
+}
+
+impl Packages {
+    /// Whether any distribution package manager (apt, dnf, pacman) has it.
+    pub fn any_distro(&self) -> bool {
+        !(self.apt.is_empty() && self.dnf.is_empty() && self.pacman.is_empty())
+    }
 }
 
 fn optional_tier() -> String {
@@ -194,11 +219,24 @@ pub fn current_os() -> &'static str {
 }
 
 /// Whether an app is applicable to the current OS (true unless its recipe lists
-/// operating systems that exclude this one).
+/// operating systems that exclude this one and no package for this OS exists).
 pub fn runs_on_current_os(name: &str) -> bool {
-    match recipe(name) {
-        Some(r) if !r.os.is_empty() => r.os.iter().any(|o| o == current_os()),
+    let Some(a) = catalog().iter().find(|a| a.name == name) else { return true };
+    match &a.recipe {
+        Some(r) if !r.os.is_empty() => {
+            r.os.iter().any(|o| o == current_os()) || has_package_for(&a.pkg, current_os())
+        }
         _ => true,
+    }
+}
+
+/// Whether `p` names a package for a manager that runs on `os`: the
+/// distribution managers on Linux, Homebrew on macOS and Linux.
+pub fn has_package_for(p: &Packages, os: &str) -> bool {
+    match os {
+        "linux" => p.any_distro() || !p.brew.is_empty(),
+        "macos" => !p.brew.is_empty(),
+        _ => false,
     }
 }
 

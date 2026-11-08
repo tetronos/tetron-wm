@@ -5,8 +5,10 @@
 # here override the imported ones. Fields: name, bin, category, description,
 # homepage, cli, needs_url, distinct (true: a different app than a listed one
 # with the same name or command; never matched), tier (default | recommended | optional), recipe
-# (install, method, verified, os, requires_cwd, tip), variants (suffix, args,
-# warn). After an edit run: python3 scripts/merge_catalog.py
+# (install, method, verified, os, requires_cwd, tip: the upstream way, never a
+# distro package manager), pkg (apt, dnf, pacman, brew: package names; they
+# override lists/repology.json name by name, "" removes one), variants (suffix,
+# args, warn). After an edit run: python3 scripts/merge_catalog.py
 
 # Imported names dropped from the catalog: libraries, collections, duplicates.
 exclude = [
@@ -714,11 +716,7 @@ os = ["macos", "linux"]
 
 [[app]]
 name = "oryx"
-[app.recipe]
-install = "pacman -S oryx"
-method = "apt"
-verified = true
-os = ["linux"]
+pkg = { pacman = "oryx" }
 
 [[app]]
 name = "otel-tui"
@@ -2216,11 +2214,7 @@ os = ["macos", "linux", "windows"]
 
 [[app]]
 name = "tilde"
-[app.recipe]
-install = "apt-get install tilde"
-method = "apt"
-verified = true
-os = ["linux"]
+pkg = { apt = "tilde" }
 
 [[app]]
 name = "treemd"
@@ -3074,11 +3068,7 @@ os = ["linux", "macos"]
 
 [[app]]
 name = "scli"
-[app.recipe]
-install = "apt install scli"
-method = "apt"
-verified = true
-os = ["linux", "macos"]
+pkg = { apt = "scli" }
 
 [[app]]
 name = "siggo"
@@ -3549,11 +3539,7 @@ os = ["macos", "linux"]
 
 [[app]]
 name = "nmtui"
-[app.recipe]
-install = "sudo apt install network-manager"
-method = "apt"
-verified = true
-os = ["linux"]
+pkg = { apt = "network-manager", dnf = "NetworkManager-tui", pacman = "networkmanager" }
 
 [[app]]
 name = "oha"
@@ -5489,3 +5475,127 @@ install = "[ \"$(uname -m)\" = x86_64 ] || { echo 'kptui: release binary is x86_
 method = "binary"
 verified = true
 os = ["linux"]
+
+# ── Package names Repology found but could not confirm by homepage ──
+# (the distribution lists a project site, an older site or a moved repository;
+# each checked by hand against the package's homepage, WMCAT-005)
+
+[[app]]
+name = "Gemini CLI"
+pkg = { brew = "gemini-cli" }
+
+[[app]]
+name = "bmon"
+pkg = { apt = "bmon" }
+
+[[app]]
+name = "nerdlog"
+pkg = { brew = "nerdlog" }
+
+[[app]]
+name = "gitui"
+pkg = { brew = "gitui" }
+
+[[app]]
+name = "k9s"
+pkg = { brew = "k9s" }
+
+[[app]]
+name = "flow-control"
+pkg = { brew = "flow-control" }
+
+[[app]]
+name = "micro"
+pkg = { apt = "micro", pacman = "micro", brew = "micro" }
+
+[[app]]
+name = "orbiton"
+pkg = { pacman = "orbiton", brew = "orbiton" }
+
+[[app]]
+name = "broot"
+pkg = { apt = "broot", brew = "broot" }
+
+[[app]]
+name = "mc"
+pkg = { apt = "mc", dnf = "mc", pacman = "mc", brew = "midnight-commander" }
+
+[[app]]
+name = "yazi"
+pkg = { brew = "yazi" }
+
+[[app]]
+name = "Greed"
+pkg = { apt = "greed" }
+
+[[app]]
+name = "MyMan"
+pkg = { brew = "myman" }
+
+[[app]]
+name = "nInvaders"
+pkg = { apt = "ninvaders" }
+
+[[app]]
+name = "aerc"
+pkg = { dnf = "aerc", pacman = "aerc" }
+
+[[app]]
+name = "himalaya"
+pkg = { pacman = "himalaya" }
+
+[[app]]
+name = "mcabber"
+pkg = { pacman = "mcabber" }
+
+[[app]]
+name = "meli"
+pkg = { apt = "meli", brew = "meli" }
+
+[[app]]
+name = "arttime"
+pkg = { brew = "arttime" }
+
+[[app]]
+name = "bluetuith"
+pkg = { brew = "bluetuith" }
+
+[[app]]
+name = "cfdisk"
+pkg = { apt = "fdisk", dnf = "util-linux", pacman = "util-linux", brew = "" }
+
+[[app]]
+name = "gpg-tui"
+pkg = { brew = "gpg-tui" }
+
+[[app]]
+name = "ncdu"
+pkg = { dnf = "ncdu" }
+
+[[app]]
+name = "kew"
+pkg = { pacman = "kew" }
+
+[[app]]
+name = "dvtm"
+pkg = { apt = "dvtm", dnf = "dvtm", pacman = "dvtm" }
+
+[[app]]
+name = "khard"
+pkg = { apt = "khard", dnf = "khard" }
+
+[[app]]
+name = "wordgrinder"
+pkg = { apt = "wordgrinder", dnf = "wordgrinder", brew = "wordgrinder" }
+
+[[app]]
+name = "LYNX"
+pkg = { brew = "lynx" }
+
+[[app]]
+name = "w3m"
+pkg = { apt = "w3m", pacman = "w3m" }
+
+[[app]]
+name = "cava"
+pkg = { apt = "cava" }

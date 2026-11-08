@@ -31,6 +31,10 @@ carry user-visible feature work and the occasional breaking config change.
 - Store: croft, a VS Code style IDE in the terminal (https://github.com/vitali87/croft), installed from its signed-checksum release into `~/.local/bin`, where its own updater keeps it current. Its icons need a Nerd Font (`tetronos-nerd-font-symbols`); kmscon picks up a newly installed font after it restarts.
 
 ### Changed
+- Store: installs with your system's own package manager when it has the app (apt on Debian and Ubuntu, dnf on Fedora, pacman on Arch, Homebrew on macOS), else with the app's own upstream way (release binary, cargo, go, uv, …), and only then with Homebrew on Linux. Package names per manager come from Repology (https://repology.org) and are kept only when the package's homepage is the app's, so a different program with the same name is never installed; 247 apps now have one (apt 96, dnf 74, pacman 132, brew 212). A name your release lacks falls through to the next way. Before, 290 apps installed only with Homebrew, also on Linux (now 157).
+- Store: a Homebrew it installs is put on PATH in the same window, so the app install that follows works; a Homebrew already installed but not on PATH is used instead of installed again.
+- Store: Go, Node and Python, when an install needs them, come from the distribution's package manager first, Homebrew last.
+- Store: oryx, tilde, scli and nmtui no longer run another distribution's package manager (pacman on Debian, apt on Fedora); each uses the manager that has it.
 - Store: pyradio (internet radio) installs with `uv tool install` from its repository with its dependencies, instead of its own installer, which needs pipx; Settings > Updates keeps it current.
 
 ### Removed

@@ -39,6 +39,9 @@
     ],
     "requires_cwd": true
    },
+   "pkg": {
+    "brew": "aider"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -204,8 +207,13 @@
     ],
     "requires_cwd": true
    },
+   "pkg": {
+    "pacman": "gemini-cli",
+    "brew": "gemini-cli"
+   },
    "tier": "optional",
    "sources": [
+    "tetron",
     "tetron"
    ]
   },
@@ -268,6 +276,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "herdr"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -312,6 +323,9 @@
     ],
     "requires_cwd": true,
     "tip": "First run: `jcode login --provider claude` (or openai/gemini/copilot) to sign in, then `jcode` opens the TUI. macOS with Homebrew can instead `brew tap 1jehuang/jcode && brew install jcode`."
+   },
+   "pkg": {
+    "brew": "jcode"
    },
    "tier": "optional",
    "sources": [
@@ -423,6 +437,10 @@
     "requires_cwd": true,
     "tip": "The agent of the ✦ Assistant (Settings > Assistant). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
    },
+   "pkg": {
+    "pacman": "opencode",
+    "brew": "opencode"
+   },
    "tier": "default",
    "set": "desktop",
    "sources": [
@@ -490,6 +508,10 @@
     ],
     "requires_cwd": true
    },
+   "pkg": {
+    "pacman": "qwen-code",
+    "brew": "qwen-code"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -555,6 +577,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "apachetop",
+    "dnf": "apachetop",
+    "brew": "apachetop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -575,6 +602,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "atop",
+    "dnf": "atop",
+    "pacman": "atop",
+    "brew": "atop"
    },
    "tier": "optional",
    "sources": [
@@ -619,6 +652,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "bandwhich",
+    "brew": "bandwhich"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -640,6 +677,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "bashtop",
+    "pacman": "bashtop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -659,6 +700,9 @@
     "os": [
      "linux"
     ]
+   },
+   "pkg": {
+    "dnf": "below"
    },
    "tier": "optional",
    "sources": [
@@ -681,6 +725,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "binsider",
+    "brew": "binsider"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -702,9 +750,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "bmon",
+    "dnf": "bmon",
+    "pacman": "bmon",
+    "brew": "bmon"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -722,6 +777,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "btm",
+    "pacman": "bottom",
+    "brew": "bottom"
    },
    "tier": "optional",
    "sources": [
@@ -744,6 +804,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "bpytop",
+    "pacman": "bpytop",
+    "brew": "bpytop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -764,6 +829,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "btop",
+    "dnf": "btop",
+    "pacman": "btop",
+    "brew": "btop"
    },
    "tier": "optional",
    "sources": [
@@ -797,6 +868,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "cgdb",
+    "dnf": "cgdb",
+    "pacman": "cgdb",
+    "brew": "cgdb"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -817,6 +894,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "chdig"
    },
    "tier": "optional",
    "sources": [
@@ -922,6 +1002,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "sysdig",
+    "pacman": "sysdig",
+    "brew": "sysdig"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -986,6 +1071,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "dolphie"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1009,6 +1097,9 @@
    "category": "Dashboards",
    "description": "A TUI for monitoring, inspecting and managing Apache Airflow DAGs",
    "homepage": "https://github.com/jvanbuel/flowrs",
+   "pkg": {
+    "brew": "flowrs"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -1028,6 +1119,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "framework-tool-tui"
    },
    "tier": "optional",
    "sources": [
@@ -1092,6 +1186,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "glances",
+    "dnf": "glances",
+    "pacman": "glances",
+    "brew": "glances"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1123,6 +1223,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "goaccess",
+    "dnf": "goaccess",
+    "pacman": "goaccess",
+    "brew": "goaccess"
    },
    "tier": "optional",
    "sources": [
@@ -1166,6 +1272,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "gonzo"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1187,6 +1296,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "gotop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1207,6 +1319,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "gping",
+    "pacman": "gping",
+    "brew": "gping"
    },
    "tier": "optional",
    "sources": [
@@ -1251,6 +1368,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "htop",
+    "dnf": "htop",
+    "pacman": "htop",
+    "brew": "htop"
+   },
    "tier": "default",
    "set": "desktop",
    "sources": [
@@ -1293,6 +1416,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "hwatch"
    },
    "tier": "optional",
    "sources": [
@@ -1358,6 +1484,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "kaskade"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1377,6 +1506,10 @@
     "os": [
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "kmon",
+    "pacman": "kmon"
    },
    "tier": "optional",
    "sources": [
@@ -1462,6 +1595,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "macmon"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1483,9 +1619,13 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "nerdlog"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -1503,6 +1643,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "nethogs",
+    "dnf": "nethogs",
+    "pacman": "nethogs",
+    "brew": "nethogs"
    },
    "tier": "optional",
    "sources": [
@@ -1525,6 +1671,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "netscanner",
+    "brew": "netscanner"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1546,6 +1696,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "nvtop",
+    "dnf": "nvtop",
+    "pacman": "nvtop",
+    "brew": "nvtop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1558,13 +1714,8 @@
    "category": "Dashboards",
    "description": "A TUI for sniffing network traffic using eBPF",
    "homepage": "https://github.com/pythops/oryx",
-   "recipe": {
-    "install": "pacman -S oryx",
-    "method": "apt",
-    "verified": true,
-    "os": [
-     "linux"
-    ]
+   "pkg": {
+    "pacman": "oryx"
    },
    "tier": "optional",
    "sources": [
@@ -1629,6 +1780,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "process-compose"
    },
    "tier": "optional",
    "sources": [
@@ -1765,6 +1919,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "rustnet",
+    "brew": "rustnet"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -1785,6 +1943,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "s-tui",
+    "dnf": "s-tui",
+    "pacman": "s-tui"
    },
    "tier": "optional",
    "sources": [
@@ -2046,6 +2209,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "trippy",
+    "pacman": "trippy",
+    "brew": "trippy"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -2188,6 +2356,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "yozefu"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -2208,6 +2379,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "zenith",
+    "brew": "zenith"
    },
    "tier": "optional",
    "sources": [
@@ -2293,6 +2468,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "atac",
+    "brew": "atac"
    },
    "tier": "optional",
    "sources": [
@@ -2443,6 +2622,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "chiko"
    },
    "tier": "optional",
    "sources": [
@@ -2645,6 +2827,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "dblab"
    },
    "tier": "optional",
    "sources": [
@@ -2862,6 +3047,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "feluda"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -2926,6 +3114,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "fx",
+    "brew": "fx"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -2946,6 +3138,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "ggc"
    },
    "tier": "optional",
    "sources": [
@@ -2968,6 +3163,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "ghcup"
    },
    "tier": "optional",
    "sources": [
@@ -3032,6 +3230,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "apt": "git-crecord"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3086,9 +3287,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "dnf": "gitui",
+    "pacman": "gitui",
+    "brew": "gitui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -3181,6 +3388,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "harlequin"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3224,6 +3434,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "heretek"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3246,6 +3459,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "brew": "hunk"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -3265,6 +3481,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "jqp",
+    "brew": "jqp"
    },
    "tier": "optional",
    "sources": [
@@ -3309,6 +3529,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "lazygit",
+    "pacman": "lazygit",
+    "brew": "lazygit"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3329,6 +3554,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "lazyjournal"
    },
    "tier": "optional",
    "sources": [
@@ -3351,6 +3579,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "lazymake"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3371,6 +3602,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "lazysql"
    },
    "tier": "optional",
    "sources": [
@@ -3414,6 +3648,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "litecli",
+    "dnf": "litecli",
+    "brew": "litecli"
    },
    "tier": "optional",
    "sources": [
@@ -3502,6 +3741,10 @@
      "windows"
     ]
    },
+   "pkg": {
+    "apt": "mitmproxy",
+    "pacman": "mitmproxy"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3543,6 +3786,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "mycli",
+    "dnf": "mycli",
+    "brew": "mycli"
    },
    "tier": "optional",
    "sources": [
@@ -3628,6 +3876,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "pgcli",
+    "dnf": "pgcli",
+    "pacman": "pgcli",
+    "brew": "pgcli"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -3680,6 +3934,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "posting"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3714,6 +3971,9 @@
    "category": "Development",
    "description": "Scriptable MITM proxy TUI to inspect, intercept, replay, and rewrite HTTP(S) and WebSocket traffic",
    "homepage": "https://github.com/emanuele-em/proxelar",
+   "pkg": {
+    "brew": "proxelar"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -3776,6 +4036,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "python3-pudb"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3818,6 +4081,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "qo"
    },
    "tier": "optional",
    "sources": [
@@ -3884,6 +4150,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "rainfrog",
+    "brew": "rainfrog"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3938,6 +4208,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "resterm"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3960,6 +4233,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "runme"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -3972,6 +4248,9 @@
    "category": "Development",
    "description": "Fast, driverless, Vim-first database TUI with safe editing and ER diagrams.",
    "homepage": "https://github.com/riii111/sabiql",
+   "pkg": {
+    "brew": "sabiql"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -4013,6 +4292,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "serie",
+    "brew": "serie"
    },
    "tier": "optional",
    "sources": [
@@ -4078,6 +4361,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "soft-serve",
+    "brew": "soft-serve"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4121,6 +4408,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "sq"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4163,6 +4453,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "stu"
    },
    "tier": "optional",
    "sources": [
@@ -4227,6 +4520,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "tig",
+    "dnf": "tig",
+    "pacman": "tig",
+    "brew": "tig"
    },
    "tier": "optional",
    "sources": [
@@ -4401,6 +4700,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "vtcode"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4552,6 +4854,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "dive",
+    "brew": "dive"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4594,6 +4900,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "dockly"
    },
    "tier": "optional",
    "sources": [
@@ -4680,6 +4989,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "dry"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4700,6 +5012,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "dtop"
    },
    "tier": "optional",
    "sources": [
@@ -4722,6 +5037,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "ducker",
+    "brew": "ducker"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4742,6 +5061,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "e1s"
    },
    "tier": "optional",
    "sources": [
@@ -4828,9 +5150,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "dnf": "k9s",
+    "pacman": "k9s",
+    "brew": "k9s"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -4849,6 +5177,9 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "brew": "kdash"
    },
    "tier": "optional",
    "sources": [
@@ -4893,6 +5224,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "ktop"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4913,6 +5247,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "kubetui",
+    "brew": "kubetui"
    },
    "tier": "optional",
    "sources": [
@@ -4935,6 +5273,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "lazycontainer"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -4955,6 +5296,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "lazydocker",
+    "brew": "lazydocker"
    },
    "tier": "optional",
    "sources": [
@@ -4991,6 +5336,9 @@
    "category": "Docker/LXC/K8s",
    "description": "Keyboard-focused, yazi-inspired Kubernetes navigator with a Miller columns layout and an owner-based resource hierarchy",
    "homepage": "https://github.com/janosmiko/lfk",
+   "pkg": {
+    "brew": "lfk"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -5010,6 +5358,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "oxker"
    },
    "tier": "optional",
    "sources": [
@@ -5053,6 +5404,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "dnf": "podman-tui",
+    "brew": "podman-tui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5073,6 +5428,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "sen",
+    "dnf": "sen"
    },
    "tier": "optional",
    "sources": [
@@ -5175,6 +5534,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "durdraw",
+    "brew": "durdraw"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5218,9 +5581,13 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "flow-control"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5325,6 +5692,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "kakoune",
+    "dnf": "kakoune",
+    "pacman": "kakoune",
+    "brew": "kakoune"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5378,6 +5751,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "maki"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5421,9 +5797,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "micro",
+    "dnf": "micro",
+    "pacman": "micro",
+    "brew": "micro"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5485,9 +5868,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "orbiton",
+    "brew": "orbiton"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5573,13 +5961,8 @@
    "category": "Editors",
    "description": "Intuitive text editor for the terminal",
    "homepage": "https://github.com/gphalkes/tilde",
-   "recipe": {
-    "install": "apt-get install tilde",
-    "method": "apt",
-    "verified": true,
-    "os": [
-     "linux"
-    ]
+   "pkg": {
+    "apt": "tilde"
    },
    "tier": "optional",
    "sources": [
@@ -5602,6 +5985,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "treemd",
+    "brew": "treemd"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5622,6 +6009,9 @@
      "linux",
      "macos"
     ]
+   },
+   "pkg": {
+    "pacman": "turbo"
    },
    "tier": "optional",
    "sources": [
@@ -5707,9 +6097,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "broot",
+    "pacman": "broot",
+    "brew": "broot"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5749,6 +6145,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "far2l"
    },
    "tier": "optional",
    "sources": [
@@ -5836,6 +6235,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "lf",
+    "pacman": "lf",
+    "brew": "lf"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -5857,10 +6261,17 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "mc",
+    "dnf": "mc",
+    "pacman": "mc",
+    "brew": "midnight-commander"
+   },
    "tier": "default",
    "set": "desktop",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5878,6 +6289,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "nnn",
+    "dnf": "nnn",
+    "pacman": "nnn",
+    "brew": "nnn"
    },
    "tier": "optional",
    "sources": [
@@ -5919,6 +6336,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "ranger",
+    "dnf": "ranger",
+    "pacman": "ranger",
+    "brew": "ranger"
    },
    "tier": "optional",
    "sources": [
@@ -6006,6 +6429,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "superfile",
+    "brew": "superfile"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6049,6 +6476,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "vifm",
+    "dnf": "vifm",
+    "pacman": "vifm",
+    "brew": "vifm"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6070,9 +6503,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "yazi",
+    "brew": "yazi"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -6152,6 +6590,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "bastet",
+    "dnf": "bastet",
+    "brew": "bastet"
    },
    "tier": "optional",
    "sources": [
@@ -6238,6 +6681,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "cbonsai",
+    "dnf": "cbonsai",
+    "brew": "cbonsai"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6259,6 +6707,9 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "pacman": "chess-tui"
    },
    "tier": "optional",
    "sources": [
@@ -6378,6 +6829,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "gittype"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6453,9 +6907,13 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "greed"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -6612,6 +7070,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "moon-buggy",
+    "dnf": "moon-buggy",
+    "brew": "moon-buggy"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6633,9 +7096,13 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "myman"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -6674,6 +7141,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "nethack-common",
+    "dnf": "nethack",
+    "pacman": "nethack",
+    "brew": "nethack"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -6695,9 +7168,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "ninvaders",
+    "brew": "ninvaders"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -6736,6 +7214,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "nudoku",
+    "dnf": "nudoku",
+    "brew": "nudoku"
    },
    "tier": "optional",
    "sources": [
@@ -6801,6 +7284,9 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "pacman": "rebels-in-the-sky"
    },
    "tier": "optional",
    "sources": [
@@ -7099,6 +7585,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "tty-solitaire",
+    "pacman": "tty-solitaire",
+    "brew": "tty-solitaire"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -7293,9 +7784,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "aerc",
+    "dnf": "aerc",
+    "pacman": "aerc",
+    "brew": "aerc"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -7313,6 +7811,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "alpine",
+    "dnf": "alpine",
+    "brew": "alpine"
    },
    "tier": "optional",
    "sources": [
@@ -7356,6 +7859,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "concord"
    },
    "tier": "optional",
    "sources": [
@@ -7465,6 +7971,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "gomuks",
+    "pacman": "gomuks"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -7509,8 +8019,13 @@
      "windows"
     ]
    },
+   "pkg": {
+    "pacman": "himalaya",
+    "brew": "himalaya"
+   },
    "tier": "optional",
    "sources": [
+    "tetron",
     "tetron"
    ]
   },
@@ -7528,6 +8043,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "iamb"
    },
    "tier": "optional",
    "sources": [
@@ -7571,6 +8089,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "irssi",
+    "dnf": "irssi",
+    "pacman": "irssi",
+    "brew": "irssi"
    },
    "tier": "optional",
    "sources": [
@@ -7679,9 +8203,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "mcabber",
+    "dnf": "mcabber",
+    "pacman": "mcabber",
+    "brew": "mcabber"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -7700,9 +8231,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "meli",
+    "brew": "meli"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -7720,6 +8256,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "mutt",
+    "dnf": "mutt",
+    "pacman": "mutt",
+    "brew": "mutt"
    },
    "tier": "optional",
    "sources": [
@@ -7828,6 +8370,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "profanity",
+    "dnf": "profanity",
+    "pacman": "profanity",
+    "brew": "profanity"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -7861,14 +8409,8 @@
    "category": "Messaging",
    "description": "A simple terminal user interface for signal messenger",
    "homepage": "https://github.com/isamert/scli/",
-   "recipe": {
-    "install": "apt install scli",
-    "method": "apt",
-    "verified": true,
-    "os": [
-     "linux",
-     "macos"
-    ]
+   "pkg": {
+    "apt": "scli"
    },
    "tier": "optional",
    "sources": [
@@ -8020,6 +8562,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "toot",
+    "dnf": "toot",
+    "pacman": "toot",
+    "brew": "toot"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8032,6 +8580,10 @@
    "category": "Messaging",
    "description": "A Tox-based instant messaging and video chat client",
    "homepage": "https://github.com/JFreegman/toxic/",
+   "pkg": {
+    "apt": "toxic",
+    "pacman": "toxic"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -8051,6 +8603,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "tuisky"
    },
    "tier": "optional",
    "sources": [
@@ -8114,6 +8669,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "twitch-tui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8134,6 +8692,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "weechat",
+    "dnf": "weechat",
+    "pacman": "weechat",
+    "brew": "weechat"
    },
    "tier": "optional",
    "sources": [
@@ -8177,9 +8741,13 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "arttime"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8219,6 +8787,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "bluetui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8241,9 +8812,13 @@
      "windows"
     ]
    },
+   "pkg": {
+    "brew": "bluetuith"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8304,9 +8879,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "cava",
+    "dnf": "cava",
+    "pacman": "cava",
+    "brew": "cava"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8325,9 +8907,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "fdisk",
+    "dnf": "util-linux",
+    "pacman": "util-linux"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8400,6 +8988,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "csvlens",
+    "brew": "csvlens"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8420,6 +9012,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "diary"
    },
    "tier": "optional",
    "sources": [
@@ -8463,6 +9058,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "dnf": "diskonaut",
+    "pacman": "diskonaut",
+    "brew": "diskonaut"
    },
    "tier": "optional",
    "sources": [
@@ -8517,6 +9117,11 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "dnf": "dua-cli",
+    "pacman": "dua-cli",
+    "brew": "dua-cli"
    },
    "tier": "optional",
    "sources": [
@@ -8614,6 +9219,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "flawz",
+    "brew": "flawz"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8656,6 +9265,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "fzf",
+    "dnf": "fzf",
+    "pacman": "fzf",
+    "brew": "fzf"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8676,6 +9291,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "gdu",
+    "dnf": "gdu",
+    "pacman": "gdu",
+    "brew": "gdu"
    },
    "tier": "optional",
    "sources": [
@@ -8720,6 +9341,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "godap"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8763,9 +9387,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "gpg-tui",
+    "brew": "gpg-tui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8805,6 +9434,9 @@
     "os": [
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "impala"
    },
    "tier": "optional",
    "sources": [
@@ -8848,6 +9480,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "dnf": "jrnl",
+    "pacman": "jrnl",
+    "brew": "jrnl"
    },
    "tier": "optional",
    "sources": [
@@ -8905,6 +9542,9 @@
    "category": "Miscellaneous",
    "description": "Interactive weather, radar, tides, sun and moon views, a planetarium with stars and constellations, and maps with a rotatable globe for the terminal.",
    "homepage": "https://github.com/ashuttl/linecast",
+   "pkg": {
+    "brew": "linecast"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis"
@@ -8924,6 +9564,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "lnav",
+    "dnf": "lnav",
+    "pacman": "lnav",
+    "brew": "lnav"
    },
    "tier": "optional",
    "sources": [
@@ -8946,6 +9592,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "mac-cleanup-go"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -8966,6 +9615,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "mapscii"
    },
    "tier": "optional",
    "sources": [
@@ -8988,6 +9640,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "moc",
+    "brew": "moc"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9009,6 +9665,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "moribito"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9029,6 +9688,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "mqttui",
+    "brew": "mqttui"
    },
    "tier": "optional",
    "sources": [
@@ -9073,9 +9736,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "ncdu",
+    "dnf": "ncdu",
+    "pacman": "ncdu",
+    "brew": "ncdu"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -9093,6 +9763,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "nemu"
    },
    "tier": "optional",
    "sources": [
@@ -9127,13 +9800,10 @@
    "category": "Miscellaneous",
    "description": "ncurses network manager",
    "homepage": "https://developer.gnome.org/NetworkManager/stable/nmtui.html",
-   "recipe": {
-    "install": "sudo apt install network-manager",
-    "method": "apt",
-    "verified": true,
-    "os": [
-     "linux"
-    ]
+   "pkg": {
+    "apt": "network-manager",
+    "dnf": "NetworkManager-tui",
+    "pacman": "networkmanager"
    },
    "tier": "optional",
    "sources": [
@@ -9167,6 +9837,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "oha",
+    "brew": "oha"
    },
    "tier": "optional",
    "sources": [
@@ -9307,6 +9981,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "recoverpy"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9327,6 +10004,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "redu"
    },
    "tier": "optional",
    "sources": [
@@ -9529,6 +10209,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "termshark",
+    "pacman": "termshark",
+    "brew": "termshark"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9615,6 +10300,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "try-rs"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9659,6 +10347,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "pacman": "ttyper"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9700,6 +10391,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "tweakcc"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9720,6 +10414,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "typtea"
    },
    "tier": "optional",
    "sources": [
@@ -9742,6 +10439,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "vortix",
+    "brew": "vortix"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9761,6 +10462,12 @@
     "os": [
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "wavemon",
+    "dnf": "wavemon",
+    "pacman": "wavemon",
+    "brew": "wavemon"
    },
    "tier": "optional",
    "sources": [
@@ -9804,6 +10511,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "wego",
+    "brew": "wego"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9844,6 +10555,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "wifitui"
    },
    "tier": "optional",
    "sources": [
@@ -9930,6 +10644,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "x-cmd"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -9950,6 +10667,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "xplr",
+    "brew": "xplr"
    },
    "tier": "optional",
    "sources": [
@@ -10016,6 +10737,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "asak"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -10036,6 +10760,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "bookokrat"
    },
    "tier": "optional",
    "sources": [
@@ -10058,6 +10785,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "chafa",
+    "dnf": "chafa",
+    "pacman": "chafa",
+    "brew": "chafa"
    },
    "tier": "default",
    "set": "desktop",
@@ -10101,6 +10834,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "cmus",
+    "pacman": "cmus",
+    "brew": "cmus"
    },
    "tier": "optional",
    "sources": [
@@ -10164,6 +10902,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "fancy-cat"
    },
    "tier": "optional",
    "sources": [
@@ -10305,6 +11046,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "apt": "invidtui"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -10347,9 +11091,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "kew",
+    "pacman": "kew",
+    "brew": "kew"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -10562,6 +11312,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "ncspot",
+    "brew": "ncspot"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -10689,6 +11443,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "rmpc",
+    "brew": "rmpc"
    },
    "tier": "optional",
    "sources": [
@@ -10830,6 +11588,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "spotify-player",
+    "brew": "spotify_player"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -10884,6 +11646,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "tdf",
+    "brew": "tdf"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -10925,6 +11691,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "termusic",
+    "brew": "termusic"
    },
    "tier": "optional",
    "sources": [
@@ -10969,6 +11739,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "timg",
+    "dnf": "timg",
+    "brew": "timg"
    },
    "tier": "optional",
    "sources": [
@@ -11055,6 +11830,10 @@
      "windows"
     ]
    },
+   "pkg": {
+    "apt": "trophy",
+    "dnf": "trophy"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11120,6 +11899,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "dnf": "vhs",
+    "pacman": "vhs",
+    "brew": "vhs"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -11161,6 +11945,11 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "apt": "vlc",
+    "dnf": "vlc",
+    "pacman": "vlc"
    },
    "tier": "optional",
    "sources": [
@@ -11224,6 +12013,10 @@
     "os": [
      "linux"
     ]
+   },
+   "pkg": {
+    "dnf": "wiremix",
+    "pacman": "wiremix"
    },
    "tier": "optional",
    "sources": [
@@ -11311,6 +12104,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "ytfzf",
+    "pacman": "ytfzf"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11352,6 +12149,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "abook",
+    "dnf": "abook",
+    "brew": "abook"
    },
    "tier": "optional",
    "sources": [
@@ -11429,6 +12231,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "bagels"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11483,6 +12288,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "brew": "calcure"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11503,6 +12311,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "calcurse",
+    "dnf": "calcurse",
+    "pacman": "calcurse",
+    "brew": "calcurse"
    },
    "tier": "optional",
    "sources": [
@@ -11589,6 +12403,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "doxx",
+    "brew": "doxx"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11632,9 +12450,15 @@
      "macos"
     ]
    },
+   "pkg": {
+    "apt": "dvtm",
+    "dnf": "dvtm",
+    "pacman": "dvtm"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -11652,6 +12476,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "ekphos"
    },
    "tier": "optional",
    "sources": [
@@ -11694,6 +12521,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "fjira"
    },
    "tier": "optional",
    "sources": [
@@ -11748,6 +12578,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "glow",
+    "dnf": "glow",
+    "pacman": "glow",
+    "brew": "glow"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11768,6 +12604,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "gocheat"
    },
    "tier": "optional",
    "sources": [
@@ -11832,6 +12671,10 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "apt": "hledger-ui",
+    "pacman": "hledger-ui"
    },
    "tier": "optional",
    "sources": [
@@ -11942,6 +12785,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "intelli-shell",
+    "brew": "intelli-shell"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -11962,6 +12809,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "jiratui"
    },
    "tier": "optional",
    "sources": [
@@ -12093,8 +12943,15 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "khard",
+    "dnf": "khard",
+    "pacman": "khard",
+    "brew": "khard"
+   },
    "tier": "optional",
    "sources": [
+    "tetron",
     "tetron"
    ]
   },
@@ -12131,6 +12988,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "lazyssh"
    },
    "tier": "optional",
    "sources": [
@@ -12225,6 +13085,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "mcfly",
+    "brew": "mcfly"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12289,6 +13153,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "nb"
    },
    "tier": "optional",
    "sources": [
@@ -12406,6 +13273,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "patat",
+    "dnf": "patat",
+    "brew": "patat"
    },
    "tier": "optional",
    "sources": [
@@ -12535,6 +13407,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "presenterm",
+    "brew": "presenterm"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12599,6 +13475,11 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "sc-im",
+    "dnf": "sc-im",
+    "brew": "sc-im"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12620,6 +13501,9 @@
      "linux",
      "windows"
     ]
+   },
+   "pkg": {
+    "brew": "sheets"
    },
    "tier": "optional",
    "sources": [
@@ -12726,6 +13610,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "tabiew",
+    "brew": "tabiew"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12748,6 +13636,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "taskline"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12768,6 +13659,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "taskwarrior-tui",
+    "brew": "taskwarrior-tui"
    },
    "tier": "optional",
    "sources": [
@@ -12790,6 +13685,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "television",
+    "brew": "television"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12811,6 +13710,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "tenere"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12831,6 +13733,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "termscp",
+    "brew": "termscp"
    },
    "tier": "optional",
    "sources": [
@@ -12875,6 +13781,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "tmux",
+    "dnf": "tmux",
+    "pacman": "tmux",
+    "brew": "tmux"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -12895,6 +13807,9 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "brew": "tock"
    },
    "tier": "optional",
    "sources": [
@@ -12993,6 +13908,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "topydo",
+    "brew": "topydo"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13051,6 +13970,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "ttyplot",
+    "dnf": "ttyplot",
+    "brew": "ttyplot"
    },
    "tier": "optional",
    "sources": [
@@ -13180,6 +14104,9 @@
      "linux"
     ]
    },
+   "pkg": {
+    "brew": "tuios"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13265,6 +14192,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "visidata",
+    "dnf": "visidata",
+    "pacman": "visidata",
+    "brew": "visidata"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13286,8 +14219,14 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "wordgrinder",
+    "dnf": "wordgrinder",
+    "brew": "wordgrinder"
+   },
    "tier": "optional",
    "sources": [
+    "tetron",
     "tetron"
    ]
   },
@@ -13328,6 +14267,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "zellij",
+    "brew": "zellij"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13348,6 +14291,11 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "dnf": "astroterm",
+    "pacman": "astroterm",
+    "brew": "astroterm"
    },
    "tier": "optional",
    "sources": [
@@ -13380,6 +14328,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "gitlogue",
+    "brew": "gitlogue"
    },
    "tier": "optional",
    "sources": [
@@ -13488,6 +14440,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "bombadillo",
+    "brew": "bombadillo"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13530,6 +14486,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "bulletty",
+    "brew": "bulletty"
    },
    "tier": "optional",
    "sources": [
@@ -13616,6 +14576,10 @@
      "linux"
     ]
    },
+   "pkg": {
+    "pacman": "chawan",
+    "brew": "chawan"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13637,6 +14601,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "cloudflare-speed-cli",
+    "brew": "cloudflare-speed-cli"
    },
    "tier": "optional",
    "sources": [
@@ -13680,6 +14648,11 @@
      "linux",
      "macos"
     ]
+   },
+   "pkg": {
+    "apt": "elinks",
+    "dnf": "elinks",
+    "pacman": "elinks"
    },
    "tier": "optional",
    "sources": [
@@ -13748,6 +14721,9 @@
      "windows"
     ]
    },
+   "pkg": {
+    "dnf": "lagrange"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13769,9 +14745,16 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "lynx",
+    "dnf": "lynx",
+    "pacman": "lynx",
+    "brew": "lynx"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -13789,6 +14772,12 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "apt": "newsboat",
+    "dnf": "newsboat",
+    "pacman": "newsboat",
+    "brew": "newsboat"
    },
    "tier": "optional",
    "sources": [
@@ -13899,6 +14888,12 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "rtorrent",
+    "dnf": "rtorrent",
+    "pacman": "rtorrent",
+    "brew": "rtorrent"
+   },
    "tier": "optional",
    "sources": [
     "awesome-tuis",
@@ -13961,6 +14956,10 @@
      "macos",
      "linux"
     ]
+   },
+   "pkg": {
+    "pacman": "slumber",
+    "brew": "slumber"
    },
    "tier": "optional",
    "sources": [
@@ -14164,10 +15163,17 @@
      "linux"
     ]
    },
+   "pkg": {
+    "apt": "w3m",
+    "dnf": "w3m",
+    "pacman": "w3m",
+    "brew": "w3m"
+   },
    "tier": "default",
    "set": "desktop",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   }

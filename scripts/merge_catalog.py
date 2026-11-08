@@ -6,8 +6,11 @@ Usage:
     python3 scripts/merge_catalog.py --check   # exit 1 when it is stale
 
 Inputs: the imported lists (lists/<name>.json, in IMPORTED order), our
-lists/tetron.toml, and assets/suite-apps.txt (scripts/gen_suite_lists.py),
-which gives each app its set and is carried whole as "suite_apps".
+lists/tetron.toml, assets/suite-apps.txt (scripts/gen_suite_lists.py),
+which gives each app its set and is carried whole as "suite_apps", and
+lists/repology.json (scripts/match_repology.py, WMCAT-005): package names per
+manager (apt, dnf, pacman, brew) by app name; a `pkg` table of ours overrides
+them name by name ("" means that manager has none).
 
 Matching: by name (any case), then by command name; an entry of ours with
 distinct = true is a different app and never matches. Ours wins field by
@@ -26,11 +29,12 @@ SUITE = ROOT / "assets" / "suite-apps.txt"
 SCHEMA = 1
 IMPORTED = ["awesome-tuis"]
 REQUIRED = ["name", "bin", "category", "description", "homepage"]
-OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct"]
+OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg"]
+MANAGERS = ("apt", "dnf", "pacman", "brew")
 RECIPE_KEYS = {"install", "method", "verified", "os", "requires_cwd", "tip"}
 TIERS = {"default", "recommended", "optional"}
 ORDER = ["name", "bin", "variants", "category", "description", "homepage", "cli", "needs_url",
-         "recipe", "tier", "set", "sources"]
+         "recipe", "pkg", "tier", "set", "sources"]
 
 
 def fail(msg):
@@ -65,6 +69,8 @@ def check_ours(app, i):
         fail(f"{app['name']}: tier must be one of {sorted(TIERS)}")
     if "recipe" in app and (set(app["recipe"]) - RECIPE_KEYS or "install" not in app["recipe"]):
         fail(f"{app['name']}: recipe needs install and only {sorted(RECIPE_KEYS)}")
+    if "pkg" in app and (set(app["pkg"]) - set(MANAGERS) or not all(isinstance(v, str) for v in app["pkg"].values())):
+        fail(f"{app['name']}: pkg takes only {list(MANAGERS)} as strings")
 
 
 def merge(lists=LISTS, suite_path=SUITE):
@@ -105,6 +111,15 @@ def merge(lists=LISTS, suite_path=SUITE):
                 by_name.setdefault(a["name"].lower(), hit)
         else:
             add(dict(a, sources=["tetron"]))
+
+    rp = lists / "repology.json"
+    found = json.loads(rp.read_text(encoding="utf-8"))["names"] if rp.exists() else {}
+    for a in apps:
+        names = {k: v for k, v in {**found.get(a["name"], {}), **a.get("pkg", {})}.items() if v}
+        if names:
+            a["pkg"] = {k: names[k] for k in MANAGERS if k in names}
+        else:
+            a.pop("pkg", None)
 
     suite = suite_path.read_text(encoding="utf-8")
     sets = suite_sets(suite)

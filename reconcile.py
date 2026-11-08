@@ -71,7 +71,8 @@ def check_catalog() -> dict:
     """CON-WD07: assets/catalog.json is what the merge makes from lists/, and its tests pass."""
     import subprocess
     gen = subprocess.run([sys.executable, "scripts/merge_catalog.py", "--check"], capture_output=True, text=True)
-    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_merge_catalog.py"], capture_output=True, text=True)
+    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_merge_catalog.py", "scripts/test_match_repology.py"],
+                           capture_output=True, text=True)
     return {"current": gen.returncode == 0 and tests.returncode == 0,
             "merge": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
 

@@ -17,9 +17,11 @@ def app(name, bin_, cat="Tools"):
 
 
 class Merge(unittest.TestCase):
-    def merged(self, imported, ours):
+    def merged(self, imported, ours, repology=None):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
+            if repology is not None:
+                (d / "repology.json").write_text(json.dumps({"names": repology}))
             (d / "awesome-tuis.json").write_text(json.dumps(imported))
             (d / "tetron.toml").write_text(ours)
             (d / "suite.txt").write_text(SUITE)
@@ -55,9 +57,18 @@ class Merge(unittest.TestCase):
         self.assertEqual(doc["suite_apps"], SUITE)
         self.assertEqual(doc["schema"], mc.SCHEMA)
 
+    def test_package_names_from_repology_ours_override_name_by_name(self):
+        found = {"htop": {"apt": "htop", "dnf": "htop", "pacman": "htop", "brew": "htop"}, "x": {"apt": "x-tui"}}
+        ours = '[[app]]\nname = "htop"\npkg = { brew = "", dnf = "htop-ng" }\n'
+        _, a = self.merged([app("htop", "htop"), app("x", "x"), app("y", "y")], ours, found)
+        self.assertEqual(a["htop"]["pkg"], {"apt": "htop", "dnf": "htop-ng", "pacman": "htop"})
+        self.assertEqual(a["x"]["pkg"], {"apt": "x-tui"})
+        self.assertNotIn("pkg", a["y"])
+
     def test_bad_entries_fail_loudly(self):
         for ours in ('[[app]]\nname = "x"\ncolour = "red"\n', '[[app]]\nname = "x"\ntier = "must"\n',
-                     '[[app]]\nname = "new"\nbin = "new"\n', '[[app]]\nname = "x"\n[app.recipe]\nmethod = "apt"\n'):
+                     '[[app]]\nname = "new"\nbin = "new"\n', '[[app]]\nname = "x"\n[app.recipe]\nmethod = "apt"\n',
+                     '[[app]]\nname = "x"\npkg = { zypper = "x" }\n'):
             with self.subTest(ours=ours), self.assertRaises(SystemExit):
                 self.merged([app("x", "x")], ours)
 
