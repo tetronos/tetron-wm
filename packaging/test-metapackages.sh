@@ -26,6 +26,11 @@ echo "== $image: $*"
 docker run --rm $mounts -e CHECKS="$checks" "$image" sh -c '
 set -e
 apt-get update -qq >/dev/null 2>&1
+# The tetronos apt repo, for the Recommends Debian does not have (tetron-browser).
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates curl >/dev/null 2>&1
+curl -fsSLo /usr/share/keyrings/tetronos-archive-keyring.gpg https://tetronos.github.io/apt/tetronos-archive-keyring.gpg
+printf "Types: deb\nURIs: https://tetronos.github.io/apt\nSuites: stable\nComponents: main\nSigned-By: /usr/share/keyrings/tetronos-archive-keyring.gpg\n" > /etc/apt/sources.list.d/tetronos.sources
+apt-get update -qq >/dev/null 2>&1
 if ! DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /debs/*.deb >/tmp/apt.log 2>&1; then
   tail -20 /tmp/apt.log; echo "FAIL: apt install"; exit 1
 fi

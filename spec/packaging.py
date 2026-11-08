@@ -98,7 +98,13 @@ class DesktopMetapackage(Requirement):
     later tetron-wm satisfies it and it never blocks an upgrade, and
     Recommends the apps tetron-wm calls, by names present in Debian 12 and
     13 and Ubuntu 22.04 and 24.04 (apt installs Recommends by default, so
-    `apt install tetron-wm-desktop` brings the full set). Services
+    `apt install tetron-wm-desktop` brings the full set). One Recommends
+    is the exception to those names: tetron-browser (amd64), the web
+    browser tetron-wm opens pages in, comes from the tetronos apt repo
+    (https://tetronos.github.io/apt); apt skips it where that repo is not
+    configured or has no build for the architecture, and the suite
+    script's one-by-one apt path skips every name apt has no candidate
+    for, so a missing one never fails the batch. Services
     (pipewire, wireplumber, network-manager, bluez), kmscon and fbi are
     Suggests, as are btop, age and openssh-server (an SSH server must never
     start just because the desktop set was installed). Tools Debian does not package (carbonyl, fresh,
@@ -106,7 +112,7 @@ class DesktopMetapackage(Requirement):
     installer scripts; catt and casttui join the suite script's desktop
     tier (WMDEB-008). Release CI builds it once, on the amd64 job, and tests it by
     installing it together with that job's tetron-wm .deb in a clean
-    container, Recommends included.
+    container with the tetronos apt repo configured, Recommends included.
     """
 
 

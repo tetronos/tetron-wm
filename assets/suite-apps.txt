@@ -22,6 +22,7 @@ desktop:apps:htop:htop:htop:htop:htop
 desktop:apps:sshfs:sshfs:fuse-sshfs:sshfs:
 desktop:apps:mc:mc:mc:mc:midnight-commander
 desktop:apps:vim:vim:vim-enhanced:vim:vim
+desktop:apps:tetron-browser:tetron-browser:::
 desktop:services:wpctl:wireplumber:wireplumber:wireplumber:
 desktop:services:nmcli:network-manager:NetworkManager:networkmanager:
 desktop:services:bluetoothctl:bluez:bluez:bluez-utils:

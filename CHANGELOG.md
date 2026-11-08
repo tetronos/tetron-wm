@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- `tetron-wm-desktop` recommends tetron-browser, so the desktop size brings the web browser tetron-wm opens pages in. It comes from the tetronos apt repo (https://tetronos.github.io/apt, amd64); where that repo is not configured apt skips it and the rest installs as before. The suite installer's one-by-one apt path now leaves out any package apt has no candidate for, so one missing name no longer fails the whole batch.
+
 ## [0.15.3] — 2026-11-07
 
 ### Fixed

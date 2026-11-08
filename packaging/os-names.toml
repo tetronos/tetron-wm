@@ -109,6 +109,13 @@ brew = "midnight-commander"
 check = "vim"
 dnf = "vim-enhanced"
 
+[app.tetron-browser]
+check = "tetron-browser"
+dnf = ""
+pacman = ""
+brew = ""
+# Debian and Ubuntu amd64 through the tetronos apt repo only.
+
 [app.fbi]
 check = "fbi"
 dnf = "fbida"

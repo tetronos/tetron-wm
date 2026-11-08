@@ -420,16 +420,30 @@ EOF_LIST
   printf '%s' "${out# }"
 }
 
+# The names of $1 apt has an install candidate for (call after apt-get update).
+# One unknown name makes apt-get refuse the whole batch, and tetron-browser
+# exists only where the tetronos apt repo is configured (amd64).
+apt_installable() {
+  local p out=""
+  for p in $1; do
+    if apt-cache policy "$p" 2>/dev/null | grep -q 'Candidate: [^(]'; then out="$out $p"
+    else log "skipping $p: apt has no package of that name here" >&2; fi
+  done
+  printf '%s' "${out# }"
+}
+
 pm_install() {  # $1 = space-separated packages
-  [ -n "$1" ] || return 0
-  log "installing: $1"
+  local pkgs="$1"
+  [ "$(pm_col)" = 2 ] && { apt_update_once; pkgs="$(apt_installable "$pkgs")"; }
+  [ -n "$pkgs" ] || return 0
+  log "installing: $pkgs"
   # shellcheck disable=SC2086
   case "$(pm_col)" in
-    2) $SUDO apt-get install -y $1 ;;
-    3) $SUDO dnf install -y $1 ;;
-    4) $SUDO pacman -S --needed --noconfirm $1 ;;
-    5) brew install $1 ;;
-  esac || warn "some packages did not install: $1 (see docs/DEPENDENCIES_tetron-wm_recommended_installs.md)"
+    2) $SUDO apt-get install -y $pkgs ;;
+    3) $SUDO dnf install -y $pkgs ;;
+    4) $SUDO pacman -S --needed --noconfirm $pkgs ;;
+    5) brew install $pkgs ;;
+  esac || warn "some packages did not install: $pkgs (see docs/DEPENDENCIES_tetron-wm_recommended_installs.md)"
 }
 
 # gpm needs a mouse device: without one (headless servers, many VMs) Debian's
