@@ -22,6 +22,8 @@ use std::time::Duration;
 use tetron_wm::protocol::socket_path;
 
 fn main() -> std::io::Result<()> {
+    // Before any thread: apps in ~/.local/bin (opencode, uv tools) count as installed and start.
+    tetron_wm::catalog::add_user_bin_to_path();
     // Busybox style: invoked as xclip / xsel / wl-copy / wl-paste (through the
     // shim symlinks), act as that tool against the tetron-wm clipboard.
     if let Some(name) = std::env::args().next().as_deref().and_then(|a| std::path::Path::new(a).file_name()).and_then(|n| n.to_str()) {

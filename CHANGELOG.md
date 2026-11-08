@@ -25,6 +25,7 @@ carry user-visible feature work and the occasional breaking config change.
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.
 
 ### Fixed
+- Apps in `~/.local/bin` (opencode for the ✦ Assistant, the uv tools) count as installed and start when the login that started tetron-wm has no `~/.local/bin` on `PATH` (a console session that starts tetron-wm before `~/.profile` runs, or a folder made after login): tetron-wm appends it to its own `PATH` at start.
 - Settings > General > Apps no longer counts programs in /usr/sbin and /sbin as missing (gpm, gdisk, parted, smartmontools, nvme-cli, powertop, needrestart, ufw, iftop, arp-scan, nethogs): a normal user's PATH lacks those directories on Debian and Ubuntu. The suite installer checks the same way.
 - The Apps dialog's download size no longer reads "unknown" when an offered package is already installed: only packages that are not installed are given to apt (apt run as the user failed when it would only mark them manual).
 - The Apps dialog counts the missing apps again each time it opens, so apps installed from a shell meanwhile no longer show as missing until a reload.

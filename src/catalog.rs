@@ -375,9 +375,45 @@ fn path_executables() -> HashSet<String> {
     set
 }
 
+/// `PATH` with `~/.local/bin` appended when it is not on it yet, else `None`.
+/// The suite installer, uv and the Settings Apps choices put apps there
+/// (opencode for the ✦ Assistant among them), but a login that starts
+/// tetron-wm before `~/.profile` runs (the TetronOS console session), or one
+/// that began before the folder existed, has no such entry, so those apps
+/// would read as missing and children could not start them.
+pub fn path_with_user_bin(path: Option<&std::ffi::OsStr>, home: &std::path::Path) -> Option<std::ffi::OsString> {
+    let bin = home.join(".local/bin");
+    let mut dirs: Vec<std::path::PathBuf> = path.map(|p| std::env::split_paths(p).collect()).unwrap_or_default();
+    if dirs.iter().any(|d| d == &bin) {
+        return None;
+    }
+    dirs.push(bin);
+    std::env::join_paths(dirs).ok()
+}
+
+/// Apply [`path_with_user_bin`] to this process, so the app scan and every
+/// child (terminals, the ✦ Assistant, Settings scripts) see `~/.local/bin`.
+/// Called first thing in `main`, before any thread starts.
+pub fn add_user_bin_to_path() {
+    if let Some(home) = dirs::home_dir() {
+        if let Some(p) = path_with_user_bin(std::env::var_os("PATH").as_deref(), &home) {
+            std::env::set_var("PATH", p);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn user_bin_is_appended_once() {
+        let h = std::path::Path::new("/home/u");
+        let p = path_with_user_bin(Some(std::ffi::OsStr::new("/usr/local/bin:/usr/bin:/bin")), h).unwrap();
+        assert_eq!(p, "/usr/local/bin:/usr/bin:/bin:/home/u/.local/bin");
+        assert_eq!(path_with_user_bin(Some(std::ffi::OsStr::new("/home/u/.local/bin:/usr/bin")), h), None);
+        assert_eq!(path_with_user_bin(None, h).unwrap(), "/home/u/.local/bin");
+    }
 
     /// `detect_installed` emits a base entry plus one extra entry per declared
     /// variant, carrying the variant's args/warn through and leaving `cli`
