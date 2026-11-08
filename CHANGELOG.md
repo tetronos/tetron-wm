@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.6] — 2026-11-08
+
 ### Changed
 - The log moved to `~/.local/state/tetron-wm/debug.log` (`$XDG_STATE_HOME`; `~/Library/Logs/tetron-wm/` on macOS). At 4 MiB it is rotated into `debug.log.1` .. `.3` and the oldest is dropped, so at most 16 MiB is kept; before, the file was emptied at 4 MiB and its history lost. The first start moves the old `~/tetron-wm-debug.log` there as `debug.log.1` (after any rotated files already there), so it lasts three rotations, never deleting it. The Logs viewer reaches into `debug.log.1` right after a rotation.
 - The log records events, not repeats: every message from the client, and each wallpaper load, desktop reload and systems load that changed nothing, are now `debug` lines. Failures are marked `WARN`.
