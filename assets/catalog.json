@@ -363,15 +363,16 @@
    "homepage": "https://llm.datasette.io",
    "cli": true,
    "recipe": {
-    "install": "pipx install llm",
-    "method": "pipx",
+    "install": "uv tool install llm --with llm-ollama",
+    "method": "uv",
     "verified": true,
     "os": [
      "macos",
      "linux",
      "windows"
     ],
-    "requires_cwd": true
+    "requires_cwd": true,
+    "tip": "Comes with its Ollama plugin (llm -m MODEL with a local Ollama). Settings > Updates upgrades it (uv tool upgrade --all); add plugins with uv tool install llm --with PLUGIN."
    },
    "tier": "recommended",
    "set": "recommended",

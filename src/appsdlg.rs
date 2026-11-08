@@ -305,7 +305,8 @@ Installs in a terminal window, where sudo asks for your password. Esc closes."
                     Download::Known(b) => format!(", download {}", crate::packaging::fmt_download(b)),
                     Download::Unknown => ", download size unknown".into(),
                 };
-                let title = format!("Install {}: {} apps to add{dl}", s.title(), add.len());
+                let n = add.len();
+                let title = format!("Install {}: {n} {} to add{dl}", s.title(), if n == 1 { "app" } else { "apps" });
                 let lines = add
                     .iter()
                     .map(|m| if m.is_script() { format!("{} (its own installer)", m.name) } else { m.name.clone() })
@@ -453,6 +454,14 @@ mod tests {
         d.set_download(Some(42_000_000));
         let s = text(&d);
         assert!(s.contains("Install Recommended: 3 apps to add, download about 42 MB"), "{s}");
+        d.esc();
+        d.up();
+        d.enter();
+        assert!(text(&d).contains("Install Essentials: 2 apps to add"));
+        d.esc();
+        d.scripts = false;
+        d.enter();
+        assert!(text(&d).contains("Install Essentials: 1 app to add"), "one app, singular");
         assert!(s.contains("opencode (its own installer)") && s.contains("[ Cancel ]"), "{s}");
     }
 
