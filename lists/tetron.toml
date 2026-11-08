@@ -1,0 +1,5456 @@
+# Our app list (WMCAT-001): hand-maintained, wins over every imported list.
+#
+# [[app]] adds an app found on no other list, or annotates one from any list
+# (matched by name in any case, then by command name). Only the fields given
+# here override the imported ones. Fields: name, bin, category, description,
+# homepage, cli, needs_url, distinct (true: a different app than a listed one
+# with the same name or command; never matched), tier (default | recommended | optional), recipe
+# (install, method, verified, os, requires_cwd, tip), variants (suffix, args,
+# warn). After an edit run: python3 scripts/merge_catalog.py
+
+# Imported names dropped from the catalog: libraries, collections, duplicates.
+exclude = [
+  "termui",         # Go widget library, not a runnable app
+  "iconicfonts",    # patched-font collection, not a runnable app
+  "learnbyexample", # collection of separate tutorial apps, no single binary
+  "dua-cli",        # same app as dua (command dua)
+]
+
+# ── AI ──────────────────────────────────────────────────────────
+
+[[app]]
+name = "AI Mode"
+bin = "tetron-aimode"
+category = "AI"
+description = "Ask Gemini questions in a full screen terminal app, with optional Google Search grounding. Needs a free Gemini API key in GEMINI_API_KEY or ~/.config/aimode/key (https://aistudio.google.com/apikey)."
+homepage = "https://github.com/tetronos/tetron-wm/tree/main/scripts"
+[app.recipe]
+install = "mkdir -p ~/.local/bin && curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/scripts/tetron-aimode -o ~/.local/bin/tetron-aimode && chmod +x ~/.local/bin/tetron-aimode"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+tip = "Needs a free Gemini API key from https://aistudio.google.com/apikey. The first run asks for it and saves it to ~/.config/aimode/key (readable only by you); `tetron-aimode --key` replaces it, or set GEMINI_API_KEY. Google Search grounding (`tetron-aimode --search`) needs billing on the key."
+
+[[app]]
+name = "Aider"
+bin = "aider"
+category = "AI"
+description = "AI pair programming tool that lets you edit code in your terminal using LLMs like Claude and GPT-4."
+homepage = "https://aider.chat"
+[app.recipe]
+install = "pipx install aider-chat"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Amp"
+distinct = true
+bin = "amp"
+category = "AI"
+description = "An AI coding agent that runs in your terminal and lets you start, monitor, and drive agents from CLI, web, and mobile."
+homepage = "https://ampcode.com"
+[app.recipe]
+install = "brew install ampcode/tap/ampcode"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Auggie"
+bin = "auggie"
+category = "AI"
+description = "Agentic AI coding assistant that runs in your terminal, understands your codebase, and makes code edits via natural language."
+homepage = "https://github.com/augmentcode/auggie"
+[app.recipe]
+install = "npm install -g @augmentcode/auggie"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Claude Code"
+bin = "claude"
+category = "AI"
+description = "Anthropic's official AI coding assistant that runs as a terminal/TUI CLI for agentic coding tasks."
+homepage = "https://code.claude.com"
+[app.recipe]
+install = "curl -fsSL https://claude.ai/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+tip = "First run: `claude` walks you through logging in with your Anthropic account (or set ANTHROPIC_API_KEY)."
+[[app.variants]]
+suffix = "⚠️"
+args = ["--dangerously-skip-permissions"]
+warn = "Runs Claude Code with --dangerously-skip-permissions: it can edit files and run commands without asking. Launch anyway?"
+
+[[app]]
+name = "Codex"
+bin = "codex"
+category = "AI"
+description = "Lightweight agentic coding assistant that runs in your terminal, powered by OpenAI models."
+[app.recipe]
+install = "npm install -g @openai/codex"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Continue CLI"
+bin = "cn"
+category = "AI"
+description = "Terminal AI coding agent that runs interactive chat and headless automation against your codebase via the cn command."
+homepage = "https://continue.dev"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/continuedev/continue/main/extensions/cli/scripts/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+requires_cwd = true
+
+[[app]]
+name = "Crush"
+bin = "crush"
+category = "AI"
+description = "A terminal-based agentic AI coding assistant that wires LLMs into your tools, code, and workflows."
+[app.recipe]
+install = "brew install charmbracelet/tap/crush"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Gemini CLI"
+bin = "gemini"
+category = "AI"
+description = "An open-source AI agent that brings Gemini directly into your terminal for coding, file operations, and shell tasks."
+homepage = "https://github.com/google-gemini/gemini-cli"
+[app.recipe]
+install = "npm install -g @google/gemini-cli"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Goose"
+bin = "goose"
+category = "AI"
+description = "Open-source AI agent that runs in your terminal to automate coding, research, and engineering tasks across 15+ LLM providers."
+homepage = "https://goose-docs.ai"
+cli = true
+[app.recipe]
+install = "brew install block-goose-cli"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Grok CLI"
+bin = "grok"
+category = "AI"
+description = "Open-source terminal coding agent built on the xAI Grok API with a TUI, sub-agents, real-time web/X search, and media generation."
+homepage = "https://github.com/superagent-ai/grok-cli"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/superagent-ai/grok-cli/main/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+requires_cwd = true
+
+[[app]]
+name = "herdr"
+bin = "herdr"
+category = "AI"
+description = "An agent multiplexer for your terminal: run every coding agent in one place with persistent sessions and at-a-glance blocked/working/done state, like tmux rebuilt for agents."
+homepage = "https://herdr.dev"
+[app.recipe]
+install = "brew install herdr"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Hermes"
+bin = "hermes"
+category = "AI"
+description = "Nous Research's self-improving AI agent: creates skills from experience and builds a persistent model of its user. Chat TUI via hermes --tui."
+homepage = "https://hermes-agent.nousresearch.com"
+cli = true
+[app.recipe]
+install = "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+tip = "First run: `hermes model` in a shell to add providers and API keys (or `hermes setup --portal`). Config lives in ~/.hermes/config.yaml. Chat with `hermes --tui`."
+
+[[app]]
+name = "jcode"
+bin = "jcode"
+category = "AI"
+description = "RAM-efficient AI coding agent harness written in Rust, with an interactive TUI, non-interactive runs, and a persistent server/client mode across many LLM providers."
+homepage = "https://jcode.sh"
+[app.recipe]
+install = "curl -fsSL https://jcode.sh/install | bash"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+tip = "First run: `jcode login --provider claude` (or openai/gemini/copilot) to sign in, then `jcode` opens the TUI. macOS with Homebrew can instead `brew tap 1jehuang/jcode && brew install jcode`."
+
+[[app]]
+name = "Kilo Code"
+distinct = true
+bin = "kilo"
+category = "AI"
+description = "Agentic AI coding assistant with a keyboard-driven TUI that orchestrates code generation, editing, and terminal commands from the command line."
+homepage = "https://kilo.ai"
+[app.recipe]
+install = "npm install -g @kilocode/cli"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+tip = "First run: type /connect inside kilo (or `kilo auth login`) to add a provider. A free Kilo account includes hosted models; BYOK and Ollama also work."
+
+[[app]]
+name = "llm"
+bin = "llm"
+category = "AI"
+description = "Run prompts against large language models from the command line, with support for dozens of models via plugins."
+homepage = "https://llm.datasette.io"
+cli = true
+[app.recipe]
+install = "pipx install llm"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "oh-my-pi"
+bin = "omp"
+category = "AI"
+description = "A coding agent with the IDE wired in (the omp CLI): 40+ model providers, dozens of built-in tools, and LSP/DAP integration for read/edit/run workflows in the terminal."
+homepage = "https://omp.sh"
+[app.recipe]
+install = "brew install can1357/tap/omp"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "OpenClaw"
+bin = "openclaw"
+category = "AI"
+description = "Your own personal AI assistant — self-hosted gateway answering on WhatsApp/Telegram/Slack/Discord and more; terminal chat via openclaw tui."
+homepage = "https://openclaw.ai"
+cli = true
+[app.recipe]
+install = "curl -fsSL https://openclaw.ai/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+tip = "First run: `openclaw onboard --install-daemon` in a shell — picks a provider, adds API keys, starts the gateway. Needs Node 22.19+. Chat with `openclaw tui`."
+
+[[app]]
+name = "opencode"
+category = "AI"
+description = "Open-source AI coding agent built for the terminal with a TUI and support for 75+ LLM providers."
+homepage = "https://opencode.ai"
+[app.recipe]
+install = "npm i -g opencode-ai"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+tip = "First run: `opencode auth login` to pick a provider and add a key — local models via Ollama are supported."
+
+[[app]]
+name = "OpenHands"
+bin = "openhands"
+category = "AI"
+description = "AI-driven software development agent that runs interactively in your terminal to write and execute code on your behalf."
+homepage = "https://github.com/All-Hands-AI/OpenHands"
+[app.recipe]
+install = "uv tool install openhands --python 3.12"
+method = "uv"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "Plandex"
+bin = "plandex"
+category = "AI"
+description = "Open-source terminal AI coding agent designed for large projects and multi-file tasks."
+homepage = "https://github.com/plandex-ai/plandex"
+[app.recipe]
+install = "curl -sL https://plandex.ai/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+requires_cwd = true
+
+[[app]]
+name = "Qwen Code"
+bin = "qwen"
+category = "AI"
+description = "Open-source AI coding agent that runs in your terminal, optimized for Qwen series models."
+homepage = "https://github.com/QwenLM/qwen-code"
+[app.recipe]
+install = "npm install -g @qwen-code/qwen-code@latest"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+
+[[app]]
+name = "smallcode"
+bin = "smallcode"
+category = "AI"
+description = "AI coding agent optimized for small local LLMs (8B-35B) via Ollama/LM Studio/llama.cpp, with optional escalation to cloud models."
+homepage = "https://github.com/Doorman11991/smallcode"
+[app.recipe]
+install = "npm install -g smallcode"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+requires_cwd = true
+tip = "Needs a local OpenAI-compatible server (Ollama, LM Studio, llama.cpp). Set SMALLCODE_MODEL and SMALLCODE_BASE_URL in a .env in your project, or run /provider inside smallcode. Node 18+."
+
+# ── Dashboards ──────────────────────────────────────────────────
+
+[[app]]
+name = "AdGuardian-Term"
+[app.recipe]
+install = "cargo install adguardian"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "apachetop"
+[app.recipe]
+install = "brew install apachetop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "atop"
+[app.recipe]
+install = "brew install atop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Backlog.md"
+cli = true
+[app.recipe]
+install = "brew install backlog-md"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bandwhich"
+[app.recipe]
+install = "brew install bandwhich"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bashtop"
+[app.recipe]
+install = "brew install bashtop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "below"
+[app.recipe]
+install = "cargo install --git https://github.com/facebookincubator/below.git below"
+method = "other"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "binsider"
+[app.recipe]
+install = "brew install binsider"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bmon"
+[app.recipe]
+install = "brew install bmon"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bottom"
+bin = "btm"
+[app.recipe]
+install = "brew install bottom"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bpytop"
+[app.recipe]
+install = "brew install bpytop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "btop++"
+[app.recipe]
+install = "brew install btop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cgdb"
+[app.recipe]
+install = "brew install cgdb"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "chdig"
+[app.recipe]
+install = "brew install chdig"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cheatshh"
+[app.recipe]
+install = "brew install AnirudhG07/AnirudhG07/cheatshh"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "claws"
+[app.recipe]
+install = "brew install --cask clawscli/tap/claws"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cointop"
+[app.recipe]
+install = "brew install cointop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "CoreFreq"
+bin = "corefreq-cli"
+[app.recipe]
+install = "git clone https://github.com/cyring/CoreFreq.git && cd CoreFreq && make -j && make install"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "csysdig"
+[app.recipe]
+install = "brew install sysdig"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "damon"
+[app.recipe]
+install = "go install github.com/hcjulz/damon/cmd/damon@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "dashbrew"
+[app.recipe]
+install = "go install github.com/rasjonell/dashbrew/cmd/dashbrew@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dolphie"
+[app.recipe]
+install = "brew install dolphie"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "framework-tool-tui"
+[app.recipe]
+install = "brew install framework-tool-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "fubar"
+[app.recipe]
+install = "cargo install fubar-cli"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gh-dash"
+[app.recipe]
+install = "go install github.com/dlvhdr/gh-dash/v4@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Glances"
+[app.recipe]
+install = "brew install glances"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Goaccess"
+[app.recipe]
+install = "brew install goaccess"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gobang"
+[app.recipe]
+install = "brew install tako8ki/tap/gobang"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gonzo"
+[app.recipe]
+install = "brew install gonzo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gotop"
+[app.recipe]
+install = "brew install gotop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gping"
+[app.recipe]
+install = "brew install gping"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Grafterm"
+[app.recipe]
+install = "go install github.com/slok/grafterm/cmd/grafterm@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "htop"
+[app.recipe]
+install = "brew install htop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "htui"
+[app.recipe]
+install = "curl -sSL https://raw.githubusercontent.com/PierreKieffer/htui/master/install/install_htui64_osx.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hwatch"
+[app.recipe]
+install = "brew install hwatch"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hwinfo-tui"
+[app.recipe]
+install = "pip install hwinfo-tui"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ID-Spoofer"
+cli = true
+[app.recipe]
+install = "curl -sL https://github.com/NubleX/ID-Spoofer/releases/latest/download/idspoof_linux_amd64 -o idspoof && chmod +x idspoof && sudo mv idspoof /usr/local/bin/"
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "kaskade"
+[app.recipe]
+install = "brew install kaskade"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kmon"
+[app.recipe]
+install = "cargo install kmon"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "Kyanos"
+[app.recipe]
+install = "tar xvf kyanos_vx.x.x_linux_amd64.tar.gz && sudo mv kyanos /usr/local/bin/"
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "lazyslurm"
+description = "A lazygit-style TUI for Slurm HPC clusters: monitor and manage jobs, nodes, partitions, and job history."
+[app.recipe]
+install = "brew install hill/tap/lazyslurm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ls-horizons"
+[app.recipe]
+install = "go install github.com/litescript/ls-horizons/cmd/ls-horizons@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "macmon"
+[app.recipe]
+install = "brew install macmon"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nerdlog"
+[app.recipe]
+install = "brew install nerdlog"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nethogs"
+[app.recipe]
+install = "brew install nethogs"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "netscanner"
+[app.recipe]
+install = "brew install netscanner"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nvtop"
+[app.recipe]
+install = "brew install nvtop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "oryx"
+[app.recipe]
+install = "pacman -S oryx"
+method = "apt"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "otel-tui"
+[app.recipe]
+install = "brew install ymtdzzz/tap/otel-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Planor"
+[app.recipe]
+install = "go install github.com/mrusme/planor@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "process-compose"
+[app.recipe]
+install = "brew install f1bonacc1/tap/process-compose"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "psmux"
+[app.recipe]
+install = "cargo install psmux"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "psnet"
+[app.recipe]
+install = "cargo install psnet"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "pstop"
+[app.recipe]
+install = "cargo install pstop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "Puffin"
+[app.recipe]
+install = "brew install siddhantac/puffin/puffin"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Raijin"
+[app.recipe]
+install = "cargo install Raijin"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "rustnet"
+[app.recipe]
+install = "brew install rustnet"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "s-tui"
+[app.recipe]
+install = "pipx install s-tui"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sacha"
+[app.recipe]
+install = "brew install sachamama/tap/sacha"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ServerHub"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/nickprotop/ServerHub/main/install.sh | bash"
+method = "script"
+verified = true
+
+[[app]]
+name = "Servonaut"
+description = "A Textual TUI for managing AWS, Hetzner, OVH, and custom servers over SSH, with a built-in AI assistant and MCP server."
+[app.recipe]
+install = "pipx install servonaut"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sockttop"
+[app.recipe]
+install = "cargo install socktop"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sysz"
+[app.recipe]
+install = "wget -O ~/.bin/sysz https://github.com/joehillen/sysz/releases/latest/download/sysz && chmod +x ~/.bin/sysz"
+method = "binary"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "talos linux"
+[app.recipe]
+install = "brew install siderolabs/tap/talosctl"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tdash"
+[app.recipe]
+install = "go install github.com/jessfraz/tdash@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tegratop"
+[app.recipe]
+install = "cargo install tegratop"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "ticker"
+[app.recipe]
+install = "brew install achannarasappa/tap/ticker"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tmd-top"
+[app.recipe]
+install = "pipx install tmd-top"
+method = "pipx"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "trek"
+[app.recipe]
+install = "go install github.com/franckverrot/trek@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "trippy"
+bin = "trip"
+[app.recipe]
+install = "brew install trippy"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ttop"
+[app.recipe]
+install = "curl -LO https://github.com/inv2004/ttop/releases/latest/download/ttop && chmod +x ttop && mv ttop ~/.local/bin/"
+method = "binary"
+verified = true
+
+[[app]]
+name = "tufw"
+[app.recipe]
+install = "go install github.com/peltho/tufw@latest"
+method = "go"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "tuicamp"
+[app.recipe]
+install = "go install github.com/AbeEstrada/tuicamp@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "updo"
+[app.recipe]
+install = "brew install owloops/tap/updo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "wander"
+[app.recipe]
+install = "brew install robinovitch61/tap/wander"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "WTF"
+[app.recipe]
+install = "brew install wtf"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Yozefu"
+[app.recipe]
+install = "brew install yozefu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "zenith"
+[app.recipe]
+install = "brew install zenith"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+# ── Development ─────────────────────────────────────────────────
+
+[[app]]
+name = "act3"
+cli = true
+[app.recipe]
+install = "brew install dhth/tap/act3"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "amtui"
+[app.recipe]
+install = "brew tap pehlicd/tap && brew install amtui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "amux"
+[app.recipe]
+install = "brew tap andyrewlee/amux && brew install amux"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ATAC"
+[app.recipe]
+install = "brew install atac"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "austin-tui"
+[app.recipe]
+install = "pipx install austin-tui"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "blinkenlights"
+[app.recipe]
+install = "./configure && make -j4 && sudo make install"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "brows"
+[app.recipe]
+install = "brew tap rubysolo/tools && brew install brows"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "burf"
+[app.recipe]
+install = "pip install burf"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "cargo-seek"
+[app.recipe]
+install = "cargo install cargo-seek"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "catalyst"
+[app.recipe]
+install = "brew tap PraveenGongada/tap && brew install catalyst"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "chiko"
+[app.recipe]
+install = "brew install chiko"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Claude Code Bridge"
+bin = "ccb"
+[app.recipe]
+install = "pip install claude-code-bridge"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Claude Code Usage Monitor"
+bin = "claude-monitor"
+[app.recipe]
+install = "pipx install claude-monitor"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Close Mongo Ops Manager"
+bin = "close-mongo-ops-manager"
+[app.recipe]
+install = "pipx install close-mongo-ops-manager"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "cnTUI"
+[app.recipe]
+install = "go install github.com/fipso/cntui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "csope"
+[app.recipe]
+install = "make"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "CuTE"
+[app.recipe]
+install = "cargo install CuTE-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dbee"
+[app.recipe]
+install = "go install github.com/murat-cileli/dbee/src@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dblab"
+[app.recipe]
+install = "brew install dblab"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ddqa"
+[app.recipe]
+install = "pipx install ddqa"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ddv"
+[app.recipe]
+install = "brew install lusingander/tap/ddv"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "delta"
+cli = true
+[app.recipe]
+install = "brew install git-delta"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "deputui"
+[app.recipe]
+install = "make all"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "differ"
+[app.recipe]
+install = "brew install jansmrcka/tap/differ"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ec"
+[app.recipe]
+install = "brew install chojs23/tap/ec"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "euporie"
+[app.recipe]
+install = "pipx install euporie"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "fast-resume"
+[app.recipe]
+install = "brew tap angristan/tap && brew install fast-resume"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Feluda"
+cli = true
+[app.recipe]
+install = "brew install feluda"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "freeze"
+bin = "freeze"
+category = "Development"
+description = "Generate images of code and terminal output."
+homepage = "https://github.com/charmbracelet/freeze"
+cli = true
+[app.recipe]
+install = "brew install charmbracelet/tap/freeze"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Froggit"
+[app.recipe]
+install = "go install github.com/thewizardshell/froggit@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "fx"
+[app.recipe]
+install = "brew install fx"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ggc"
+[app.recipe]
+install = "brew install ggc"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ghcup"
+description = "Installer and version manager for the Haskell toolchain (GHC, cabal, stack, HLS). Subcommand-driven; an interactive mode is available via 'ghcup tui'."
+homepage = "https://www.haskell.org/ghcup/"
+cli = true
+[app.recipe]
+install = "brew install ghcup"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ghgrab"
+bin = "ghgrab"
+category = "Development"
+description = "A pretty ratatui TUI for browsing and downloading individual files or folders from GitHub, GitLab, Codeberg, Gitea, and Forgejo without a full clone — with fuzzy search, file preview, LFS support, batch grabs, and release-artifact downloads."
+homepage = "https://github.com/abhixdd/ghgrab"
+[app.recipe]
+install = "cargo install ghgrab"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ghui"
+bin = "ghui"
+category = "Development"
+description = "A keyboard-driven terminal UI for your open GitHub pull requests across repositories: review diffs, leave comments, manage labels, toggle draft state, and merge without leaving the terminal. Requires the GitHub CLI (gh) installed and authenticated (gh auth login)."
+homepage = "https://github.com/kitlangton/ghui"
+[app.recipe]
+install = "brew install kitlangton/tap/ghui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "git-crecord"
+[app.recipe]
+install = "pipx install git-crecord"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "git-scope"
+[app.recipe]
+install = "brew tap Bharath-code/tap && brew install git-scope"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "gitui"
+[app.recipe]
+install = "brew install gitui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gitv"
+[app.recipe]
+install = "cargo install --locked gitv-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "grv"
+[app.recipe]
+install = "brew install grv"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gum"
+bin = "gum"
+category = "Development"
+description = "A tool for glamorous shell scripts (prompts, menus, spinners)."
+homepage = "https://github.com/charmbracelet/gum"
+cli = true
+[app.recipe]
+install = "brew install gum"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "harlequin"
+[app.recipe]
+install = "brew install harlequin"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hcom"
+description = "Lets AI coding agents (Claude Code, Codex, Gemini, ...) message, watch, spawn, and fork each other across terminals, with a TUI dashboard."
+[app.recipe]
+install = "pipx install hcom"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "heretek"
+[app.recipe]
+install = "cargo install heretek --locked"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hunk"
+bin = "hunk"
+category = "Development"
+description = "A review-first terminal diff viewer for agent-authored changesets: a multi-file review stream with sidebar navigation, inline AI annotations, split/stack/auto layouts, watch mode, and Git difftool support."
+homepage = "https://github.com/modem-dev/hunk"
+[app.recipe]
+install = "brew install modem-dev/tap/hunk"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "jqp"
+[app.recipe]
+install = "brew install jqp"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kagan"
+[app.recipe]
+install = "pipx install kagan"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "lazygit"
+[app.recipe]
+install = "brew install lazygit"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazyjournal"
+[app.recipe]
+install = "brew install lazyjournal"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazymake"
+[app.recipe]
+install = "brew install lazymake"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazysql"
+[app.recipe]
+install = "brew install lazysql"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lean-tui"
+[app.recipe]
+install = "cargo install lean-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "litecli"
+bin = "litecli"
+category = "Development"
+description = "SQLite CLI with auto-completion and syntax highlighting."
+homepage = "https://github.com/dbcli/litecli"
+[app.recipe]
+install = "brew install litecli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "LogLens"
+cli = true
+[app.recipe]
+install = "brew tap Caelrith/loglens && brew install loglens"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "logradar"
+[app.recipe]
+install = "git clone https://github.com/nanook72/logradar && cd logradar && cargo install --path ."
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "logshark"
+[app.recipe]
+install = "go install github.com/ugosan/logshark/cmd/logshark@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "mitmproxy"
+[app.recipe]
+install = "brew install mitmproxy"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "models"
+[app.recipe]
+install = "brew install models"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mycli"
+bin = "mycli"
+category = "Development"
+description = "MySQL/MariaDB CLI with auto-completion and syntax highlighting."
+homepage = "https://github.com/dbcli/mycli"
+[app.recipe]
+install = "brew install mycli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nap"
+[app.recipe]
+install = "brew install nap"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nodebro"
+[app.recipe]
+install = "go install github.com/jonaburg/nodebro@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "opcilloscope"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/SquareWaveSystems/opcilloscope/main/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "pgcli"
+bin = "pgcli"
+category = "Development"
+description = "Postgres CLI with auto-completion and syntax highlighting."
+homepage = "https://github.com/dbcli/pgcli"
+[app.recipe]
+install = "brew install pgcli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "play"
+[app.recipe]
+install = "go install github.com/paololazzari/play@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "posting"
+[app.recipe]
+install = "brew install posting"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pproftui"
+[app.recipe]
+install = "go install github.com/Oloruntobi1/pproftui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "proxymock"
+[app.recipe]
+install = "brew install speedscale/tap/proxymock"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "prs"
+[app.recipe]
+install = "brew install prs"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pudb"
+[app.recipe]
+install = "pipx install pudb"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pyautogit"
+[app.recipe]
+install = "pip install pyautogit"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "qo"
+[app.recipe]
+install = "brew install qo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "qrypad"
+description = "A terminal SQL client for Postgres, MySQL and SQLite."
+[app.recipe]
+install = "go install github.com/wheelibin/qrypad@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Quorum"
+[app.recipe]
+install = "pipx install quorum-cli"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "rainfrog"
+[app.recipe]
+install = "brew install rainfrog"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "regex-tui"
+[app.recipe]
+install = "go install github.com/vitor-mariano/regex-tui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "resterm"
+[app.recipe]
+install = "brew install resterm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "runme"
+cli = true
+[app.recipe]
+install = "brew install runme"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "scope"
+description = "A cross-platform serial monitor (RS-232 and RTT) with colored send/receive, tags, hex input, search and filter, session recording, and Lua plugins."
+[app.recipe]
+install = "cargo install scope-monitor"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "serie"
+[app.recipe]
+install = "brew install serie"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sls-dev-tools"
+[app.recipe]
+install = "npm install -g sls-dev-tools"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "snips.sh"
+[app.recipe]
+install = "go install github.com/robherley/snips.sh@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "soft-serve"
+[app.recipe]
+install = "brew install soft-serve"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sot"
+[app.recipe]
+install = "brew install anistark/tools/sot"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sq"
+[app.recipe]
+install = "brew install sq"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sqlit"
+[app.recipe]
+install = "pipx install sqlit-tui"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "stu"
+[app.recipe]
+install = "brew install stu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "termdbms"
+[app.recipe]
+install = "go install github.com/mathaou/termdbms@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "terraform-tui"
+[app.recipe]
+install = "brew install idoavrah/homebrew/tftui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tig"
+[app.recipe]
+install = "brew install tig"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Toad"
+[app.recipe]
+install = "pipx install batrachian-toad"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tokui"
+[app.recipe]
+install = "go install github.com/zdyxry/tokui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "toolui"
+[app.recipe]
+install = "dotnet tool install ToolUI --global"
+method = "other"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "turbostream"
+bin = "server"
+cli = true
+[app.recipe]
+install = "go install github.com/turboline-ai/turbostream/cmd/server@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Twig"
+bin = "twg"
+[app.recipe]
+install = "pipx install twg"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "vctui"
+[app.recipe]
+install = "go install github.com/thebsdbox/vctui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "violet"
+[app.recipe]
+install = "go install github.com/braheezy/violet/cmd/violet@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "VT Code"
+[app.recipe]
+install = "brew install vtcode"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Wikit"
+[app.recipe]
+install = "npm install -g @bryance/wikit"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+# ── Docker/LXC/K8s ──────────────────────────────────────────────
+
+[[app]]
+name = "Argonaut"
+[app.recipe]
+install = "brew tap darksworm/homebrew-tap && brew install darksworm/homebrew-tap/argonaut"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cruise"
+[app.recipe]
+install = "brew tap cruise-org/homebrew-tap && brew install --cask cruise"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ctop"
+[app.recipe]
+install = "brew install ctop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "d4s"
+[app.recipe]
+install = "brew install jr-k/d4s/d4s"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dive"
+[app.recipe]
+install = "brew install dive"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "docker-dash"
+[app.recipe]
+install = "go install github.com/GustavoCaso/docker-dash/cmd/docker-dash@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dockly"
+[app.recipe]
+install = "brew install dockly"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "DockMate"
+[app.recipe]
+install = "brew install shubh-io/tap/dockmate"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "dockup"
+description = "An interactive TUI to install, harden, and audit container runtimes: Docker Engine + Compose v2 and the NVIDIA Container Toolkit on Linux, Apple's native container tool on Apple Silicon."
+[app.recipe]
+install = "go install github.com/paulo-amaral/dockup/v2/cmd/dockup@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "dprs"
+[app.recipe]
+install = "curl -fsSL https://get.durableprogramming.com/dprs | sh"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dry"
+[app.recipe]
+install = "brew install dry"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "dtop"
+[app.recipe]
+install = "brew install dtop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ducker"
+[app.recipe]
+install = "brew install ducker"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "e1s"
+[app.recipe]
+install = "brew install e1s"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "eks-node-viewer"
+[app.recipe]
+install = "brew tap aws/tap && brew install eks-node-viewer"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "etcd-walker"
+[app.recipe]
+install = "go install github.com/nexusriot/etcd-walker/cmd/etcd-walker@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "k8s-tui"
+[app.recipe]
+install = "go install github.com/otavioCosta2110/k8s-tui/cmd@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "k9s"
+[app.recipe]
+install = "brew install k9s"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kdash"
+[app.recipe]
+install = "brew tap kdash-rs/kdash && brew install kdash"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "kftui"
+[app.recipe]
+install = "cargo install kftui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ktop"
+[app.recipe]
+install = "brew install ktop"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kubetui"
+[app.recipe]
+install = "brew install kubetui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazycontainer"
+[app.recipe]
+install = "brew install lazycontainer"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazydocker"
+[app.recipe]
+install = "brew install lazydocker"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "lazytrivy"
+cli = true
+[app.recipe]
+install = "brew tap owenrumney/tools && brew install lazytrivy"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "oxker"
+[app.recipe]
+install = "brew install oxker"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Pocker"
+[app.recipe]
+install = "pipx install pocker-tui"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Podman-tui"
+[app.recipe]
+install = "brew install podman-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sen"
+[app.recipe]
+install = "pipx install sen"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "SwarmCLI"
+[app.recipe]
+install = "git clone https://github.com/Eldara-Tech/swarmcli.git && cd swarmcli && go install ."
+method = "source"
+verified = true
+
+[[app]]
+name = "talos-pilot"
+[app.recipe]
+install = "brew install Handfish/tap/talos-pilot"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+# ── Editors ─────────────────────────────────────────────────────
+
+[[app]]
+name = "amp"
+[app.recipe]
+install = "brew install amp"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "C-Edit"
+bin = "cedit"
+[app.recipe]
+install = "git clone https://github.com/velorek1/c-edit.git && cd c-edit/src && make"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "Durdraw"
+[app.recipe]
+install = "brew install durdraw"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Edit"
+[app.recipe]
+install = "brew install msedit"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "flow-control"
+bin = "flow"
+[app.recipe]
+install = "brew install flow-control"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Fresh"
+[app.recipe]
+install = "brew install fresh-editor"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "frogmouth"
+[app.recipe]
+install = "pipx install frogmouth"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "helix"
+bin = "hx"
+[app.recipe]
+install = "brew install helix"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hexed"
+description = "(Yet another) hex editor — a minimal terminal hex editor written in C, built from source with make. Linux only."
+[app.recipe]
+install = "git clone https://codeberg.org/quorend/hexed.git && cd hexed && make && install -Dm755 build/hexed ~/.local/bin/hexed"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "kakoune"
+[app.recipe]
+install = "brew install kakoune"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kilo"
+[app.recipe]
+install = "git clone https://github.com/antirez/kilo.git && cd kilo && make && sudo cp kilo /usr/local/bin/"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "maki"
+[app.recipe]
+install = "git clone https://git.sr.ht/~bscit/maki && cd maki && dotnet build && ./maki/bin/Debug/net8.0/maki"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "markln"
+[app.recipe]
+install = "git clone https://github.com/xqtr/markln && cd markln && pip install -r requirements.txt && python markln.py"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "micro"
+[app.recipe]
+install = "brew install micro"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "microNeo"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/sollawen/microNeo/master/tools/install.sh | sh"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nino"
+[app.recipe]
+install = "git clone https://github.com/evanlin96069/nino.git && cd nino && mkdir build && cd build && cmake .. && cmake --build . && cmake --install ."
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "orbiton"
+[app.recipe]
+install = "brew install orbiton"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "PNANA"
+description = "An FTXUI terminal text editor with modern (non-vim) keybindings, LSP support, tree-sitter syntax highlighting, and a Lua plugin system. Built from source."
+[app.recipe]
+install = "git clone https://github.com/Cyxuan0311/PNANA && cd PNANA && ./build.sh && cd build && sudo make install"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "slap"
+[app.recipe]
+install = "npm install -g slap@latest"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "thymus"
+[app.recipe]
+install = "pipx install thymus"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tilde"
+[app.recipe]
+install = "apt-get install tilde"
+method = "apt"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "treemd"
+[app.recipe]
+install = "brew install treemd"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "turbo"
+[app.recipe]
+install = "cmake . -DCMAKE_BUILD_TYPE=Release && cmake --build ."
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "vis"
+[app.recipe]
+install = "brew install vis"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "zee"
+[app.recipe]
+install = "cargo install --locked zee"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+# ── File Managers ───────────────────────────────────────────────
+
+[[app]]
+name = "adbtuifm"
+[app.recipe]
+install = "go install github.com/darkhz/adbtuifm@latest"
+method = "go"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "broot"
+[app.recipe]
+install = "brew install broot"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "deletor"
+[app.recipe]
+install = "go install github.com/pashkov256/deletor@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "far2l"
+[app.recipe]
+install = "brew install far2l-tty"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "fml"
+[app.recipe]
+install = "git clone https://github.com/wick3dr0se/fml && cd fml && cp fml /usr/local/bin"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "goful"
+[app.recipe]
+install = "go install github.com/anmitsu/goful@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "lf"
+[app.recipe]
+install = "brew install lf"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mc"
+[app.recipe]
+install = "brew install midnight-commander"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nnn"
+[app.recipe]
+install = "brew install nnn"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ntc"
+[app.recipe]
+install = "git clone https://codeberg.org/ItsZariep/ntc && cd ntc/src && make"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "ranger"
+[app.recipe]
+install = "brew install ranger"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "rovr"
+[app.recipe]
+install = "pipx install rovr"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "s3duck-tui"
+[app.recipe]
+install = "go install github.com/nexusriot/s3duck-tui/cmd/s3duck-tui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sfm"
+[app.recipe]
+install = "git clone https://github.com/afify/sfm && cd sfm && make && make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "superfile"
+bin = "spf"
+[app.recipe]
+install = "brew install superfile"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "TUIFIManager"
+bin = "tuifi"
+[app.recipe]
+install = "pip3 install TUIFIManager"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Vifm"
+[app.recipe]
+install = "brew install vifm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "yazi"
+[app.recipe]
+install = "brew install yazi"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ytreenova"
+bin = "ytnova"
+description = "The XTree style file manager Unix should have had all along."
+[app.recipe]
+install = "git clone https://github.com/robkam/ytreenova.git && cd ytreenova && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux"]
+
+# ── Games ───────────────────────────────────────────────────────
+
+[[app]]
+name = "awkaster"
+[app.recipe]
+install = "brew install gawk && git clone https://github.com/TheMozg/awk-raycaster && cd awk-raycaster && gawk -f awkaster.awk"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "balatrotui"
+bin = "balatro_tui"
+[app.recipe]
+install = "cargo build --release --package balatro_tui"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bastet"
+[app.recipe]
+install = "brew install bastet"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "botany"
+[app.recipe]
+install = "git clone https://github.com/jifunks/botany.git && cd botany && python3 botany.py"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "brickgame-4bit"
+[app.recipe]
+install = "git clone https://github.com/ilyakurdyukov/brickgame-4bit && cd brickgame-4bit && make"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "BrogueCE"
+bin = "brogue"
+[app.recipe]
+install = "git clone https://github.com/tmewett/BrogueCE.git && cd BrogueCE && make bin/brogue"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "cbonsai"
+cli = true
+[app.recipe]
+install = "brew install cbonsai"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "chess-tui"
+[app.recipe]
+install = "brew install thomas-mauran/tap/chess-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "clidle"
+[app.recipe]
+install = "go install github.com/ajeetdsouza/clidle@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "csol"
+[app.recipe]
+install = "cmake . && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "DOOM-ASCII"
+[app.recipe]
+install = "make"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Gameboy Emulator"
+bin = "php-gameboy"
+[app.recipe]
+install = "wget https://raw.githubusercontent.com/gabrielrcouto/php-terminal-gameboy-emulator/master/bin/php-gameboy.phar && chmod +x php-gameboy.phar && mv php-gameboy.phar /usr/local/bin/php-gameboy"
+method = "binary"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "GitType"
+[app.recipe]
+install = "brew install gittype"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "go-life"
+[app.recipe]
+install = "go install github.com/sachaos/go-life@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gokemon"
+bin = "poketerm"
+[app.recipe]
+install = "go install github.com/nathanieltooley/gokemon/poketerm@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Greed"
+[app.recipe]
+install = "brew install greed"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Maze"
+[app.recipe]
+install = "brew install itchyny/tap/maze"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Maze TUI"
+bin = "run_tui"
+[app.recipe]
+install = "git clone https://github.com/agl-alexglopez/maze-tui.git && cd maze-tui/maze_tui && cargo build --release --bin run_tui"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Micro Snake"
+bin = "snake"
+[app.recipe]
+install = "git clone https://github.com/troglobit/snake && cd snake && make && sudo install -m 755 snake /usr/local/bin/snake"
+method = "make"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Micro Tetris"
+bin = "tetris"
+[app.recipe]
+install = "git clone https://github.com/troglobit/tetris && cd tetris && make && sudo install -m 755 tetris /usr/local/bin/tetris"
+method = "make"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "minesweep-rs"
+[app.recipe]
+install = "cargo install minesweep"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "minesweeper_4d_rs"
+[app.recipe]
+install = "cargo install minesweeper_4d"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "moon-buggy"
+[app.recipe]
+install = "brew install moon-buggy"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "MyMan"
+[app.recipe]
+install = "brew install myman"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nchess"
+[app.recipe]
+install = "make clean && make"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "NetHack"
+[app.recipe]
+install = "brew install nethack"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nInvaders"
+[app.recipe]
+install = "brew install ninvaders"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nSnake"
+[app.recipe]
+install = "brew install nsnake"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nudoku"
+[app.recipe]
+install = "brew install nudoku"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "onx"
+[app.recipe]
+install = "pipx install onx"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "pokete"
+[app.recipe]
+install = "pip install pokete"
+method = "pip"
+verified = true
+os = ["linux", "windows"]
+
+[[app]]
+name = "Rebels in the sky"
+[app.recipe]
+install = "cargo install rebels"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "snake"
+[app.recipe]
+install = "bash <(curl -s https://raw.githubusercontent.com/wick3dr0se/snake/main/snake)"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Square Tic Tac Toe"
+[app.recipe]
+install = "pipx install squaretictactoe"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ssHattrick"
+[app.recipe]
+install = "cargo install sshattrick"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sshtron"
+[app.recipe]
+install = "go install github.com/zachlatta/sshtron@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sssnake"
+[app.recipe]
+install = "git clone https://github.com/AngelJumbo/sssnake.git && cd sssnake && make && sudo make install"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "steam-tui"
+[app.recipe]
+install = "cargo install steam-tui"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "sudoku-rs"
+[app.recipe]
+install = "sudo snap install sudoku-rs"
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "sweeper"
+[app.recipe]
+install = "git clone https://github.com/igor47/sweeper && cd sweeper && uv run sweeper.py"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "terminal-phase"
+[app.recipe]
+install = "raco pkg install terminal-phase"
+method = "binary"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "terminal-pong"
+[app.recipe]
+install = "cargo install --git https://github.com/IshmamR/terminal.pong"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "termrex"
+[app.recipe]
+install = "git clone https://github.com/SATYADAHAL/termrex.git && cd termrex && make -j release && ./build/termrex"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "tetro-tui"
+[app.recipe]
+install = "cargo install tetro-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tinytetris"
+[app.recipe]
+install = "git clone https://github.com/taylorconor/tinytetris && cd tinytetris && make"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tty-solitaire"
+[app.recipe]
+install = "brew install tty-solitaire"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tui-2048"
+[app.recipe]
+install = "pip install tui-2048"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "typeinc"
+[app.recipe]
+install = "pip install typeinc"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "typing-game-cli"
+[app.recipe]
+install = "npm install -g typing-game-cli"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "UniPac"
+[app.recipe]
+install = "cargo install --git https://github.com/jesper-olsen/UniPac"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "wocogo"
+[app.recipe]
+install = "git clone https://codeberg.org/kedlubnowski/wocogo.git && cd wocogo && pip install ."
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Wordle"
+[app.recipe]
+install = "brew install wordle"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Zigtris"
+[app.recipe]
+install = "zig build -Doptimize=ReleaseFast && ./zig-cache/bin/zigtris"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Zoridor"
+[app.recipe]
+install = "git clone https://github.com/ringtailsoftware/zoridor && cd zoridor && zig build -Doptimize=ReleaseSafe && sudo cp zig-out/bin/zoridor /usr/local/bin/zoridor"
+method = "zig"
+verified = true
+os = ["macos", "linux"]
+
+# ── Messaging ───────────────────────────────────────────────────
+
+[[app]]
+name = "aerc"
+[app.recipe]
+install = "brew install aerc"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "alpine"
+[app.recipe]
+install = "brew install alpine"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "basalt"
+[app.recipe]
+install = "cargo install basalt-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "concord"
+[app.recipe]
+install = "brew install concord"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Devzat"
+[app.recipe]
+install = "go install github.com/quackduck/devzat@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "discordo"
+[app.recipe]
+install = "go install github.com/ayn2op/discordo@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "endcord"
+[app.recipe]
+install = "bash -c \"$(curl -fsSL https://raw.githubusercontent.com/mzivic7/endcord/main/tools/install.sh)\""
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Gomphotherium"
+cli = true
+[app.recipe]
+install = "go install github.com/mrusme/gomphotherium@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gomuks"
+[app.recipe]
+install = "go install go.mau.fi/gomuks@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gurk-rs"
+[app.recipe]
+install = "brew install gurk"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "himalaya"
+bin = "himalaya"
+category = "Messaging"
+description = "CLI/TUI to manage emails (IMAP/SMTP, multi-account)."
+homepage = "https://github.com/pimalaya/himalaya"
+cli = true
+[app.recipe]
+install = "cargo install himalaya --locked"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "iamb"
+[app.recipe]
+install = "brew install iamb"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "instagram-cli"
+cli = true
+[app.recipe]
+install = "brew tap supreme-gg-gg/tap && brew install instagram-cli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "irssi"
+[app.recipe]
+install = "brew install irssi"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mastui"
+[app.recipe]
+install = "pipx install mastui"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "matcha"
+[app.recipe]
+install = "brew install matcha"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "matterhorn"
+[app.recipe]
+install = "curl -L https://github.com/matterhorn-chat/matterhorn/releases/download/90000.1.1/matterhorn-90000.1.1-Darwin-arm64.tar.bz2 -o matterhorn.tar.bz2 && tar -xjf matterhorn.tar.bz2 && sudo mv matterhorn-90000.1.1-Darwin-arm64/matterhorn /usr/local/bin/matterhorn"
+method = "binary"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mcabber"
+[app.recipe]
+install = "brew install mcabber"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "meli"
+[app.recipe]
+install = "brew install meli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Mutt"
+[app.recipe]
+install = "brew install mutt"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nchat"
+description = "Telegram/WhatsApp client"
+[app.recipe]
+install = "brew tap d99kris/nchat && brew install nchat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nomadnet"
+[app.recipe]
+install = "pipx install nomadnet"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nostratui"
+[app.recipe]
+install = "git clone https://github.com/adamm-xyz/nostratui.git && cd nostratui && cargo build"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "nostui"
+[app.recipe]
+install = "cargo install nostui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Profanity"
+[app.recipe]
+install = "brew install profanity"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sclack"
+[app.recipe]
+install = "pip3 install -r requirements.txt"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "scli"
+[app.recipe]
+install = "apt install scli"
+method = "apt"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "siggo"
+[app.recipe]
+install = "make build"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Slack-term"
+[app.recipe]
+install = "go install github.com/erroneousboat/slack-term@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sup"
+[app.recipe]
+install = "gem install sup"
+method = "other"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "SuperChat"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/aeolun/superchat/main/install.sh | sh"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Superhighway84"
+[app.recipe]
+install = "git clone git@github.com:mrusme/superhighway84.git && cd superhighway84 && go build ."
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tgt"
+[app.recipe]
+install = "cargo install tgt"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "toot"
+cli = true
+[app.recipe]
+install = "brew install toot"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tuisky"
+[app.recipe]
+install = "brew install tuisky"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tuix"
+[app.recipe]
+install = "git clone https://github.com/pythops/tuix && cd tuix && cargo install --path ."
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "tut"
+[app.recipe]
+install = "brew install tut"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "twitch-tui"
+[app.recipe]
+install = "cargo install twitch-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Weechat"
+[app.recipe]
+install = "brew install weechat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "zulip-terminal"
+bin = "zulip-term"
+[app.recipe]
+install = "pipx install zulip-term"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+# ── Miscellaneous ───────────────────────────────────────────────
+
+[[app]]
+name = "arttime"
+[app.recipe]
+install = "brew install arttime"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "asciiMol"
+[app.recipe]
+install = "pip install asciimol"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "bluetui"
+[app.recipe]
+install = "cargo install bluetui"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "bluetuith"
+[app.recipe]
+install = "go install github.com/darkhz/bluetuith@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Caligula"
+[app.recipe]
+install = "brew tap philocalyst/tap && brew install caligula"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Captain's log"
+bin = "caps-log"
+[app.recipe]
+install = "mkdir -p build && cd build && cmake .. && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "cava"
+[app.recipe]
+install = "brew install cava"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cfdisk"
+[app.recipe]
+install = "brew install util-linux"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cgdisk"
+[app.recipe]
+install = "brew install gptfdisk"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "CrunchyCleaner"
+[app.recipe]
+install = "go install github.com/knuspii/crunchycleaner/v2@latest"
+method = "go"
+verified = true
+os = ["linux", "windows"]
+
+[[app]]
+name = "csvlens"
+[app.recipe]
+install = "brew install csvlens"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "diary"
+[app.recipe]
+install = "brew install diary"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "DigiSurf"
+[app.recipe]
+install = "cargo install digisurf"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "diskonaut"
+[app.recipe]
+install = "brew install diskonaut"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "distrobox-tui"
+[app.recipe]
+install = "go install github.com/phanirithvij/distrobox-tui@latest"
+method = "go"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "dua"
+bin = "dua"
+category = "Miscellaneous"
+description = "Fast interactive disk-usage analyzer and cleaner."
+homepage = "https://github.com/Byron/dua-cli"
+cli = true
+[app.recipe]
+install = "cargo install dua-cli"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dust"
+bin = "dust"
+category = "Miscellaneous"
+description = "A more intuitive, visual version of du (disk usage)."
+homepage = "https://github.com/bootandy/dust"
+cli = true
+[app.recipe]
+install = "cargo install du-dust"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ec2-instance-selector"
+cli = true
+[app.recipe]
+install = "brew tap aws/tap && brew install ec2-instance-selector"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "emu2"
+[app.recipe]
+install = "make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "flawz"
+[app.recipe]
+install = "brew install flawz"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "fnf"
+[app.recipe]
+install = "git clone https://github.com/leo-arch/fnf && cd fnf && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "fzf"
+[app.recipe]
+install = "brew install fzf"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gdu"
+[app.recipe]
+install = "brew install gdu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gif-for-cli"
+cli = true
+[app.recipe]
+install = "pipx install gif-for-cli"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "godap"
+[app.recipe]
+install = "brew install godap"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "golazo"
+[app.recipe]
+install = "brew install 0xjuanma/tap/golazo"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "gpg-tui"
+[app.recipe]
+install = "brew install gpg-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "HumBLE Explorer"
+cli = true
+[app.recipe]
+install = "pipx install humble-explorer"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "impala"
+[app.recipe]
+install = "cargo install impala"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "isw"
+[app.recipe]
+install = "cargo install isw"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "jrnl"
+cli = true
+[app.recipe]
+install = "brew install jrnl"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "keydex"
+[app.recipe]
+install = "curl -s https://shikaan.github.io/sup/install | REPO=shikaan/keydex sh -"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "lazynginx"
+[app.recipe]
+install = "go install github.com/giacomomasseron/lazynginx@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "lnav"
+[app.recipe]
+install = "brew install lnav"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mac-cleanup-go"
+[app.recipe]
+install = "brew install mac-cleanup-go"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mapscii"
+[app.recipe]
+install = "brew install mapscii"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "moc"
+[app.recipe]
+install = "brew install moc"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "moribito"
+[app.recipe]
+install = "brew install moribito"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "mqttui"
+[app.recipe]
+install = "brew install mqttui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "NanoCore"
+[app.recipe]
+install = "cargo install nanocore"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ncdu"
+[app.recipe]
+install = "brew install ncdu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nemu"
+[app.recipe]
+install = "brew install nemu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "neoss"
+[app.recipe]
+install = "npm install -g neoss"
+method = "npm"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nmtui"
+[app.recipe]
+install = "sudo apt install network-manager"
+method = "apt"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "oha"
+cli = true
+[app.recipe]
+install = "brew install oha"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "packemon"
+[app.recipe]
+install = "brew install ddddddO/tap/packemon"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "pass-cli"
+[app.recipe]
+install = "brew tap arimxyer/homebrew-tap && brew install pass-cli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "PesterExplorer"
+[app.recipe]
+install = "Install-Module PesterExplorer -Scope CurrentUser"
+method = "other"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "physics-TUI"
+[app.recipe]
+install = "pip install git+https://github.com/ClaudioRMalvino/physics_TUI.git"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pug"
+[app.recipe]
+install = "brew install pug"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "recoverpy"
+[app.recipe]
+install = "brew install recoverpy"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "redu"
+[app.recipe]
+install = "brew install redu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "rocket.term"
+[app.recipe]
+install = "pip install rocket.term"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "smassh"
+[app.recipe]
+install = "pip install smassh"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "steam_friends_list_tui"
+[app.recipe]
+install = "Download from https://github.com/AdamWHY2K/steam_friends_list_tui/releases"
+method = "binary"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Systemd-manager-tui"
+[app.recipe]
+install = "cargo install --locked systemd-manager-tui"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "tab-pal"
+cli = true
+[app.recipe]
+install = "pipx install tab-pal"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tcpterm"
+[app.recipe]
+install = "go install github.com/sachaos/tcpterm@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "term.everything"
+[app.recipe]
+install = "cd /tmp && curl -L https://github.com/mmulet/term.everything/releases/download/0.7.8/term.everything.mmulet.com-dont_forget_to_chmod_+x_this_file -o term.everything && chmod +x term.everything && sudo mv term.everything /usr/local/bin/"
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "terminalperiodictable"
+[app.recipe]
+install = "make && sudo make install"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "termshark"
+[app.recipe]
+install = "brew install termshark"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "thokr"
+[app.recipe]
+install = "cargo install thokr"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tlock"
+[app.recipe]
+install = "go install github.com/eklairs/tlock@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tray-tui"
+[app.recipe]
+install = "cargo install tray-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "try-rs"
+[app.recipe]
+install = "brew install try-rs"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tttui"
+[app.recipe]
+install = "cargo install tttui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ttyper"
+[app.recipe]
+install = "cargo install ttyper"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tui-shop"
+[app.recipe]
+install = "git clone https://github.com/Gcat101/tui-shop.git && cd tui-shop && chmod +x ./install.sh && sudo ./install.sh"
+method = "script"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "tweakcc"
+[app.recipe]
+install = "brew install tweakcc"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "typtea"
+[app.recipe]
+install = "brew install typtea"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "vortix"
+[app.recipe]
+install = "cargo install vortix"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "wavemon"
+[app.recipe]
+install = "./configure && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "wb"
+[app.recipe]
+install = "git clone https://github.com/MertGunduz/wb.git && cd wb && chmod 755 INSTALL.sh && ./INSTALL.sh"
+method = "script"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "wego"
+cli = true
+[app.recipe]
+install = "brew install wego"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "WG Commander"
+bin = "wg-cmd"
+[app.recipe]
+install = "curl -SL https://github.com/andrianbdn/wg-cmd/releases/download/v0.1.7/wg-cmd-0.1.7-linux-amd64 -o /usr/local/bin/wg-cmd && chmod +x /usr/local/bin/wg-cmd"
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "wifitui"
+[app.recipe]
+install = "brew install wifitui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "WifUI"
+[app.recipe]
+install = "cargo install wifui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "WireGuard Monitor"
+bin = "wireguardmonitor"
+category = "Miscellaneous"
+description = "Simple TUI written in Rust to display the status of WireGuard connections on a host."
+homepage = "https://codeberg.org/anthonymills/Wireguard_Monitor"
+[app.recipe]
+install = "cargo install --git https://codeberg.org/anthonymills/Wireguard_Monitor"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "wttr.in"
+cli = true
+[app.recipe]
+install = "git clone https://github.com/chubin/wttr.in && cd wttr.in && bash build.sh build"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "x-cmd"
+cli = true
+[app.recipe]
+install = "brew install x-cmd"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "xplr"
+[app.recipe]
+install = "brew install xplr"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+# ── Multimedia ──────────────────────────────────────────────────
+
+[[app]]
+name = "ani-l"
+[app.recipe]
+install = "cargo install ani-l"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "asak"
+[app.recipe]
+install = "brew install asak"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "bookokrat"
+[app.recipe]
+install = "brew install bookokrat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "chafa"
+cli = true
+[app.recipe]
+install = "brew install chafa"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cmdpxl"
+[app.recipe]
+install = "pipx install cmdpxl"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cmus"
+[app.recipe]
+install = "brew install cmus"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ctune"
+[app.recipe]
+install = "git clone https://github.com/An7ar35/ctune.git && cd ctune && cmake . -DCMAKE_BUILD_TYPE=Release && cmake --build . && sudo cmake --install ."
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "draw"
+[app.recipe]
+install = "go install github.com/maaslalani/draw@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "fancy-cat"
+[app.recipe]
+install = "brew install fancy-cat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "favicon-editor"
+[app.recipe]
+install = "go install github.com/xyproto/favicon-editor@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "gadacz"
+[app.recipe]
+install = "cargo install --git https://github.com/rareitems/gadacz --branch master"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "GopherTube"
+[app.recipe]
+install = "curl -sSL https://raw.githubusercontent.com/KrishnaSSH/GopherTube/main/install.sh | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Gorae"
+[app.recipe]
+install = "git clone https://github.com/Han8931/gorae.git && cd gorae && ./install.sh"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "image-sorter"
+[app.recipe]
+install = "cargo install image-sorter"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "invidtui"
+[app.recipe]
+install = "go install github.com/darkhz/invidtui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "jellyfin-tui"
+[app.recipe]
+install = "cargo install jellyfin-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kew"
+[app.recipe]
+install = "brew install kew"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "line"
+[app.recipe]
+install = "curl -L https://pd3v.github.io/downloads/line_v0.8.2_mac_M_series.zip -o line.zip && unzip line.zip && ./line"
+method = "binary"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "MAL-Cli"
+[app.recipe]
+install = "cargo install mal-cli-rs"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "managarr"
+[app.recipe]
+install = "brew tap Dark-Alex-17/managarr && brew install managarr"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "manga-tui"
+[app.recipe]
+install = "cargo install manga-tui --locked"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "marstui-audio"
+[app.recipe]
+install = "git clone https://github.com/schooldanlp6/marstui-rustio && cd marstui-rustio && cargo build --release && sudo cp target/release/marstui-audio /usr/local/bin/"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "MovieBox-Tui"
+bin = "moviebox-tui"
+category = "Multimedia"
+description = "A zero-config TUI for streaming movies and TV series in the terminal: search, full metadata (seasons, episodes, dubs, subs), and instant playback via mpv. Requires mpv installed for playback."
+homepage = "https://github.com/mesamirh/MovieBox-Tui"
+[app.recipe]
+install = "cargo install moviebox-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "mps-youtube"
+[app.recipe]
+install = "pipx install mps-youtube"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "mpvc"
+cli = true
+[app.recipe]
+install = "curl -fsSLO https://github.com/lwilletts/mpvc/raw/master/extras/mpvc-installer && SHELL=/bin/sh BINDIR=$HOME/bin sh ./mpvc-installer fetch-user"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ncspot"
+[app.recipe]
+install = "brew install ncspot"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ostui"
+[app.recipe]
+install = "go install ser1.net/ostui@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pipe-viewer"
+[app.recipe]
+install = "perl Build.PL && sudo ./Build installdeps && sudo ./Build install"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "pyradio"
+[app.recipe]
+install = "curl -L https://raw.githubusercontent.com/coderholic/pyradio/master/pyradio/install.py -o install.py && python3 install.py"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "RadioGoGo"
+[app.recipe]
+install = "go install github.com/zi0p4tch0/radiogogo@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Relax-player"
+[app.recipe]
+install = "cargo install relax-player"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "rmpc"
+homepage = "https://mierak.github.io/rmpc/"
+[app.recipe]
+install = "brew install rmpc"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "roku-cli"
+bin = "roku-tui"
+[app.recipe]
+install = "python3 -m pip install roku-tui"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "rusty-pipes"
+[app.recipe]
+install = ""
+method = "binary"
+verified = true
+os = ["linux", "macos", "windows"]
+
+[[app]]
+name = "sonicradio"
+[app.recipe]
+install = "go install github.com/dancnb/sonicradio/cmd/sonicradio@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "soundcloud2000"
+[app.recipe]
+install = "gem install soundcloud2000"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "spotatui"
+[app.recipe]
+install = "cargo install spotatui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "spotify-player"
+bin = "spotify_player"
+[app.recipe]
+install = "brew install spotify_player"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "spotui"
+[app.recipe]
+install = "pipx install spotui"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tdf"
+[app.recipe]
+install = "brew install tdf"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "terminal-yt"
+[app.recipe]
+install = "cargo install --git https://github.com/jooooscha/terminal-yt"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "termusic"
+[app.recipe]
+install = "brew install termusic"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "textual-paint"
+[app.recipe]
+install = "pipx install textual-paint"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "timg"
+cli = true
+[app.recipe]
+install = "brew install timg"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tizonia-openmax-il"
+cli = true
+[app.recipe]
+install = "curl -kL https://github.com/tizonia/tizonia-openmax-il/raw/master/tools/install.sh | bash"
+method = "script"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "tortuise"
+[app.recipe]
+install = "cargo install tortuise"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Toutui"
+[app.recipe]
+install = "bash -c 'expected_sha256=\"b5c41bcd3c480fd2ca6ec0031ccecf2cf7cf4ae01f591cad64a320fa7d72331d\" export expected_sha256 tmpfile=$(mktemp) && curl -LsSf https://github.com/AlbanDAVID/Toutui/raw/stable/hello_toutui.sh -o \"$tmpfile\" && bash \"$tmpfile\" install && rm -f \"$tmpfile\"'"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Trophy"
+[app.recipe]
+install = "go install github.com/taigrr/trophy/cmd/trophy@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "upiano"
+[app.recipe]
+install = "pip install upiano"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "valveFM"
+[app.recipe]
+install = "go install github.com/zorig/radio-tray@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "vhs"
+bin = "vhs"
+category = "Multimedia"
+description = "Write terminal GIFs as code — scriptable session recorder."
+homepage = "https://github.com/charmbracelet/vhs"
+cli = true
+[app.recipe]
+install = "brew install vhs"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "viu"
+[app.recipe]
+install = "brew install viu"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "vlc"
+[app.recipe]
+install = "brew install vlc"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "vv"
+cli = true
+[app.recipe]
+install = "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "waves"
+[app.recipe]
+install = "go install github.com/llehouerou/waves@latest"
+method = "go"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "wiremix"
+[app.recipe]
+install = "cargo install wiremix"
+method = "cargo"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "xytz"
+[app.recipe]
+install = "go install github.com/xdagiz/xytz@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "yoinks"
+bin = "yoinks"
+category = "Multimedia"
+description = "Download videos from YouTube, X, Instagram, TikTok, and 1,800+ other sites — paste a URL, pick a resolution (or audio-only MP3), done. A clickable full-screen UI powered by yt-dlp (auto-fetched, no Python needed); saves to ~/Downloads."
+homepage = "https://github.com/pablostanley/yoinks"
+[app.recipe]
+install = "npm install -g yoinks"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ytdl-tui"
+[app.recipe]
+install = "npm install -g ytdl-tui"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "ytfzf"
+cli = true
+[app.recipe]
+install = "git clone https://github.com/pystardust/ytfzf && cd ytfzf && sudo make install doc"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "ytui-music"
+[app.recipe]
+install = "git clone https://github.com/sudipghimire533/ytui-music && cd ytui-music && git submodule init && MPV_BUILD=mpv-build/ cargo build --all --release --features build_libmpv"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+# ── Productivity ────────────────────────────────────────────────
+
+[[app]]
+name = "abook"
+[app.recipe]
+install = "brew install abook"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "agent-deck"
+[app.recipe]
+install = "go install github.com/asheshgoplani/agent-deck/cmd/agent-deck@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "awsui"
+[app.recipe]
+install = "pip install awsui"
+method = "pip"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Bagels"
+[app.recipe]
+install = "brew install bagels"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Brief"
+[app.recipe]
+install = "brew install williamagh/tap/brief"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "calcure"
+[app.recipe]
+install = "pipx install calcure"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "calcurse"
+[app.recipe]
+install = "brew install calcurse"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Chronos"
+[app.recipe]
+install = "go install github.com/samuelstranges/chronos@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "clipse"
+[app.recipe]
+install = "go install github.com/savedra1/clipse@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Desktop-TUI"
+[app.recipe]
+install = "cargo install desktop-tui"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "doxx"
+[app.recipe]
+install = "brew install doxx"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "drako"
+[app.recipe]
+install = "go install github.com/lucky7xz/drako@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "dvtm"
+[app.recipe]
+install = "make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "ekphos"
+[app.recipe]
+install = "brew install ekphos"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "elia"
+[app.recipe]
+install = "pipx install elia-chat"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "fjira"
+[app.recipe]
+install = "brew install fjira"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "GeekCalendar"
+[app.recipe]
+install = "npm install -g github:fearlessgeekmedia/GeekCalendar"
+method = "npm"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Glow"
+[app.recipe]
+install = "brew install glow"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gocheat"
+[app.recipe]
+install = "brew install gocheat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "h-m-m"
+[app.recipe]
+install = "wget -q -O - 'https://raw.githubusercontent.com/nadrad/h-m-m/main/install.sh' | sh"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "helm"
+[app.recipe]
+install = "brew install helm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hledger-ui"
+[app.recipe]
+install = "brew install hledger"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "hnjobs"
+[app.recipe]
+install = "go install github.com/mwinters0/hnjobs@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "HydroFetch"
+cli = true
+[app.recipe]
+install = "curl -sSL https://raw.githubusercontent.com/Henriquehnnm/HydroFetch/main/install.fish | fish"
+method = "script"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "HydroToDo"
+[app.recipe]
+install = "git clone https://github.com/Henriquehnnm/hydrotodo.git && cd hydrotodo && python3 hydrotodo.py"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "hygg"
+[app.recipe]
+install = "cargo install --locked hygg"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "intelli-shell"
+cli = true
+[app.recipe]
+install = "brew install intelli-shell"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "jiratui"
+[app.recipe]
+install = "brew install jiratui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Judo"
+[app.recipe]
+install = "cargo install judo"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "kabmat"
+[app.recipe]
+install = "git clone https://github.com/PlankCipher/kabmat.git && cd kabmat && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "kanban"
+[app.recipe]
+install = "brew install fulsomenko/tap/kanban"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "kanban-python"
+bin = "kanban"
+[app.recipe]
+install = "pipx install kanban-python"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "khal"
+cli = true
+[app.recipe]
+install = "brew install khal"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "khard"
+bin = "khard"
+category = "Productivity"
+description = "Console CardDAV address book and contact manager."
+homepage = "https://github.com/lucc/khard"
+cli = true
+[app.recipe]
+install = "pipx install khard"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "LazySSH"
+[app.recipe]
+install = "brew install lazyssh"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "levite"
+[app.recipe]
+install = "git clone https://github.com/RauliL/levite.git && cd levite && mkdir build && cd build && cmake .. && make"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "longbridge-terminal"
+[app.recipe]
+install = "brew install --cask longbridge/tap/longbridge-terminal"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "lssh"
+[app.recipe]
+install = "go install github.com/blacknon/lssh/cmd/lssh@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "mcfly"
+cli = true
+[app.recipe]
+install = "brew install mcfly"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "multranslate"
+[app.recipe]
+install = "npm install -g multranslate"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "mynav"
+[app.recipe]
+install = "curl -fsSL https://raw.githubusercontent.com/GianlucaP106/mynav/main/install.bash | bash"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nb"
+bin = "nb"
+category = "Productivity"
+description = "Plain-text note-taking, bookmarking, and knowledge base."
+homepage = "https://github.com/xwmx/nb"
+cli = true
+[app.recipe]
+install = "brew install nb"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nless"
+[app.recipe]
+install = "brew install mpryor/tap/nless"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "numr"
+[app.recipe]
+install = "brew tap nasedkinpv/tap && brew install numr"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "openmux"
+[app.recipe]
+install = "npm install -g openmux"
+method = "npm"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pagerduty-tui"
+[app.recipe]
+install = "cargo build --release"
+method = "source"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "patat"
+[app.recipe]
+install = "brew install patat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pdiary"
+[app.recipe]
+install = "pip install pdiary"
+method = "pip"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "pkm"
+[app.recipe]
+install = "git clone https://github.com/wick3dr0se/pkm; cd pkm"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pomo"
+[app.recipe]
+install = "brew install --cask bahaaio/pomo/pomo"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "portfolio_rs"
+cli = true
+[app.recipe]
+install = "cargo install portfolio_rs"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "pream-team"
+[app.recipe]
+install = "pip install pream-team"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "presenterm"
+[app.recipe]
+install = "brew install presenterm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "procmux"
+[app.recipe]
+install = "pipx install procmux"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "productivity-timer"
+[app.recipe]
+install = "npm install -g productivity-timer"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "sc-im"
+[app.recipe]
+install = "brew install sc-im"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sheets"
+bin = "sheets"
+category = "Productivity"
+description = "Terminal-based spreadsheet tool backed by CSV files."
+homepage = "https://github.com/maaslalani/sheets"
+[app.recipe]
+install = "go install github.com/maaslalani/sheets@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "SheetsUI"
+[app.recipe]
+install = "cargo install --git https://github.com/zaphar/sheetsui --locked"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "slides"
+[app.recipe]
+install = "brew install slides"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ssh-slides"
+[app.recipe]
+install = "go install github.com/ivantsepp/ssh-slides@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "sshm"
+[app.recipe]
+install = "brew install Gu1llaum-3/sshm/sshm"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Tabiew"
+[app.recipe]
+install = "brew install tabiew"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "taskline"
+cli = true
+[app.recipe]
+install = "brew install taskline"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "taskwarrior-tui"
+[app.recipe]
+install = "brew install taskwarrior-tui"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "television"
+[app.recipe]
+install = "brew install television"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tenere"
+[app.recipe]
+install = "brew install tenere"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "termscp"
+[app.recipe]
+install = "brew install termscp"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tiki"
+[app.recipe]
+install = "brew install boolean-maybe/tap/tiki"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tmux"
+[app.recipe]
+install = "brew install tmux"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Tock"
+[app.recipe]
+install = "brew install tock"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tododo"
+[app.recipe]
+install = "brew install bmarse/tap/tododo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "todoman"
+cli = true
+[app.recipe]
+install = "brew install todoman"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Toney"
+bin = "Toney"
+[app.recipe]
+install = "go install github.com/SourcewareLab/Toney@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "topydo"
+cli = true
+[app.recipe]
+install = "brew install topydo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "trx"
+description = "Terminal package manager with fuzzy search and keyboard-driven package discovery."
+[app.recipe]
+install = "curl -fsSL https://trx.pidev.tech/install.sh | sh"
+method = "script"
+verified = true
+
+[[app]]
+name = "ttm"
+[app.recipe]
+install = "brew install vst93/tap/ttm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "ttyplot"
+[app.recipe]
+install = "brew install ttyplot"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tui-deck"
+[app.recipe]
+install = "go install github.com/mebitek/tui-deck@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tui-slides"
+[app.recipe]
+install = "cargo install tui-slides"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "TUI_ProjectManager"
+[app.recipe]
+install = "cargo install project_manager"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tuidict"
+[app.recipe]
+install = "cargo install tuidict"
+method = "cargo"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tuihub"
+[app.recipe]
+install = "go install github.com/ashis0013/tuihub@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "TUIOS"
+[app.recipe]
+install = "brew install tuios"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "tuiserial"
+description = "A serial-port debugging TUI in Rust/Ratatui: port/baud/parity configuration with persistence, real-time status, menu-bar navigation with full keyboard and mouse support, and an optional JS/TS plugin system."
+[app.recipe]
+install = "cargo install tuiserial"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tvterm"
+[app.recipe]
+install = "git clone --recursive https://github.com/magiblot/tvterm && cd tvterm && cmake . -B ./build -DCMAKE_BUILD_TYPE=Release && cmake --build ./build"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "vdirsyncer"
+bin = "vdirsyncer"
+category = "Productivity"
+description = "Synchronize calendars and contacts (CalDAV/CardDAV)."
+homepage = "https://github.com/pimutils/vdirsyncer"
+cli = true
+[app.recipe]
+install = "pipx install vdirsyncer"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Visidata"
+[app.recipe]
+install = "brew install visidata"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "wordgrinder"
+bin = "wordgrinder"
+category = "Productivity"
+description = "Distraction-free Unicode word processor for the terminal."
+homepage = "https://github.com/davidgiven/wordgrinder"
+[app.recipe]
+install = "brew install wordgrinder"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "zeit"
+cli = true
+[app.recipe]
+install = "go install xn--gckvb8fzb.com/zeit@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "zellij"
+[app.recipe]
+install = "brew install zellij"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+# ── Screensavers ────────────────────────────────────────────────
+
+[[app]]
+name = "astroterm"
+[app.recipe]
+install = "brew install astroterm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "gitlogue"
+[app.recipe]
+install = "brew install gitlogue"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "neo"
+[app.recipe]
+install = "./configure && make && sudo make install"
+method = "source"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "pond"
+[app.recipe]
+install = "git clone https://gitlab.com/alice-lefebvre/pond/ && cd pond && make && sudo make install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "rxpipes"
+[app.recipe]
+install = "cargo install rxpipes"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "weathr"
+[app.recipe]
+install = "cargo install weathr"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+# ── Web ─────────────────────────────────────────────────────────
+
+[[app]]
+name = "bombadillo"
+[app.recipe]
+install = "brew install bombadillo"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "browsh"
+[app.recipe]
+install = "go install github.com/browsh-org/browsh/interfacer/cmd/browsh@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "bulletty"
+[app.recipe]
+install = "brew install bulletty"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Canard"
+[app.recipe]
+install = "go install github.com/mrusme/canard@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "carbonyl"
+[app.recipe]
+install = "npm install --global carbonyl@0.0.3-next.ab80a27"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "castero"
+[app.recipe]
+install = "pip install castero"
+method = "pip"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "CatenaVetus"
+[app.recipe]
+install = "pip install -e ."
+method = "pip"
+verified = true
+os = ["linux", "macos", "windows"]
+
+[[app]]
+name = "Chawan"
+[app.recipe]
+install = "brew install chawan"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "cloudflare-speed-cli"
+cli = true
+[app.recipe]
+install = "brew install cloudflare-speed-cli"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "eilmeldung"
+[app.recipe]
+install = "brew tap christo-auer/eilmeldung https://github.com/christo-auer/eilmeldung && brew install eilmeldung"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "elinks"
+[app.recipe]
+install = "meson setup builddir && cd builddir && meson compile && meson install"
+method = "source"
+verified = true
+os = ["linux", "macos"]
+
+[[app]]
+name = "hackernews-TUI"
+[app.recipe]
+install = "cargo install hackernews_tui --locked"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "haxor-news"
+bin = "hn"
+cli = true
+[app.recipe]
+install = "pipx install haxor-news"
+method = "pipx"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Lagrange"
+[app.recipe]
+install = "brew install --cask lagrange"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "LYNX"
+[app.recipe]
+install = "brew install lynx"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "newsboat"
+[app.recipe]
+install = "brew install newsboat"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "nyaa"
+[app.recipe]
+install = "cargo install nyaa"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "omaro"
+[app.recipe]
+install = "cargo install omaro"
+method = "cargo"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "podliner"
+[app.recipe]
+install = "bash <(curl -fsSL https://github.com/timkicker/podliner/releases/latest/download/install-macos.sh)"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "rfc_reader"
+[app.recipe]
+install = "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ozan2003/rfc_reader/releases/download/v0.11.2/rfc_reader-installer.sh | sh"
+method = "script"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "rtorrent"
+[app.recipe]
+install = "brew install rtorrent"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "rttt"
+[app.recipe]
+install = "git clone https://gitlab.com/BlackEdder/rttt.git && cd rttt && cmake . && make install"
+method = "source"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "searxngr"
+[app.recipe]
+install = "uv tool install https://github.com/scross01/searxngr.git"
+method = "other"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "Slumber"
+[app.recipe]
+install = "brew install slumber"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "Start Page"
+bin = "tetron-wm-startpage"
+category = "Web"
+description = "Your bookmarks as a start page with a search box, opened in tetron-browser, else w3m. The page is tetron-browser's bookmarks file (~/.config/tetron-browser/bookmarks.html, also its home page and where its bookmark button adds), a Netscape bookmarks file other browsers import and export; it works without tetron-browser too. `tetron-wm-startpage add TITLE URL [FOLDER]` adds one."
+homepage = "https://github.com/tetronos/tetron-wm/tree/main/scripts"
+[app.recipe]
+install = "mkdir -p ~/.local/bin && curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/scripts/tetron-wm-startpage -o ~/.local/bin/tetron-wm-startpage && chmod +x ~/.local/bin/tetron-wm-startpage"
+method = "script"
+verified = true
+os = ["macos", "linux"]
+tip = "Edit your bookmarks with `tetron-wm-startpage edit` or `tetron-wm-startpage add TITLE URL [FOLDER]`, or the bookmark button in tetron-browser. Opens in tetron-browser if installed, else w3m."
+
+[[app]]
+name = "stegodon"
+[app.recipe]
+install = "go install github.com/deemkeen/stegodon@latest"
+method = "go"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "surge"
+[app.recipe]
+install = "go install github.com/SurgeDM/Surge@latest"
+method = "go"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tblogs"
+[app.recipe]
+install = "brew tap ezeoleaf/tap && brew install tblogs"
+method = "brew"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "tetron-browser"
+bin = "tetron-browser"
+category = "Web"
+description = "Chromium running inside your terminal: the maintained continuation of carbonyl (TetronOS package tetron-browser)"
+homepage = "https://github.com/tetronos/tetron-browser"
+
+[[app]]
+name = "textual-web"
+[app.recipe]
+install = "pipx install textual-web"
+method = "pipx"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "torlink"
+bin = "torlnk"
+category = "Web"
+description = "A zero-setup terminal torrent finder and downloader that searches a curated list of sources and saves straight to your downloads folder."
+homepage = "https://github.com/baairon/torlink"
+[app.recipe]
+install = "npm install -g torlnk"
+method = "npm"
+verified = true
+os = ["macos", "linux", "windows"]
+
+[[app]]
+name = "twterm"
+[app.recipe]
+install = "brew install ryota-ka/twterm/twterm"
+method = "brew"
+verified = true
+os = ["macos", "linux"]
+
+[[app]]
+name = "w3m"
+needs_url = true
+[app.recipe]
+install = "brew install w3m"
+method = "brew"
+verified = true
+os = ["macos", "linux"]

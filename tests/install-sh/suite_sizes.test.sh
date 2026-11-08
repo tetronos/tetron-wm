@@ -51,6 +51,14 @@ out="$(plan)"; ok "release without any deb: raw" "echo \"\$out\" | grep -q \"met
 run fedora:latest '
 out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=raw\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
 out="$(plan --size extras)"; ok "fedora extras: fbida" "echo \"\$out\" | grep -q fbida"
+printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
+out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"
+m="$(sed -n "s/^LISTS_MINOR=\"\(.*\)\"$/\1/p" /src/install-tetron-wm-suite.sh)"
+mkdir -p "/lists/$m" /tmp/piped
+printf "desktop:apps:fromlists:fromlists:fromlists:fromlists:fromlists\n" > "/lists/$m/suite-apps.txt"
+cp /src/install-tetron-wm-suite.sh /tmp/piped/
+out="$(TETRON_WM_LISTS_URL=file:///lists bash /tmp/piped/install-tetron-wm-suite.sh -y --dry-run --no-kmscon --no-console --no-autostart --no-themes --no-config 2>&1 | grep -E "plan|apps:")"
+ok "run on its own: the list published for its core minor" "echo \"\$out\" | grep -q fromlists"
 '
 run archlinux:latest '
 out="$(plan)"; ok "arch: pacman names from the list" "echo \"\$out\" | grep -q \"apps: .*poppler \" && echo \"\$out\" | grep -q ttf-dejavu && echo \"\$out\" | grep -q openssh"

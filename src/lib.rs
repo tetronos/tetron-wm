@@ -8,6 +8,7 @@ pub mod geometry;
 pub mod cell;
 pub mod theme;
 pub mod themefetch;
+pub mod listfetch;
 pub mod packaging;
 pub mod display;
 pub mod buffer;

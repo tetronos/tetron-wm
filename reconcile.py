@@ -67,9 +67,18 @@ def check_suite_apps() -> dict:
             "generator": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
 
 
+def check_catalog() -> dict:
+    """CON-WD07: assets/catalog.json is what the merge makes from lists/, and its tests pass."""
+    import subprocess
+    gen = subprocess.run([sys.executable, "scripts/merge_catalog.py", "--check"], capture_output=True, text=True)
+    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_merge_catalog.py"], capture_output=True, text=True)
+    return {"current": gen.returncode == 0 and tests.returncode == 0,
+            "merge": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
+
+
 # CON-WD06. Files where these words are expected: the changelog (dates), lock
 # files and generated data, license text, .gitignore and the agent guide.
-NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "assets/catalog.json", "assets/recipes.json",
+NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "assets/catalog.json", "lists/awesome-tuis.json", "lists/tetron.toml",
                  "THIRD-PARTY-LICENSES.md", ".gitignore", "CLAUDE.md"}
 # Built from parts so this file does not match itself.
 OWNER = re.compile(r"(?<![$\w\"{])" + "US" + r"ER(?![\w])")
@@ -104,6 +113,6 @@ def check_example_config() -> dict:
 
 
 if __name__ == "__main__":
-    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "example_config": check_example_config()}
+    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "catalog": check_catalog(), "planning_notes": check_planning_notes(), "example_config": check_example_config()}
     print(json.dumps(ctx, indent=2))
-    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["example_config"]["compiled_in"] else 1)
+    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["catalog"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["example_config"]["compiled_in"] else 1)

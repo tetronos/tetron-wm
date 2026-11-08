@@ -22,7 +22,7 @@ Press Enter at each question to take the default: the desktop size, and the setu
 
 System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a size: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
 
-The sizes are the same everywhere: the suite installer's list, the `tetron-wm-desktop` and `tetron-wm-extras` packages and the Store all come from one set of files in [`packaging/`](../packaging/).
+The sizes are the same everywhere: the suite installer's list, the `tetron-wm-desktop` and `tetron-wm-extras` packages and the Store all come from one set of files in [`packaging/`](../packaging/). The list is also published for each tetron-wm minor version at https://tetronos.github.io/apt/lists/ (for 0.15: `lists/0.15/suite-apps.txt` and `lists/0.15/catalog.json`), so it can grow without a release; the suite installer reads it from there, and the Store's Update list button fetches it.
 
 ## Ways to install
 

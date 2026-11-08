@@ -1,5 +1,8 @@
-//! The bundled app catalog — generated from the awesome-tuis list by
-//! `scripts/gen_catalog.py` into `assets/catalog.json`.
+//! The app catalog (WMCAT-001 to WMCAT-004): `scripts/merge_catalog.py`
+//! merges the source lists in `lists/` into `assets/catalog.json`, which is
+//! compiled in. The Store's Update list button can replace it with a newer
+//! copy from the versioned lists location ([`crate::listfetch`]), kept in
+//! [`cache_path`] and read at start while it passes the same checks.
 //!
 //! It powers two things: detecting which catalogued TUIs are already installed
 //! on the user's `$PATH`, and (in the Store slice) browsing/installing apps.
@@ -9,7 +12,6 @@
 use crate::config::AppEntry;
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::sync::OnceLock;
 
 /// One catalogued terminal application.
 #[derive(Clone, Debug, Deserialize)]
@@ -38,6 +40,19 @@ pub struct CatalogApp {
     /// when the app is installed. Empty for most apps.
     #[serde(default)]
     pub variants: Vec<Variant>,
+    /// How to install it, when we have a recipe.
+    #[serde(default)]
+    pub recipe: Option<Recipe>,
+    /// `default`, `recommended` or `optional` (WMCAT-003).
+    #[serde(default = "optional_tier")]
+    pub tier: String,
+    /// The smallest suite size that brings it (`desktop`, `extras`), if any.
+    #[serde(default)]
+    pub set: Option<String>,
+}
+
+fn optional_tier() -> String {
+    "optional".into()
 }
 
 /// An alternate way to launch a catalogued app: same binary, different
@@ -57,10 +72,12 @@ pub struct Variant {
 }
 
 const CATALOG_JSON: &str = include_str!("../assets/catalog.json");
-const RECIPES_JSON: &str = include_str!("../assets/recipes.json");
 
-/// A curated install recipe for a catalogued app (from `assets/recipes.json`).
-#[derive(Clone, Debug, Deserialize)]
+/// The catalog document layout this binary reads (`schema` in the file).
+pub const SCHEMA: u32 = 1;
+
+/// A curated install recipe for a catalogued app (its `recipe` field).
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Recipe {
     /// The shell command that installs the app.
     pub install: String,
@@ -84,6 +101,93 @@ pub struct Recipe {
     pub tip: String,
 }
 
+/// A parsed, checked catalog document.
+#[derive(Debug, Deserialize)]
+pub struct Catalog {
+    pub schema: u32,
+    pub apps: Vec<CatalogApp>,
+    /// The suite installer's app list (assets/suite-apps.txt), carried whole.
+    pub suite_apps: String,
+}
+
+/// Parse and check a catalog document: it parses, its schema is [`SCHEMA`],
+/// it has apps, and its suite list has rows. `Err` says why not.
+pub fn parse(text: &str) -> Result<Catalog, String> {
+    let schema = serde_json::from_str::<serde_json::Value>(text)
+        .map_err(|e| format!("not a catalog ({e})"))?
+        .get("schema")
+        .and_then(|v| v.as_u64())
+        .ok_or("no schema number")?;
+    if schema != SCHEMA as u64 {
+        return Err(format!("schema {schema}, this tetron-wm reads {SCHEMA}"));
+    }
+    let c: Catalog = serde_json::from_str(text).map_err(|e| format!("bad catalog ({e})"))?;
+    if c.apps.is_empty() {
+        return Err("no apps".into());
+    }
+    if !c.suite_apps.lines().any(|l| !l.starts_with('#') && l.split(':').count() >= 3) {
+        return Err("no suite app list".into());
+    }
+    Ok(c)
+}
+
+/// [`parse`], returning only the number of apps.
+pub fn parse_count(text: &str) -> Result<usize, String> {
+    parse(text).map(|c| c.apps.len())
+}
+
+/// Where the last good Update list download is kept.
+pub fn cache_path() -> Option<std::path::PathBuf> {
+    crate::theme::data_home_dir().map(|d| d.join("tetron-wm/catalog.json"))
+}
+
+/// The catalog in use: the cached download while it passes [`parse`], else the
+/// built-in one. Replaced by [`install`]; each replacement leaks the old one
+/// (a few hundred KB per Update list press) so `&'static` borrows stay valid.
+static ACTIVE: std::sync::RwLock<Option<&'static Catalog>> = std::sync::RwLock::new(None);
+
+fn builtin() -> Catalog {
+    parse(CATALOG_JSON).expect("the built-in catalog passes its own checks")
+}
+
+fn active() -> &'static Catalog {
+    if let Some(c) = *ACTIVE.read().unwrap() {
+        return c;
+    }
+    let cached = if cfg!(test) { None } else { cache_path().and_then(|p| std::fs::read_to_string(p).ok()) };
+    let c = match cached.map(|t| parse(&t)) {
+        Some(Ok(c)) => c,
+        Some(Err(e)) => {
+            crate::dbg_log(&format!("catalog: cached list not used ({e}); using the built-in one"));
+            builtin()
+        }
+        None => builtin(),
+    };
+    let c: &'static Catalog = Box::leak(Box::new(c));
+    *ACTIVE.write().unwrap() = Some(c);
+    c
+}
+
+/// Check a downloaded catalog and, when it passes, keep it in [`cache_path`]
+/// and use it from now on. Returns the number of apps.
+pub fn install(text: &str) -> Result<usize, String> {
+    let c = parse(text)?;
+    let path = cache_path().ok_or("no data directory")?;
+    if let Some(d) = path.parent() {
+        std::fs::create_dir_all(d).map_err(|e| format!("could not create {}: {e}", d.display()))?;
+    }
+    let part = path.with_extension("json.part");
+    std::fs::write(&part, text).and_then(|_| std::fs::rename(&part, &path)).map_err(|e| format!("could not save {}: {e}", path.display()))?;
+    let n = c.apps.len();
+    *ACTIVE.write().unwrap() = Some(Box::leak(Box::new(c)));
+    Ok(n)
+}
+
+/// The suite installer's app list of the catalog in use (WMCAT-003).
+pub fn suite_apps() -> &'static str {
+    &active().suite_apps
+}
+
 /// The current operating system as a recipe `os` token ("macos", "linux", …).
 pub fn current_os() -> &'static str {
     std::env::consts::OS
@@ -98,26 +202,19 @@ pub fn runs_on_current_os(name: &str) -> bool {
     }
 }
 
-/// The parsed catalog, loaded once on first use.
+/// The catalog in use.
 pub fn catalog() -> &'static [CatalogApp] {
-    static CATALOG: OnceLock<Vec<CatalogApp>> = OnceLock::new();
-    CATALOG.get_or_init(|| serde_json::from_str(CATALOG_JSON).unwrap_or_default())
-}
-
-/// Curated install recipes keyed by app name, loaded once.
-pub fn recipes() -> &'static std::collections::HashMap<String, Recipe> {
-    static RECIPES: OnceLock<std::collections::HashMap<String, Recipe>> = OnceLock::new();
-    RECIPES.get_or_init(|| serde_json::from_str(RECIPES_JSON).unwrap_or_default())
+    &active().apps
 }
 
 /// The curated install recipe for `name`, if one exists.
 pub fn recipe(name: &str) -> Option<&'static Recipe> {
-    recipes().get(name)
+    catalog().iter().find(|a| a.name == name)?.recipe.as_ref()
 }
 
 /// Count of verified recipes (progress indicator).
 pub fn verified_count() -> usize {
-    recipes().values().filter(|r| r.verified).count()
+    catalog().iter().filter(|a| a.recipe.as_ref().is_some_and(|r| r.verified)).count()
 }
 
 /// Look up the category for a known app by its display name or binary.
@@ -272,6 +369,39 @@ mod tests {
 
         // Leave the cache empty so a later real scan repopulates it lazily.
         *BINS.write().unwrap() = None;
+    }
+
+    /// The built-in catalog is the merged document: it passes the same checks
+    /// a download must pass, recipes are folded in, and the suite list rides
+    /// along (WMCAT-002, WMCAT-003).
+    #[test]
+    fn builtin_catalog_is_one_checked_document_with_recipes_tiers_and_sets() {
+        let c = parse(CATALOG_JSON).expect("built-in passes");
+        assert_eq!(c.schema, SCHEMA);
+        assert!(c.apps.len() > 600);
+        assert!(c.apps.iter().filter(|a| a.recipe.is_some()).count() > 600);
+        assert!(c.apps.iter().all(|a| ["default", "recommended", "optional"].contains(&a.tier.as_str())), "tiers");
+        let fresh = c.apps.iter().find(|a| a.bin == "fresh").expect("fresh");
+        assert_eq!((fresh.set.as_deref(), fresh.tier.as_str()), (Some("desktop"), "default"));
+        assert_eq!(c.suite_apps, include_str!("../assets/suite-apps.txt"));
+        assert!(recipe("Claude Code").is_some_and(|r| r.requires_cwd));
+    }
+
+    /// A download is refused unless it is a catalog of the schema this binary
+    /// reads, with apps and a suite list (WMCAT-004).
+    #[test]
+    fn parse_refuses_other_schemas_empty_lists_and_garbage() {
+        let doc = |schema: u32, apps: &str, suite: &str| format!(r#"{{"schema":{schema},"apps":[{apps}],"suite_apps":"{suite}"}}"#);
+        let app = r#"{"name":"x","bin":"x","category":"c","description":"d","homepage":"h"}"#;
+        let suite = "desktop:apps:x:x:x:x:x\\n";
+        assert_eq!(parse_count(&doc(SCHEMA, app, suite)), Ok(1));
+        assert!(parse(&doc(SCHEMA + 1, app, suite)).unwrap_err().contains("schema"));
+        assert_eq!(parse(&doc(SCHEMA, "", suite)).unwrap_err(), "no apps");
+        assert_eq!(parse(&doc(SCHEMA, app, "# only a comment")).unwrap_err(), "no suite app list");
+        assert!(parse("<html>404</html>").is_err());
+        assert!(parse(r#"[{"name":"old bare list"}]"#).unwrap_err().contains("schema"));
+        let c = parse(&doc(SCHEMA, app, suite)).unwrap();
+        assert_eq!((c.apps[0].tier.as_str(), c.apps[0].set.is_none()), ("optional", true));
     }
 
     /// tetron-wm's own helpers: the launcher finds them by a prefixed name on

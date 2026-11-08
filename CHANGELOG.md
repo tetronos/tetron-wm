@@ -7,10 +7,14 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Added
+- Store: **Update list** button (top right, or F5) fetches the newest app catalog for this tetron-wm version from https://tetronos.github.io/apt/lists/0.15/catalog.json, only when pressed. A list that does not check out (wrong format, no apps, download failed) changes nothing; a good one is kept in `~/.local/share/tetron-wm/catalog.json` and used by the Store, the launcher and Settings > General > Apps. The suite installer run on its own reads its app list from the same place (then from the repository), and Settings > General > Apps hands it the list it counted from (`--apps-list FILE`).
+- Store: an app that comes with a suite size says so ("In the desktop set").
+- The Store lists 49 apps newly added to awesome-tuis (no install recipe yet).
 - Settings > General > **Apps** says how many apps of the installed size are missing ("desktop, 3 missing"), by the same checks the suite installer uses. A size installed with apt alone, which brings none of the apps no distribution packages, now shows what the installer would still add.
 - Settings > **Updates** also updates uv (`uv self update`, only when no package owns it) and the apps it installed (`uv tool upgrade --all`: catt, casttui) before updating tetron-wm. Their result never stops the tetron-wm update.
 
 ### Changed
+- The app catalog is built from source lists: `lists/awesome-tuis.json` (imported by `scripts/import_awesome_tuis.py`, never edited) and our `lists/tetron.toml` (added apps, corrections, recipes, tiers), merged by `scripts/merge_catalog.py` into one `assets/catalog.json` that also carries each app's recipe, tier, set and the suite installer's app list. An import no longer overwrites our changes; `assets/recipes.json` is gone.
 - The suite installer installs fresh (`fresh-editor`), the Symbols Nerd Font (`tetronos-nerd-font-symbols`) and casttui with apt when the tetronos apt repo has them, so apt keeps them up to date; elsewhere it uses their own installers as before.
 - `tetron-wm-desktop` recommends tetron-browser, so the desktop size brings the web browser tetron-wm opens pages in. It comes from the tetronos apt repo (https://tetronos.github.io/apt, amd64); where that repo is not configured apt skips it and the rest installs as before. The suite installer's one-by-one apt path now leaves out any package apt has no candidate for, so one missing name no longer fails the whole batch.
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Merge a derive-install-recipes workflow output file into assets/recipes.json.
+"""Merge a derive-install-recipes workflow output file into the catalog: changed
+recipes are appended to lists/tetron.toml and assets/catalog.json is merged again.
 
 Usage: python3 scripts/merge_recipes.py <workflow-output.json>
 
@@ -11,14 +12,16 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from merge_catalog import catalog_recipes, save_recipes  # noqa: E402
 
 
 def main() -> int:
     raw = json.loads(Path(sys.argv[1]).read_text())
     results = raw.get("result", raw) if isinstance(raw, dict) else raw
 
-    recipes_path = ROOT / "assets" / "recipes.json"
-    recipes = json.loads(recipes_path.read_text())
+    recipes = catalog_recipes()
+    before = dict(recipes)
 
     merged = 0
     for r in results:
@@ -44,8 +47,8 @@ def main() -> int:
         recipes[name] = entry
         merged += 1
 
-    recipes_path.write_text(json.dumps(recipes, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
-    catalog = json.loads((ROOT / "assets" / "catalog.json").read_text())
+    save_recipes(before, recipes)
+    catalog = json.loads((ROOT / "assets" / "catalog.json").read_text())["apps"]
     verified = sum(1 for x in recipes.values() if x.get("verified"))
     print(f"merged {merged}; total verified: {verified}/{len(catalog)}; recorded: {len(recipes)}")
     return 0

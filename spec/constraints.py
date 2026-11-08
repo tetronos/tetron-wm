@@ -78,3 +78,15 @@ class NoPlanningNotesInCommittedFiles(Constraint):
     """
     constraint_id = "CON-WD06"
     enforcement_logic = "{{ planning_notes.count == 0 }}"
+
+
+class CatalogMerged(Constraint):
+    """CONSTRAINT-ID: CON-WD07
+
+    `assets/catalog.json` equals what `scripts/merge_catalog.py` makes from
+    `lists/` and `assets/suite-apps.txt` (WMCAT-001, WMCAT-003), so a list
+    edit without merging fails the gate.
+    ENFORCEMENT (reconcile.py): catalog.current is true.
+    """
+    constraint_id = "CON-WD07"
+    enforcement_logic = "{{ catalog.current }}"

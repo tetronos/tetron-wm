@@ -59,6 +59,9 @@
 #   --config / --no-config     force the config-dir step on/off
 #   --themes / --no-themes     force the extra-themes download on/off (default yes)
 #   --size S                   minimal | desktop | extras (default desktop; asked when not given)
+#   --apps-list FILE           read the app list from FILE (Settings > General > Apps hands
+#                              over the list it counted from); default: the list published
+#                              for this core minor, then the repository's
 #   --no-extras                same as --size minimal (older flag)
 #   --convert / --no-convert   Debian and Ubuntu: replace a tetron-wm that is not from a
 #                              package with the apt package (asked, default no)
@@ -80,12 +83,17 @@
 #   -h, --help       show this help
 #
 # Env overrides: REPO (default tetronos/tetron-wm), BRANCH (default main),
+# TETRON_WM_LISTS_URL (default https://tetronos.github.io/apt/lists),
 # and anything install.sh honours (TETRON_WM_BIN_DIR, TETRON_WM_RELEASES_URL, TETRON_WM_TAG).
 set -euo pipefail
 
 REPO="${REPO:-tetronos/tetron-wm}"
 BRANCH="${BRANCH:-main}"
 RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
+# The app list published per core minor (WMCAT-004), so a list made for a newer
+# core never reaches this one. LISTS_MINOR follows Cargo.toml (a test checks).
+LISTS_MINOR="0.15"
+LISTS="${TETRON_WM_LISTS_URL:-https://tetronos.github.io/apt/lists}/$LISTS_MINOR"
 # Release downloads and the tag can be overridden (tests serve a local release);
 # install.sh reads the same two variables.
 RELEASES="${TETRON_WM_RELEASES_URL:-https://github.com/$REPO/releases}"
@@ -119,7 +127,7 @@ fetch() {
 
 # ── Args ─────────────────────────────────────────────────────────────────────
 ASSUME_YES=0
-SIZE=""; CONVERT=""
+SIZE=""; CONVERT=""; APPS_LIST=""
 WANT_WM=""; WANT_CONFIG=""; WANT_THEMES=""; WANT_EXTRAS=""; WANT_SERVICES=""; WANT_KMSCON=""; WANT_CONSOLE=""; WANT_AUTOLOGIN=""; WANT_AUTOSTART=""; WANT_FULLSCREEN=""
 FSVT=9; VT=""; PROFILE=""; UNINSTALL=0; PURGE=0; DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -132,6 +140,7 @@ while [ $# -gt 0 ]; do
     --themes)     WANT_THEMES=y ;; --no-themes) WANT_THEMES=n ;;
     --extras)     WANT_EXTRAS=y ;; --no-extras) WANT_EXTRAS=n; SIZE=minimal ;;
     --size)       shift; SIZE="${1:-}" ;;
+    --apps-list)  shift; APPS_LIST="${1:-}" ;;
     --convert)    CONVERT=y ;; --no-convert) CONVERT=n ;;
     --services)   WANT_SERVICES=y ;; --no-services) WANT_SERVICES=n ;;
     --kmscon)     WANT_KMSCON=y ;; --no-kmscon) WANT_KMSCON=n ;;
@@ -359,10 +368,24 @@ ensure_truecolor() {
 # line per package (an empty name = not on that system) and "size:script:name"
 # per app no distro packages. A size installs its lines and the smaller sizes'.
 # Only packages whose check fails install, so re-running converges.
+# Where the list comes from, first that works: --apps-list FILE, the checkout
+# this script runs from, the list published for this core minor, the repository.
 APPS=""
+apps_list_ok() { grep '^[a-z]*:[a-z]*:' <<<"$1" >/dev/null; }
 load_apps() {
-  if [ -n "$HERE" ]; then APPS="$(cat "$HERE/assets/suite-apps.txt")"
-  else APPS="$(fetch "$RAW/assets/suite-apps.txt" 2>/dev/null)" || APPS=""; fi
+  if [ -n "$APPS_LIST" ]; then
+    APPS="$(cat "$APPS_LIST" 2>/dev/null)" || APPS=""
+    apps_list_ok "$APPS" || { warn "no app list in $APPS_LIST"; APPS=""; }
+  fi
+  if [ -z "$APPS" ] && [ -n "$HERE" ]; then APPS="$(cat "$HERE/assets/suite-apps.txt")"; fi
+  if [ -z "$APPS" ]; then
+    APPS="$(fetch "$LISTS/suite-apps.txt" 2>/dev/null)" || APPS=""
+    apps_list_ok "$APPS" || APPS=""
+  fi
+  if [ -z "$APPS" ]; then
+    APPS="$(fetch "$RAW/assets/suite-apps.txt" 2>/dev/null)" || APPS=""
+    apps_list_ok "$APPS" || APPS=""
+  fi
   [ -n "$APPS" ] || warn "could not read the app list (assets/suite-apps.txt); no apps will be installed"
 }
 size_rank() { case "$1" in minimal) echo 0 ;; desktop) echo 1 ;; extras) echo 2 ;; *) echo 9 ;; esac; }

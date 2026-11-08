@@ -27,6 +27,19 @@ const LIST_W: i32 = 30;
 /// needs subcommands) rather than opening a persistent full-screen TUI.
 const CLI_BADGE: &str = "CLI";
 
+/// The Update list button on row 0 (WMCAT-004; F5 does the same).
+const UPDATE_BTN: &str = "[ Update list ]";
+
+/// What a click in the Store asks the session to do.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StoreClick {
+    None,
+    /// Install or launch the selected app.
+    Activate,
+    /// Fetch the catalog ([`crate::listfetch`]).
+    UpdateList,
+}
+
 /// State of the store browser.
 pub struct Store {
     categories: Vec<String>,
@@ -34,6 +47,8 @@ pub struct Store {
     query: String,
     selected: usize,
     scroll: usize,
+    /// The Update list result line, shown on row 0 in place of the count.
+    status: String,
 }
 
 impl Default for Store {
@@ -45,6 +60,10 @@ impl Default for Store {
 impl Store {
     /// Create a store browser (category list derived from the catalog).
     pub fn new() -> Self {
+        Self { categories: Self::category_list(), cat_index: 0, query: String::new(), selected: 0, scroll: 0, status: String::new() }
+    }
+
+    fn category_list() -> Vec<String> {
         let mut cats: Vec<String> = Vec::new();
         for c in catalog::catalog() {
             if !cats.iter().any(|x| x == &c.category) {
@@ -53,7 +72,26 @@ impl Store {
         }
         cats.sort();
         cats.insert(0, "All".to_string());
-        Self { categories: cats, cat_index: 0, query: String::new(), selected: 0, scroll: 0 }
+        cats
+    }
+
+    /// An Update list press started.
+    pub fn update_started(&mut self) {
+        self.status = "Updating list\u{2026}".into();
+    }
+
+    /// An Update list finished with `msg`: show it and re-read the catalog in
+    /// use, keeping the selected category when it still exists.
+    pub fn update_done(&mut self, msg: &str) {
+        self.status = msg.to_string();
+        let cat = self.categories.get(self.cat_index).cloned();
+        self.categories = Self::category_list();
+        self.cat_index = cat.and_then(|c| self.categories.iter().position(|x| *x == c)).unwrap_or(0);
+        self.reset_list();
+    }
+
+    fn update_btn_x(w: i32) -> i32 {
+        (w - UPDATE_BTN.len() as i32 - 1).max(0)
     }
 
     /// Apps matching the current category + query.
@@ -118,9 +156,12 @@ impl Store {
 
         // Search bar (row 0).
         buf.write_str(1, 0, &format!("{} {}\u{2588}", crate::glyphs::get(crate::glyphs::Glyph::Search), self.query), pal_accent(), pal_bg());
-        let count = self.filtered().len();
-        let meta = format!("{count} apps");
-        buf.write_str((w - meta.len() as i32 - 1).max(0), 0, &meta, pal_dim(), pal_bg());
+        let bx = Self::update_btn_x(w);
+        buf.write_str(bx, 0, UPDATE_BTN, pal_accent(), pal_bg());
+        let meta = if self.status.is_empty() { format!("{} apps", self.filtered().len()) } else { self.status.clone() };
+        let room = (bx - 2 - SIDEBAR_W).max(0) as usize;
+        let meta = truncate(&meta, room);
+        buf.write_str((bx - 2 - meta.chars().count() as i32).max(0), 0, meta, pal_dim(), pal_bg());
         hline(&mut buf, w, 1);
 
         // Sidebar (categories).
@@ -171,6 +212,10 @@ impl Store {
                     buf.write_str(bx, 4, CLI_BADGE, pal_accent(), pal_panel());
                 }
             }
+            // The suite size that brings it (WMCAT-003).
+            if let Some(set) = &app.set {
+                buf.write_str(dx + 1, 5, truncate(&format!("In the {set} set (Settings > General > Apps)"), dw as usize - 2), pal_dim(), pal_panel());
+            }
             let mut y = 6;
             for line in wrap(&app.description, dw as usize - 2) {
                 if y >= h - 5 {
@@ -211,11 +256,14 @@ impl Store {
 
     /// Handle a click at content-local point `p` (within a `w × h` content area).
     ///
-    /// Returns `true` if the click should activate (install/launch) the selected
-    /// app — i.e. the action button, or a second click on the already-selected row.
-    pub fn handle_click(&mut self, p: Point, _w: i32, h: i32) -> bool {
+    /// Activate (install/launch the selected app) on the action button or a
+    /// second click on the selected row; UpdateList on the row 0 button.
+    pub fn handle_click(&mut self, p: Point, w: i32, h: i32) -> StoreClick {
+        if p.y == 0 && p.x >= Self::update_btn_x(w) && p.x < Self::update_btn_x(w) + UPDATE_BTN.len() as i32 {
+            return StoreClick::UpdateList;
+        }
         if p.y < 2 {
-            return false; // search bar / divider
+            return StoreClick::None; // search bar / divider
         }
         // Category sidebar.
         if p.x < SIDEBAR_W {
@@ -224,7 +272,7 @@ impl Store {
                 self.cat_index = i;
                 self.reset_list();
             }
-            return false;
+            return StoreClick::None;
         }
         // App list.
         let list_x = SIDEBAR_W + 1;
@@ -233,18 +281,18 @@ impl Store {
             let idx = self.scroll_for(rows) + (p.y - 2) as usize;
             if idx < self.filtered().len() {
                 if idx == self.selected {
-                    return true; // second click on the selected row activates
+                    return StoreClick::Activate; // second click on the selected row activates
                 }
                 self.selected = idx;
             }
-            return false;
+            return StoreClick::None;
         }
         // Detail pane action button (bottom).
         let dx = list_x + LIST_W + 1;
         if p.x >= dx && p.y == h - 2 {
-            return true;
+            return StoreClick::Activate;
         }
-        false
+        StoreClick::None
     }
 
     /// Scroll offset that keeps the selection visible given `rows` visible lines.
@@ -387,5 +435,34 @@ mod tests {
         draw_list_row(&mut buf, 0, 1, 30, "btop", ListRowFlags { installed: true, cli: false, sel: false });
         assert!(row_text(&buf, 0, 30).contains("CLI"), "flagged row should show the badge");
         assert!(!row_text(&buf, 1, 30).contains("CLI"), "unflagged row should not show the badge");
+    }
+
+    /// Row 0 carries the Update list button; a click on it asks for the fetch,
+    /// and the result replaces the app count (WMCAT-004).
+    #[test]
+    fn update_list_button_on_row_zero_and_result_shown() {
+        let mut st = Store::new();
+        let (w, h) = (100, 30);
+        let row0 = row_text(&st.render(w, h), 0, w);
+        assert!(row0.contains(UPDATE_BTN) && row0.contains(" apps"), "{row0}");
+        let bx = Store::update_btn_x(w);
+        assert_eq!(st.handle_click(Point { x: bx + 2, y: 0 }, w, h), StoreClick::UpdateList);
+        assert_eq!(st.handle_click(Point { x: bx - 3, y: 0 }, w, h), StoreClick::None);
+        st.update_started();
+        assert!(row_text(&st.render(w, h), 0, w).contains("Updating list"));
+        st.update_done("List updated: 688 apps");
+        assert!(row_text(&st.render(w, h), 0, w).contains("List updated: 688 apps"));
+    }
+
+    /// An app in a suite set says so in the detail pane (WMCAT-003).
+    #[test]
+    fn detail_pane_names_the_set() {
+        let mut st = Store::new();
+        st.query = "fresh".into();
+        st.reset_list();
+        let i = st.filtered().iter().position(|a| a.bin == "fresh").expect("fresh listed");
+        st.selected = i;
+        let buf = st.render(110, 30);
+        assert!((0..30).any(|y| row_text(&buf, y, 110).contains("In the desktop set")));
     }
 }

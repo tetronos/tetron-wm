@@ -19,9 +19,10 @@ def main() -> int:
         ["git", "show", "HEAD:assets/catalog.json"],
         capture_output=True, text=True, cwd=ROOT,
     )
-    old_names = {a["name"] for a in json.loads(committed.stdout)} if committed.returncode == 0 else set()
+    apps = lambda doc: doc["apps"] if isinstance(doc, dict) else doc  # older catalogs were a bare list
+    old_names = {a["name"] for a in apps(json.loads(committed.stdout))} if committed.returncode == 0 else set()
 
-    new_catalog = json.loads((ROOT / "assets" / "catalog.json").read_text())
+    new_catalog = apps(json.loads((ROOT / "assets" / "catalog.json").read_text()))
     new_apps = [a for a in new_catalog if a["name"] not in old_names]
 
     lines = [
@@ -35,9 +36,11 @@ def main() -> int:
         "\n---\nTo add them, run locally and commit:\n"
         "```\n"
         "curl -fsSL https://raw.githubusercontent.com/rothgar/awesome-tuis/master/README.md -o /tmp/awesome-tuis.md\n"
-        "python3 scripts/gen_catalog.py /tmp/awesome-tuis.md\n"
+        "python3 scripts/import_awesome_tuis.py /tmp/awesome-tuis.md\n"
+        "python3 scripts/merge_catalog.py\n"
         "python3 scripts/match_brew.py\n"
-        "# then derive install recipes for the rest, run scripts/derive_os.py, and commit\n"
+        "# then derive install recipes for the rest, run scripts/derive_os.py, and commit;\n"
+        "# our fixes for an imported app go in lists/tetron.toml, never in lists/awesome-tuis.json\n"
         "```"
     )
 

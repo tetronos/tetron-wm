@@ -154,20 +154,28 @@ pub fn size_choices(current: Size) -> Vec<Size> {
 /// The terminal command that installs the apps of `size` with the suite
 /// script from `raw` (the branch's raw URL): apps only, no tetron-wm,
 /// config, themes, conversion or console steps; waits for Enter at the end.
-pub fn apps_install_command(raw: &str, size: Size) -> String {
+/// `list` is the app list Settings counted from ([`write_apps_list`]), handed
+/// to the script so it installs the same list (WMCAT-004).
+pub fn apps_install_command(raw: &str, size: Size, list: Option<&Path>) -> String {
     let s = size.name();
+    let list = list.map(|p| format!(" --apps-list '{}'", p.to_string_lossy().replace('\'', "'\\''"))).unwrap_or_default();
     format!(
         "clear; echo 'Installing the {s} apps for tetron-wm (the suite installer)…'; echo; \
 curl -fsSL {raw}/main/install-tetron-wm-suite.sh | bash -s -- --size {s} --no-wm --no-config --no-themes \
---no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen; \
+--no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen{list}; \
 echo \"apps: suite installer for {s} exited with status $?\" >> \"$HOME/tetron-wm-debug.log\"; \
 echo; printf 'Press Enter to close. '; read _"
     )
 }
 
-/// The suite script's app list (WMINST-001), compiled in so Settings can tell
-/// which apps of the installed size are missing (WMINST-007).
-const SUITE_APPS: &str = include_str!("../assets/suite-apps.txt");
+/// Write the app list in use (the catalog's suite list, WMCAT-003) to
+/// `~/.local/share/tetron-wm/suite-apps.txt` for the suite script.
+pub fn write_apps_list() -> Option<std::path::PathBuf> {
+    let path = crate::theme::data_home_dir()?.join("tetron-wm/suite-apps.txt");
+    std::fs::create_dir_all(path.parent()?).ok()?;
+    std::fs::write(&path, crate::catalog::suite_apps()).ok()?;
+    Some(path)
+}
 
 /// What decides which rows of the app list apply to this machine.
 #[derive(Clone, Copy, Debug)]
@@ -276,7 +284,7 @@ fn check_present(check: &str) -> bool {
 /// The apps of `size` missing on this machine (WMINST-007). Runs fc-list once
 /// per font check, so call it on entering Settings, not per frame.
 pub fn missing_apps(size: Size) -> Vec<String> {
-    missing_in(SUITE_APPS, size, &Host::probe(), &check_present)
+    missing_in(crate::catalog::suite_apps(), size, &Host::probe(), &check_present)
 }
 
 /// The step of every update command that updates the apps with their own
@@ -343,7 +351,7 @@ desktop:script:helpers\n";
     #[test]
     fn the_compiled_list_parses_and_every_row_applies_somewhere() {
         let none = |_: &str| false;
-        let linux = missing_in(SUITE_APPS, Size::Extras, &host(true, true, true, false), &none);
+        let linux = missing_in(crate::catalog::suite_apps(), Size::Extras, &host(true, true, true, false), &none);
         assert!(linux.len() > 20, "{linux:?}");
         assert!(linux.contains(&"fresh".to_string()) && linux.contains(&"git".to_string()));
     }
@@ -430,10 +438,24 @@ desktop:script:helpers\n";
         assert_eq!(size_choices(Size::Extras), [Size::Extras], "a check, not a downgrade");
     }
 
+    /// The suite script fetches the list published for its core minor; that
+    /// minor follows this build's version (WMCAT-004).
+    #[test]
+    fn suite_script_lists_minor_follows_the_core_version() {
+        let script = include_str!("../install-tetron-wm-suite.sh");
+        let want = format!("LISTS_MINOR=\"{}\"", crate::listfetch::minor_of(env!("CARGO_PKG_VERSION")));
+        assert!(script.lines().any(|l| l == want), "install-tetron-wm-suite.sh needs {want}");
+    }
+
     #[test]
     fn apps_command_is_valid_sh_and_installs_apps_only() {
-        let cmd = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Extras);
+        let cmd = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Extras, None);
         assert!(std::process::Command::new("sh").args(["-n", "-c", &cmd]).status().unwrap().success(), "{cmd}");
+        assert!(!cmd.contains("--apps-list"), "{cmd}");
+        let odd = Path::new("/home/a b/it's/suite-apps.txt");
+        let with = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Desktop, Some(odd));
+        assert!(std::process::Command::new("sh").args(["-n", "-c", &with]).status().unwrap().success(), "{with}");
+        assert!(with.contains("--apps-list '/home/a b/it'\\''s/suite-apps.txt'"), "{with}");
         assert!(cmd.contains("--size extras") && cmd.contains("--no-wm") && cmd.contains("--no-console"), "{cmd}");
         assert!(cmd.contains("install-tetron-wm-suite.sh"), "{cmd}");
         assert!(cmd.contains("read _"), "the window stays until Enter: {cmd}");

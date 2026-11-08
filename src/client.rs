@@ -484,6 +484,7 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                         match k.code {
                             KeyCode::Esc => send(&mut out_stream, &ClientMsg::StoreClose)?,
                             KeyCode::Enter => send(&mut out_stream, &ClientMsg::StoreActivate)?,
+                            KeyCode::F(5) => send(&mut out_stream, &ClientMsg::StoreUpdateList)?,
                             KeyCode::Up => send(&mut out_stream, &ClientMsg::StoreUp)?,
                             KeyCode::Down => send(&mut out_stream, &ClientMsg::StoreDown)?,
                             KeyCode::Left => send(&mut out_stream, &ClientMsg::StorePrevCategory)?,

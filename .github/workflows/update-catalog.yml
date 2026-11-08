@@ -26,8 +26,10 @@ jobs:
       - name: Fetch awesome-tuis README
         run: curl -fsSL https://raw.githubusercontent.com/rothgar/awesome-tuis/master/README.md -o /tmp/awesome-tuis.md
 
-      - name: Regenerate catalog (working copy only — not committed)
-        run: python3 scripts/gen_catalog.py /tmp/awesome-tuis.md
+      - name: Import and merge the catalog (working copy only — not committed)
+        run: |
+          python3 scripts/import_awesome_tuis.py /tmp/awesome-tuis.md
+          python3 scripts/merge_catalog.py
 
       - name: Detect new apps and alert via issue
         env:

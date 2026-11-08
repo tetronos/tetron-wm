@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Mark brew-installable catalog apps as verified in assets/recipes.json.
+"""Mark brew-installable catalog apps as verified (recipe blocks appended to
+lists/tetron.toml, then merged into assets/catalog.json).
 
 Fetches the Homebrew formula index and matches it against the catalog by binary
 name / app name, writing a verified `brew install <formula>` recipe for each hit.
-Existing verified recipes are left untouched. Run after scripts/gen_catalog.py.
+Existing verified recipes are left untouched. Run after scripts/import_awesome_tuis.py and scripts/merge_catalog.py.
 """
 import json
 import re
+import sys
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from merge_catalog import catalog_recipes, save_recipes  # noqa: E402
 FORMULA_API = "https://formulae.brew.sh/api/formula.json"
 
 
@@ -22,9 +26,9 @@ def main() -> int:
         for n in [f["name"], *f.get("aliases", [])]:
             names[n.lower()] = f["name"]
 
-    catalog = json.loads((ROOT / "assets" / "catalog.json").read_text())
-    recipes_path = ROOT / "assets" / "recipes.json"
-    recipes = json.loads(recipes_path.read_text()) if recipes_path.exists() else {}
+    catalog = json.loads((ROOT / "assets" / "catalog.json").read_text())["apps"]
+    recipes = catalog_recipes()
+    before = dict(recipes)
 
     added = 0
     for app in catalog:
@@ -36,7 +40,7 @@ def main() -> int:
             recipes[app["name"]] = {"install": f"brew install {hit}", "method": "brew", "verified": True}
             added += 1
 
-    recipes_path.write_text(json.dumps(recipes, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    save_recipes(before, recipes)
     verified = sum(1 for r in recipes.values() if r.get("verified"))
     print(f"brew-verified added: {added}; total verified: {verified}/{len(catalog)}")
     return 0

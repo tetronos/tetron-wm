@@ -298,6 +298,8 @@ pub enum ClientMsg {
     StoreActivate,
     /// Store: close the store window (Escape).
     StoreClose,
+    /// Store: Update list (F5, or the row 0 button), WMCAT-004.
+    StoreUpdateList,
     /// Open the settings window (or focus it if already open).
     OpenSettings,
     /// Settings: move selection up / down.
@@ -691,6 +693,8 @@ pub struct SessionCore {
     update_check: Option<std::sync::mpsc::Receiver<String>>,
     /// Settings > Get more themes worker, read by [`Self::poll_themes`].
     theme_job: Option<std::sync::mpsc::Receiver<crate::themefetch::Msg>>,
+    /// A running Store Update list fetch (WMCAT-004).
+    list_job: Option<std::sync::mpsc::Receiver<String>>,
     /// Modal "are you sure?" shown when closing an app window (which kills it).
     confirm_close: ConfirmClose,
     /// Keyboard window picker (leader f): modal numbered window list.
@@ -813,6 +817,7 @@ impl SessionCore {
             power_menu: PowerMenu::new(),
             power_job: None,
             theme_job: None,
+            list_job: None,
             update_check: None,
             confirm_close: ConfirmClose::new(),
             win_picker: crate::winpicker::WinPicker::new(),
@@ -1394,7 +1399,9 @@ impl SessionCore {
                 // that size in a window, so sudo asks where the user can answer.
                 crate::dbg_log(&format!("apps: install the {} size with the suite installer", size.name()));
                 let raw = "https://raw.githubusercontent.com/tetronos/tetron-wm";
-                let cmd = crate::packaging::apps_install_command(raw, size);
+                // The list Settings counted from, so the script installs the same one.
+                let list = crate::packaging::write_apps_list();
+                let cmd = crate::packaging::apps_install_command(raw, size, list.as_deref());
                 // "install:" titles rescan $PATH when the window closes (reap_dead).
                 self.launch(format!("install: {} apps", size.name()), "sh".into(), vec!["-lc".into(), cmd]);
             }
@@ -1478,6 +1485,37 @@ impl SessionCore {
                 s.set_update_status(msg.clone());
             }
         }
+    }
+
+    /// Store > Update list: fetch the catalog on a worker thread (one at a time).
+    fn start_list_update(&mut self) {
+        if self.list_job.is_some() {
+            return;
+        }
+        self.list_job = Some(crate::listfetch::spawn());
+        for c in self.contents.values_mut() {
+            if let WinContent::Store(s) = c {
+                s.update_started();
+            }
+        }
+    }
+
+    /// Hand a finished Update list to every open Store and rebuild the launcher
+    /// from the catalog now in use (call once per daemon tick).
+    pub fn poll_lists(&mut self) {
+        let Some(rx) = self.list_job.as_ref() else { return };
+        let msg = match rx.try_recv() {
+            Ok(m) => m,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => "Update list stopped".into(),
+        };
+        self.list_job = None;
+        for c in self.contents.values_mut() {
+            if let WinContent::Store(s) = c {
+                s.update_done(&msg);
+            }
+        }
+        self.refresh_installed_apps();
     }
 
     /// Hand theme download progress to every open Settings panel (call once
@@ -3305,6 +3343,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::StoreChar(c) => { if let Some(s) = self.focused_store_mut() { s.type_char(c); } }
             ClientMsg::StoreBackspace => { if let Some(s) = self.focused_store_mut() { s.backspace(); } }
             ClientMsg::StoreActivate => self.store_activate(),
+            ClientMsg::StoreUpdateList => self.start_list_update(),
             ClientMsg::StoreClose => {
                 if let Some(id) = self.wm.focused() {
                     if matches!(self.contents.get(&id), Some(WinContent::Store(_))) {
@@ -5686,13 +5725,13 @@ or a remote-side error — its authorized_keys was left untouched)",
                 // The store handles content clicks (category/row/install); PTY apps
                 // are keyboard-first for now, so raising is enough for them.
                 let cr = self.wm.get(id).map(|w| w.content_rect());
-                let mut store_activate = false;
+                let mut store_click = crate::store::StoreClick::None;
                 let mut settings_changed = false;
                 let mut fm_clicked = false;
                 let mut activity_kill: Option<u64> = None;
                 if let Some(cr) = cr {
                     match self.contents.get_mut(&id) {
-                        Some(WinContent::Store(s)) => store_activate = s.handle_click(local, cr.w, cr.h),
+                        Some(WinContent::Store(s)) => store_click = s.handle_click(local, cr.w, cr.h),
                         Some(WinContent::Settings(s)) => settings_changed = s.handle_click(local, cr.w, cr.h),
                         // The mouse path carries no modifiers, so a click is a plain
                         // single-select / toolbar-nav (Ctrl/Shift-select and
@@ -5714,7 +5753,10 @@ or a remote-side error — its authorized_keys was left untouched)",
                 if let Some(app_id) = activity_kill {
                     self.apphost.kill(AppId(app_id));
                 }
-                if store_activate {
+                if store_click == crate::store::StoreClick::UpdateList {
+                    self.start_list_update();
+                }
+                if store_click == crate::store::StoreClick::Activate {
                     self.store_activate();
                 }
                 if settings_changed {

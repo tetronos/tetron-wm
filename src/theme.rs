@@ -766,7 +766,12 @@ pub(crate) fn themes_dir() -> Option<PathBuf> {
 /// Where in-app theme downloads go: `$XDG_DATA_HOME/tetron-wm/themes`
 /// (default `~/.local/share/tetron-wm/themes`).
 pub fn download_dir() -> Option<PathBuf> {
-    data_home(std::env::var_os("XDG_DATA_HOME"), dirs::home_dir()).map(|d| d.join("tetron-wm/themes"))
+    data_home_dir().map(|d| d.join("tetron-wm/themes"))
+}
+
+/// `$XDG_DATA_HOME` when set and absolute, else `~/.local/share`.
+pub fn data_home_dir() -> Option<PathBuf> {
+    data_home(std::env::var_os("XDG_DATA_HOME"), dirs::home_dir())
 }
 
 fn data_home(xdg: Option<std::ffi::OsString>, home: Option<PathBuf>) -> Option<PathBuf> {

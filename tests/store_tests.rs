@@ -49,5 +49,5 @@ fn click_selects_category_and_row() {
     let _ = s.handle_click(Point::new(20, 2), 96, 22);
     assert_eq!(s.selected_app().map(|a| a.name.clone()), s.filtered().first().map(|a| a.name.clone()));
     // second click on the same (selected) row activates
-    assert!(s.handle_click(Point::new(20, 2), 96, 22));
+    assert_eq!(s.handle_click(Point::new(20, 2), 96, 22), tetron_wm::store::StoreClick::Activate);
 }
