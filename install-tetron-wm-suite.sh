@@ -426,7 +426,7 @@ EOF_LIST
 apt_installable() {
   local p out=""
   for p in $1; do
-    if apt-cache policy "$p" 2>/dev/null | grep -q 'Candidate: [^(]'; then out="$out $p"
+    if apt-cache policy "$p" 2>/dev/null | grep 'Candidate: [^(]' >/dev/null; then out="$out $p"
     else log "skipping $p: apt has no package of that name here" >&2; fi
   done
   printf '%s' "${out# }"
