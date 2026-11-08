@@ -46,7 +46,7 @@ pub struct CatalogApp {
     /// `default`, `recommended` or `optional` (WMCAT-003).
     #[serde(default = "optional_tier")]
     pub tier: String,
-    /// The smallest suite size that brings it (`desktop`, `extras`), if any.
+    /// The smallest suite size that brings it (`essentials`, `recommended`, `extras`), if any.
     #[serde(default)]
     pub set: Option<String>,
     /// Package names per package manager (WMCAT-005), from Repology
@@ -420,7 +420,9 @@ mod tests {
         assert!(c.apps.iter().filter(|a| a.recipe.is_some()).count() > 600);
         assert!(c.apps.iter().all(|a| ["default", "recommended", "optional"].contains(&a.tier.as_str())), "tiers");
         let fresh = c.apps.iter().find(|a| a.bin == "fresh").expect("fresh");
-        assert_eq!((fresh.set.as_deref(), fresh.tier.as_str()), (Some("desktop"), "default"));
+        assert_eq!((fresh.set.as_deref(), fresh.tier.as_str()), (Some("essentials"), "default"));
+        let lazygit = c.apps.iter().find(|a| a.bin == "lazygit").expect("lazygit");
+        assert_eq!((lazygit.set.as_deref(), lazygit.tier.as_str()), (Some("recommended"), "recommended"));
         assert_eq!(c.suite_apps, include_str!("../assets/suite-apps.txt"));
         assert!(recipe("Claude Code").is_some_and(|r| r.requires_cwd));
     }

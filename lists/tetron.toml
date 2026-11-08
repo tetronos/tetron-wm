@@ -19,6 +19,824 @@ exclude = [
   "dua-cli",        # same app as dua (command dua)
 ]
 
+# ── App sets (WMINST-001) ────────────────────────────────────────
+# The sets of apps the size packages and the suite installer install:
+# desktop (tetron-wm-desktop, the tools tetron-wm's own features call),
+# essentials (tetron-wm-essentials, Depends tetron-wm-desktop), recommended
+# (tetron-wm-recommended, Depends tetron-wm-essentials), extras
+# (tetron-wm-extras, Depends tetron-wm-recommended). Suite installer sizes:
+# minimal (tetron-wm only), essentials (desktop and essentials), recommended,
+# extras; each includes the smaller ones.
+#
+# [[package]]: a set member that is not a Store app. name is the Debian name;
+#   check tells the app is present: a command on PATH ("a|b" for
+#   alternatives), "font=NAME" (fontconfig) or "consolefonts"; without check
+#   it is only in the deb (Debian and Ubuntu). group "gui": only with a
+#   desktop session; "services": a Suggests of the deb, offered by the suite
+#   installer as a separate question that defaults to no. apt, dnf, pacman,
+#   brew: the name there, missing = name, "" = not on that system (one
+#   unknown name makes dnf refuse a whole batch, so each was checked in a
+#   container or against formulae.brew.sh). deb: the Recommends relation when
+#   it is not the apt name ("7zip | p7zip-full").
+# [[app]] with set: a Store app in a set; check is its bin, names its pkg.
+# [[script]]: an app no distribution packages; the suite installer runs its
+#   own method (how) when the size includes its set.
+# After an edit run: python3 scripts/gen_suite_lists.py, then
+# python3 scripts/merge_catalog.py
+
+# tetron-wm-desktop: the tools tetron-wm's own features call (WMDEB-007).
+
+[[package]]
+name = "mpv"
+set = "desktop"
+check = "mpv"
+
+[[package]]
+name = "chafa"
+set = "desktop"
+check = "chafa"
+
+[[package]]
+name = "poppler-utils"
+set = "desktop"
+check = "pdftoppm"
+pacman = "poppler"
+brew = "poppler"
+
+[[package]]
+name = "upower"
+set = "desktop"
+check = "upower"
+brew = ""
+
+[[package]]
+name = "w3m"
+set = "desktop"
+check = "w3m"
+
+[[package]]
+name = "gpm"
+set = "desktop"
+check = "gpm"
+brew = ""
+
+[[package]]
+name = "xclip"
+set = "desktop"
+check = "xclip"
+group = "gui"
+brew = ""
+
+[[package]]
+name = "wl-clipboard"
+set = "desktop"
+check = "wl-copy"
+group = "gui"
+brew = ""
+
+[[package]]
+name = "alsa-utils"
+set = "desktop"
+check = "alsamixer"
+brew = ""
+
+[[package]]
+name = "sshpass"
+set = "desktop"
+check = "sshpass"
+
+[[package]]
+name = "fonts-dejavu-core"
+set = "desktop"
+check = "font=DejaVu Sans Mono"
+dnf = "dejavu-sans-mono-fonts"
+pacman = "ttf-dejavu"
+brew = ""
+
+[[package]]
+name = "7zip"
+set = "desktop"
+check = "7z|7zz"
+deb = "7zip | p7zip-full"
+brew = "sevenzip"
+
+[[package]]
+name = "gnupg"
+set = "desktop"
+check = "gpg"
+dnf = "gnupg2"
+
+[[package]]
+name = "python3"
+set = "desktop"
+check = "python3"
+pacman = "python"
+brew = ""
+
+[[package]]
+name = "curl"
+set = "desktop"
+check = "curl"
+brew = ""
+
+[[package]]
+name = "openssh-client"
+set = "desktop"
+check = "ssh"
+dnf = "openssh-clients"
+pacman = "openssh"
+brew = ""
+
+[[package]]
+name = "unzip"
+set = "desktop"
+check = "unzip"
+brew = ""
+
+[[package]]
+name = "console-setup-linux"
+set = "desktop"
+check = "consolefonts"
+dnf = "kbd"
+pacman = "kbd"
+brew = ""
+
+[[package]]
+name = "htop"
+set = "desktop"
+check = "htop"
+
+[[package]]
+name = "sshfs"
+set = "desktop"
+check = "sshfs"
+dnf = "fuse-sshfs"
+brew = ""
+
+[[package]]
+name = "mc"
+set = "desktop"
+check = "mc"
+brew = "midnight-commander"
+
+[[package]]
+name = "vim"
+set = "desktop"
+check = "vim"
+dnf = "vim-enhanced"
+
+[[package]]
+name = "tetron-browser"
+set = "desktop"
+check = "tetron-browser"
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "fbi"
+set = "desktop"
+check = "fbi"
+dnf = "fbida"
+pacman = "fbida"
+brew = ""
+
+[[package]]
+name = "wireplumber"
+set = "desktop"
+check = "wpctl"
+group = "services"
+brew = ""
+
+[[package]]
+name = "network-manager"
+set = "desktop"
+check = "nmcli"
+group = "services"
+dnf = "NetworkManager"
+pacman = "networkmanager"
+brew = ""
+
+[[package]]
+name = "bluez"
+set = "desktop"
+check = "bluetoothctl"
+group = "services"
+pacman = "bluez-utils"
+brew = ""
+
+[[package]]
+name = "uv"
+set = "desktop"
+check = "uv"
+apt = ""
+
+[[package]]
+name = "blueutil"
+set = "desktop"
+check = "blueutil"
+apt = ""
+dnf = ""
+pacman = ""
+
+# Set essentials.
+
+[[package]]
+name = "git"
+set = "essentials"
+check = "git"
+
+[[package]]
+name = "tree"
+set = "essentials"
+check = "tree"
+
+[[package]]
+name = "gdisk"
+set = "essentials"
+check = "gdisk"
+pacman = "gptfdisk"
+brew = ""
+
+[[package]]
+name = "rsync"
+set = "essentials"
+check = "rsync"
+
+[[package]]
+name = "parted"
+set = "essentials"
+check = "parted"
+brew = ""
+
+[[package]]
+name = "psmisc"
+set = "essentials"
+check = "pstree"
+brew = "pstree"
+
+[[package]]
+name = "fastfetch"
+set = "essentials"
+check = "fastfetch"
+
+[[package]]
+name = "qalc"
+set = "essentials"
+check = "qalc"
+dnf = "qalculate"
+pacman = "libqalculate"
+brew = "libqalculate"
+
+[[package]]
+name = "bc"
+set = "essentials"
+check = "bc"
+
+[[package]]
+name = "earlyoom"
+set = "essentials"
+check = "earlyoom"
+brew = ""
+
+[[package]]
+name = "systemd-timesyncd"
+set = "essentials"
+check = ""
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "nano"
+set = "essentials"
+check = "nano"
+
+[[package]]
+name = "wget"
+set = "essentials"
+check = "wget"
+dnf = "wget2-wget"
+
+[[package]]
+name = "mosh"
+set = "essentials"
+check = "mosh"
+
+[[package]]
+name = "bind9-dnsutils"
+set = "essentials"
+check = "dig"
+dnf = "bind-utils"
+pacman = "bind"
+brew = "bind"
+
+[[package]]
+name = "traceroute"
+set = "essentials"
+check = "traceroute"
+brew = ""
+
+[[package]]
+name = "whois"
+set = "essentials"
+check = "whois"
+
+[[package]]
+name = "netcat-openbsd"
+set = "essentials"
+check = "nc"
+dnf = "netcat"
+pacman = "openbsd-netcat"
+brew = "netcat"
+
+[[package]]
+name = "jq"
+set = "essentials"
+check = "jq"
+
+[[package]]
+name = "ripgrep"
+set = "essentials"
+check = "rg"
+
+[[package]]
+name = "fd-find"
+set = "essentials"
+check = "fdfind|fd"
+pacman = "fd"
+brew = "fd"
+
+[[package]]
+name = "man-db"
+set = "essentials"
+check = "man"
+brew = ""
+
+[[package]]
+name = "tealdeer"
+set = "essentials"
+check = "tldr"
+
+[[package]]
+name = "pulsemixer"
+set = "essentials"
+check = "pulsemixer"
+dnf = ""
+brew = ""
+
+# Set recommended.
+
+[[package]]
+name = "duf"
+set = "recommended"
+check = "duf"
+
+[[package]]
+name = "smartmontools"
+set = "recommended"
+check = "smartctl"
+
+[[package]]
+name = "nvme-cli"
+set = "recommended"
+check = "nvme"
+brew = ""
+
+[[package]]
+name = "testdisk"
+set = "recommended"
+check = "testdisk"
+
+[[package]]
+name = "gddrescue"
+set = "recommended"
+check = "ddrescue"
+dnf = "ddrescue"
+pacman = "ddrescue"
+brew = "ddrescue"
+
+[[package]]
+name = "unar"
+set = "recommended"
+check = "unar"
+pacman = "unarchiver"
+
+[[package]]
+name = "rclone"
+set = "recommended"
+check = "rclone"
+
+[[package]]
+name = "restic"
+set = "recommended"
+check = "restic"
+
+[[package]]
+name = "lm-sensors"
+set = "recommended"
+check = "sensors"
+dnf = "lm_sensors"
+pacman = "lm_sensors"
+brew = ""
+
+[[package]]
+name = "powertop"
+set = "recommended"
+check = "powertop"
+brew = ""
+
+[[package]]
+name = "needrestart"
+set = "recommended"
+check = "needrestart"
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "ufw"
+set = "recommended"
+check = "ufw"
+brew = ""
+
+[[package]]
+name = "podman"
+set = "recommended"
+check = "podman"
+
+[[package]]
+name = "podman-compose"
+set = "recommended"
+check = "podman-compose"
+
+[[package]]
+name = "distrobox"
+set = "recommended"
+check = "distrobox"
+brew = ""
+
+[[package]]
+name = "pandoc"
+set = "recommended"
+check = "pandoc"
+dnf = "pandoc-cli"
+pacman = "pandoc-cli"
+
+[[package]]
+name = "hunspell"
+set = "recommended"
+check = "hunspell"
+
+[[package]]
+name = "hunspell-en-us"
+set = "recommended"
+check = ""
+dnf = "hunspell-en-US"
+pacman = "hunspell-en_us"
+brew = ""
+
+[[package]]
+name = "qpdf"
+set = "recommended"
+check = "qpdf"
+
+[[package]]
+name = "catdoc"
+set = "recommended"
+check = "catdoc"
+brew = ""
+
+[[package]]
+name = "docx2txt"
+set = "recommended"
+check = "docx2txt"
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "aria2"
+set = "recommended"
+check = "aria2c"
+
+[[package]]
+name = "taskwarrior"
+set = "recommended"
+check = "task"
+dnf = "task"
+pacman = "task"
+brew = "task"
+
+[[package]]
+name = "pass"
+set = "recommended"
+check = "pass"
+
+[[package]]
+name = "kpcli"
+set = "recommended"
+check = "kpcli"
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "mtr-tiny"
+set = "recommended"
+check = "mtr"
+dnf = "mtr"
+pacman = "mtr"
+brew = "mtr"
+
+[[package]]
+name = "nmap"
+set = "recommended"
+check = "nmap"
+
+[[package]]
+name = "iperf3"
+set = "recommended"
+check = "iperf3"
+
+[[package]]
+name = "iftop"
+set = "recommended"
+check = "iftop"
+
+[[package]]
+name = "xh"
+set = "recommended"
+check = "xh"
+dnf = ""
+
+[[package]]
+name = "tcpdump"
+set = "recommended"
+check = "tcpdump"
+brew = ""
+
+[[package]]
+name = "arp-scan"
+set = "recommended"
+check = "arp-scan"
+
+[[package]]
+name = "imagemagick"
+set = "recommended"
+check = "magick|convert"
+dnf = "ImageMagick"
+
+[[package]]
+name = "libimage-exiftool-perl"
+set = "recommended"
+check = "exiftool"
+dnf = "perl-Image-ExifTool"
+pacman = "perl-image-exiftool"
+brew = "exiftool"
+
+[[package]]
+name = "catimg"
+set = "recommended"
+check = "catimg"
+
+[[package]]
+name = "git-delta"
+set = "recommended"
+check = "delta"
+
+[[package]]
+name = "yq"
+set = "recommended"
+check = "yq"
+pacman = "go-yq"
+
+[[package]]
+name = "bat"
+set = "recommended"
+check = "batcat|bat"
+
+[[package]]
+name = "neovim"
+set = "recommended"
+check = "nvim"
+
+[[package]]
+name = "build-essential"
+set = "recommended"
+check = "gcc"
+dnf = "gcc"
+pacman = "base-devel"
+brew = ""
+
+[[package]]
+name = "python3-venv"
+set = "recommended"
+check = ""
+dnf = ""
+pacman = ""
+brew = ""
+
+[[package]]
+name = "shellcheck"
+set = "recommended"
+check = "shellcheck"
+dnf = "ShellCheck"
+
+[[package]]
+name = "gh"
+set = "recommended"
+check = "gh"
+pacman = "github-cli"
+
+[[package]]
+name = "direnv"
+set = "recommended"
+check = "direnv"
+
+[[package]]
+name = "entr"
+set = "recommended"
+check = "entr"
+
+[[package]]
+name = "just"
+set = "recommended"
+check = "just"
+
+[[package]]
+name = "hyperfine"
+set = "recommended"
+check = "hyperfine"
+
+[[package]]
+name = "gdb"
+set = "recommended"
+check = "gdb"
+brew = ""
+
+[[package]]
+name = "strace"
+set = "recommended"
+check = "strace"
+brew = ""
+
+[[package]]
+name = "ffmpeg"
+set = "recommended"
+check = "ffmpeg"
+dnf = "ffmpeg-free"
+
+[[package]]
+name = "mediainfo"
+set = "recommended"
+check = "mediainfo"
+brew = "media-info"
+
+[[package]]
+name = "sox"
+set = "recommended"
+check = "sox"
+
+# Catalog apps in a set: their package names come from pkg (Repology plus overrides).
+
+[[app]]
+name = "gdu"
+set = "essentials"
+
+[[app]]
+name = "LYNX"
+set = "essentials"
+
+[[app]]
+name = "tmux"
+set = "essentials"
+
+[[app]]
+name = "timg"
+set = "essentials"
+
+[[app]]
+name = "fzf"
+set = "essentials"
+
+[[app]]
+name = "ncdu"
+set = "recommended"
+
+[[app]]
+name = "btop++"
+set = "recommended"
+
+[[app]]
+name = "nvtop"
+set = "recommended"
+
+[[app]]
+name = "lnav"
+set = "recommended"
+
+[[app]]
+name = "s-tui"
+set = "recommended"
+
+[[app]]
+name = "micro"
+set = "recommended"
+
+[[app]]
+name = "sc-im"
+set = "recommended"
+
+[[app]]
+name = "Visidata"
+set = "recommended"
+
+[[app]]
+name = "Glow"
+set = "recommended"
+
+[[app]]
+name = "aerc"
+set = "recommended"
+
+[[app]]
+name = "newsboat"
+set = "recommended"
+
+[[app]]
+name = "Weechat"
+set = "recommended"
+
+[[app]]
+name = "calcurse"
+set = "recommended"
+
+[[app]]
+name = "nethogs"
+set = "recommended"
+
+[[app]]
+name = "wavemon"
+set = "recommended"
+
+[[app]]
+name = "termshark"
+set = "recommended"
+
+[[app]]
+name = "Durdraw"
+set = "recommended"
+
+[[app]]
+name = "lazygit"
+set = "recommended"
+
+[[app]]
+name = "tig"
+set = "recommended"
+
+[[app]]
+name = "cmus"
+set = "recommended"
+
+[[app]]
+name = "cava"
+set = "recommended"
+
+# Apps no distribution packages: the suite installer runs each one's own method.
+
+[[script]]
+name = "fresh"
+set = "essentials"
+how = "Homebrew fresh-editor on macOS; the project's own installer on Linux"
+
+[[script]]
+name = "catt"
+set = "essentials"
+how = "uv tool install catt"
+
+[[script]]
+name = "casttui"
+set = "essentials"
+how = "uv tool install from github.com/tetronos/casttui"
+
+[[script]]
+name = "nerd-font"
+set = "essentials"
+how = "Symbols Nerd Font: ~/.local/share/fonts on Linux, a Homebrew cask on macOS"
+
+[[script]]
+name = "helpers"
+set = "essentials"
+how = "tetron-wm-startpage and tetron-aimode from scripts/ into ~/.local/bin, only when tetron-wm is not the deb (the deb ships them)"
+
+[[script]]
+name = "opencode"
+set = "essentials"
+how = "the agent of the ✦ Assistant: its stable release tarball for this CPU, checked against GitHub's sha256 digest, into ~/.local/bin (Homebrew on macOS); Settings > Updates replaces it the same way"
+
+
 # ── AI ──────────────────────────────────────────────────────────
 
 [[app]]

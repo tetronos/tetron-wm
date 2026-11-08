@@ -442,7 +442,7 @@
     "brew": "opencode"
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron"
@@ -836,9 +836,11 @@
     "pacman": "btop",
     "brew": "btop"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -1375,7 +1377,7 @@
     "brew": "htop"
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron"
@@ -1650,9 +1652,11 @@
     "pacman": "nethogs",
     "brew": "nethogs"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -1702,9 +1706,11 @@
     "pacman": "nvtop",
     "brew": "nvtop"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -1949,9 +1955,11 @@
     "dnf": "s-tui",
     "pacman": "s-tui"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -2907,7 +2915,8 @@
      "linux"
     ]
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
     "tetron"
@@ -3534,9 +3543,11 @@
     "pacman": "lazygit",
     "brew": "lazygit"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -4527,9 +4538,11 @@
     "pacman": "tig",
     "brew": "tig"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5538,9 +5551,11 @@
     "apt": "durdraw",
     "brew": "durdraw"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -5608,7 +5623,7 @@
     ]
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron"
@@ -5803,9 +5818,11 @@
     "pacman": "micro",
     "brew": "micro"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron",
     "tetron"
    ]
@@ -6268,7 +6285,7 @@
     "brew": "midnight-commander"
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron",
@@ -7790,9 +7807,11 @@
     "pacman": "aerc",
     "brew": "aerc"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron",
     "tetron"
    ]
@@ -8699,9 +8718,11 @@
     "pacman": "weechat",
     "brew": "weechat"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -8885,9 +8906,11 @@
     "pacman": "cava",
     "brew": "cava"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron",
     "tetron"
    ]
@@ -9271,9 +9294,11 @@
     "pacman": "fzf",
     "brew": "fzf"
    },
-   "tier": "optional",
+   "tier": "default",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -9298,9 +9323,11 @@
     "pacman": "gdu",
     "brew": "gdu"
    },
-   "tier": "optional",
+   "tier": "default",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -9571,9 +9598,11 @@
     "pacman": "lnav",
     "brew": "lnav"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -9742,9 +9771,11 @@
     "pacman": "ncdu",
     "brew": "ncdu"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron",
     "tetron"
    ]
@@ -10214,9 +10245,11 @@
     "pacman": "termshark",
     "brew": "termshark"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -10469,9 +10502,11 @@
     "pacman": "wavemon",
     "brew": "wavemon"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -10793,7 +10828,7 @@
     "brew": "chafa"
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron"
@@ -10840,9 +10875,11 @@
     "pacman": "cmus",
     "brew": "cmus"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -11745,9 +11782,11 @@
     "dnf": "timg",
     "brew": "timg"
    },
-   "tier": "optional",
+   "tier": "default",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -12318,9 +12357,11 @@
     "pacman": "calcurse",
     "brew": "calcurse"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -12584,9 +12625,11 @@
     "pacman": "glow",
     "brew": "glow"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -13480,9 +13523,11 @@
     "dnf": "sc-im",
     "brew": "sc-im"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -13787,9 +13832,11 @@
     "pacman": "tmux",
     "brew": "tmux"
    },
-   "tier": "optional",
+   "tier": "default",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -14198,9 +14245,11 @@
     "pacman": "visidata",
     "brew": "visidata"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -14751,9 +14800,11 @@
     "pacman": "lynx",
     "brew": "lynx"
    },
-   "tier": "optional",
+   "tier": "default",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron",
     "tetron"
    ]
@@ -14779,9 +14830,11 @@
     "pacman": "newsboat",
     "brew": "newsboat"
    },
-   "tier": "optional",
+   "tier": "recommended",
+   "set": "recommended",
    "sources": [
     "awesome-tuis",
+    "tetron",
     "tetron"
    ]
   },
@@ -15060,7 +15113,7 @@
    "description": "Chromium running inside your terminal: the maintained continuation of carbonyl (TetronOS package tetron-browser)",
    "homepage": "https://github.com/tetronos/tetron-browser",
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "tetron"
    ]
@@ -15170,7 +15223,7 @@
     "brew": "w3m"
    },
    "tier": "default",
-   "set": "desktop",
+   "set": "essentials",
    "sources": [
     "awesome-tuis",
     "tetron",
@@ -15178,5 +15231,5 @@
    ]
   }
  ],
- "suite_apps": "# Generated by scripts/gen_suite_lists.py from packaging/*.toml. Do not edit.\n# size:group:check:apt:dnf:pacman:brew, or size:script:name\ndesktop:apps:mpv:mpv:mpv:mpv:mpv\ndesktop:apps:chafa:chafa:chafa:chafa:chafa\ndesktop:apps:pdftoppm:poppler-utils:poppler-utils:poppler:poppler\ndesktop:apps:upower:upower:upower:upower:\ndesktop:apps:w3m:w3m:w3m:w3m:w3m\ndesktop:apps:gpm:gpm:gpm:gpm:\ndesktop:gui:xclip:xclip:xclip:xclip:\ndesktop:gui:wl-copy:wl-clipboard:wl-clipboard:wl-clipboard:\ndesktop:apps:alsamixer:alsa-utils:alsa-utils:alsa-utils:\ndesktop:apps:sshpass:sshpass:sshpass:sshpass:sshpass\ndesktop:apps:font=DejaVu Sans Mono:fonts-dejavu-core:dejavu-sans-mono-fonts:ttf-dejavu:\ndesktop:apps:7z|7zz:7zip:7zip:7zip:sevenzip\ndesktop:apps:gpg:gnupg:gnupg2:gnupg:gnupg\ndesktop:apps:python3:python3:python3:python:\ndesktop:apps:curl:curl:curl:curl:\ndesktop:apps:ssh:openssh-client:openssh-clients:openssh:\ndesktop:apps:unzip:unzip:unzip:unzip:\ndesktop:apps:consolefonts:console-setup-linux:kbd:kbd:\ndesktop:apps:htop:htop:htop:htop:htop\ndesktop:apps:sshfs:sshfs:fuse-sshfs:sshfs:\ndesktop:apps:mc:mc:mc:mc:midnight-commander\ndesktop:apps:vim:vim:vim-enhanced:vim:vim\ndesktop:apps:tetron-browser:tetron-browser:::\ndesktop:apps:fbi:fbi:fbida:fbida:\ndesktop:services:wpctl:wireplumber:wireplumber:wireplumber:\ndesktop:services:nmcli:network-manager:NetworkManager:networkmanager:\ndesktop:services:bluetoothctl:bluez:bluez:bluez-utils:\nextras:apps:git:git:git:git:git\ndesktop:apps:uv::uv:uv:uv\ndesktop:apps:blueutil::::blueutil\ndesktop:script:fresh\ndesktop:script:catt\ndesktop:script:casttui\ndesktop:script:nerd-font\ndesktop:script:helpers\ndesktop:script:opencode\n"
+ "suite_apps": "# Generated by scripts/gen_suite_lists.py from lists/tetron.toml. Do not edit.\n# size:group:check:apt:dnf:pacman:brew, or size:script:name\nessentials:apps:mpv:mpv:mpv:mpv:mpv\nessentials:apps:chafa:chafa:chafa:chafa:chafa\nessentials:apps:pdftoppm:poppler-utils:poppler-utils:poppler:poppler\nessentials:apps:upower:upower:upower:upower:\nessentials:apps:w3m:w3m:w3m:w3m:w3m\nessentials:apps:gpm:gpm:gpm:gpm:\nessentials:gui:xclip:xclip:xclip:xclip:\nessentials:gui:wl-copy:wl-clipboard:wl-clipboard:wl-clipboard:\nessentials:apps:alsamixer:alsa-utils:alsa-utils:alsa-utils:\nessentials:apps:sshpass:sshpass:sshpass:sshpass:sshpass\nessentials:apps:font=DejaVu Sans Mono:fonts-dejavu-core:dejavu-sans-mono-fonts:ttf-dejavu:\nessentials:apps:7z|7zz:7zip:7zip:7zip:sevenzip\nessentials:apps:gpg:gnupg:gnupg2:gnupg:gnupg\nessentials:apps:python3:python3:python3:python:\nessentials:apps:curl:curl:curl:curl:\nessentials:apps:ssh:openssh-client:openssh-clients:openssh:\nessentials:apps:unzip:unzip:unzip:unzip:\nessentials:apps:consolefonts:console-setup-linux:kbd:kbd:\nessentials:apps:htop:htop:htop:htop:htop\nessentials:apps:sshfs:sshfs:fuse-sshfs:sshfs:\nessentials:apps:mc:mc:mc:mc:midnight-commander\nessentials:apps:vim:vim:vim-enhanced:vim:vim\nessentials:apps:tetron-browser:tetron-browser:::\nessentials:apps:fbi:fbi:fbida:fbida:\nessentials:services:wpctl:wireplumber:wireplumber:wireplumber:\nessentials:services:nmcli:network-manager:NetworkManager:networkmanager:\nessentials:services:bluetoothctl:bluez:bluez:bluez-utils:\nessentials:apps:uv::uv:uv:uv\nessentials:apps:blueutil::::blueutil\nessentials:apps:git:git:git:git:git\nessentials:apps:tree:tree:tree:tree:tree\nessentials:apps:gdisk:gdisk:gdisk:gptfdisk:\nessentials:apps:rsync:rsync:rsync:rsync:rsync\nessentials:apps:parted:parted:parted:parted:\nessentials:apps:pstree:psmisc:psmisc:psmisc:pstree\nessentials:apps:fastfetch:fastfetch:fastfetch:fastfetch:fastfetch\nessentials:apps:qalc:qalc:qalculate:libqalculate:libqalculate\nessentials:apps:bc:bc:bc:bc:bc\nessentials:apps:earlyoom:earlyoom:earlyoom:earlyoom:\nessentials:apps:nano:nano:nano:nano:nano\nessentials:apps:wget:wget:wget2-wget:wget:wget\nessentials:apps:mosh:mosh:mosh:mosh:mosh\nessentials:apps:dig:bind9-dnsutils:bind-utils:bind:bind\nessentials:apps:traceroute:traceroute:traceroute:traceroute:\nessentials:apps:whois:whois:whois:whois:whois\nessentials:apps:nc:netcat-openbsd:netcat:openbsd-netcat:netcat\nessentials:apps:jq:jq:jq:jq:jq\nessentials:apps:rg:ripgrep:ripgrep:ripgrep:ripgrep\nessentials:apps:fdfind|fd:fd-find:fd-find:fd:fd\nessentials:apps:man:man-db:man-db:man-db:\nessentials:apps:tldr:tealdeer:tealdeer:tealdeer:tealdeer\nessentials:apps:pulsemixer:pulsemixer::pulsemixer:\nrecommended:apps:duf:duf:duf:duf:duf\nrecommended:apps:smartctl:smartmontools:smartmontools:smartmontools:smartmontools\nrecommended:apps:nvme:nvme-cli:nvme-cli:nvme-cli:\nrecommended:apps:testdisk:testdisk:testdisk:testdisk:testdisk\nrecommended:apps:ddrescue:gddrescue:ddrescue:ddrescue:ddrescue\nrecommended:apps:unar:unar:unar:unarchiver:unar\nrecommended:apps:rclone:rclone:rclone:rclone:rclone\nrecommended:apps:restic:restic:restic:restic:restic\nrecommended:apps:sensors:lm-sensors:lm_sensors:lm_sensors:\nrecommended:apps:powertop:powertop:powertop:powertop:\nrecommended:apps:needrestart:needrestart:::\nrecommended:apps:ufw:ufw:ufw:ufw:\nrecommended:apps:podman:podman:podman:podman:podman\nrecommended:apps:podman-compose:podman-compose:podman-compose:podman-compose:podman-compose\nrecommended:apps:distrobox:distrobox:distrobox:distrobox:\nrecommended:apps:pandoc:pandoc:pandoc-cli:pandoc-cli:pandoc\nrecommended:apps:hunspell:hunspell:hunspell:hunspell:hunspell\nrecommended:apps:qpdf:qpdf:qpdf:qpdf:qpdf\nrecommended:apps:catdoc:catdoc:catdoc:catdoc:\nrecommended:apps:docx2txt:docx2txt:::\nrecommended:apps:aria2c:aria2:aria2:aria2:aria2\nrecommended:apps:task:taskwarrior:task:task:task\nrecommended:apps:pass:pass:pass:pass:pass\nrecommended:apps:kpcli:kpcli:::\nrecommended:apps:mtr:mtr-tiny:mtr:mtr:mtr\nrecommended:apps:nmap:nmap:nmap:nmap:nmap\nrecommended:apps:iperf3:iperf3:iperf3:iperf3:iperf3\nrecommended:apps:iftop:iftop:iftop:iftop:iftop\nrecommended:apps:xh:xh::xh:xh\nrecommended:apps:tcpdump:tcpdump:tcpdump:tcpdump:\nrecommended:apps:arp-scan:arp-scan:arp-scan:arp-scan:arp-scan\nrecommended:apps:magick|convert:imagemagick:ImageMagick:imagemagick:imagemagick\nrecommended:apps:exiftool:libimage-exiftool-perl:perl-Image-ExifTool:perl-image-exiftool:exiftool\nrecommended:apps:catimg:catimg:catimg:catimg:catimg\nrecommended:apps:delta:git-delta:git-delta:git-delta:git-delta\nrecommended:apps:yq:yq:yq:go-yq:yq\nrecommended:apps:batcat|bat:bat:bat:bat:bat\nrecommended:apps:nvim:neovim:neovim:neovim:neovim\nrecommended:apps:gcc:build-essential:gcc:base-devel:\nrecommended:apps:shellcheck:shellcheck:ShellCheck:shellcheck:shellcheck\nrecommended:apps:gh:gh:gh:github-cli:gh\nrecommended:apps:direnv:direnv:direnv:direnv:direnv\nrecommended:apps:entr:entr:entr:entr:entr\nrecommended:apps:just:just:just:just:just\nrecommended:apps:hyperfine:hyperfine:hyperfine:hyperfine:hyperfine\nrecommended:apps:gdb:gdb:gdb:gdb:\nrecommended:apps:strace:strace:strace:strace:\nrecommended:apps:ffmpeg:ffmpeg:ffmpeg-free:ffmpeg:ffmpeg\nrecommended:apps:mediainfo:mediainfo:mediainfo:mediainfo:media-info\nrecommended:apps:sox:sox:sox:sox:sox\nrecommended:apps:aerc:aerc:aerc:aerc:aerc\nrecommended:apps:btop:btop:btop:btop:btop\nrecommended:apps:calcurse:calcurse:calcurse:calcurse:calcurse\nrecommended:apps:cava:cava:cava:cava:cava\nrecommended:apps:cmus:cmus::cmus:cmus\nrecommended:apps:durdraw:durdraw:::durdraw\nessentials:apps:fzf:fzf:fzf:fzf:fzf\nessentials:apps:gdu:gdu:gdu:gdu:gdu\nrecommended:apps:glow:glow:glow:glow:glow\nrecommended:apps:lazygit:lazygit::lazygit:lazygit\nrecommended:apps:lnav:lnav:lnav:lnav:lnav\nessentials:apps:lynx:lynx:lynx:lynx:lynx\nrecommended:apps:micro:micro:micro:micro:micro\nrecommended:apps:ncdu:ncdu:ncdu:ncdu:ncdu\nrecommended:apps:nethogs:nethogs:nethogs:nethogs:nethogs\nrecommended:apps:newsboat:newsboat:newsboat:newsboat:newsboat\nrecommended:apps:nvtop:nvtop:nvtop:nvtop:nvtop\nrecommended:apps:s-tui:s-tui:s-tui:s-tui:\nrecommended:apps:sc-im:sc-im:sc-im::sc-im\nrecommended:apps:termshark:termshark::termshark:termshark\nrecommended:apps:tig:tig:tig:tig:tig\nessentials:apps:timg:timg:timg::timg\nessentials:apps:tmux:tmux:tmux:tmux:tmux\nrecommended:apps:visidata:visidata:visidata:visidata:visidata\nrecommended:apps:wavemon:wavemon:wavemon:wavemon:wavemon\nrecommended:apps:weechat:weechat:weechat:weechat:weechat\nessentials:script:fresh\nessentials:script:catt\nessentials:script:casttui\nessentials:script:nerd-font\nessentials:script:helpers\nessentials:script:opencode\n"
 }

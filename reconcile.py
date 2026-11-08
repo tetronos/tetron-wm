@@ -41,9 +41,11 @@ def check_lean_deb() -> dict:
 
 
 def check_desktop_deb() -> dict:
-    """CON-WD04: desktop and extras are metapackages on the next size down."""
+    """CON-WD04: the four size debs are metapackages on the next size down."""
     problems = []
-    for file, base in (("packaging/desktop.toml", "tetron-wm"), ("packaging/extras.toml", "tetron-wm-desktop")):
+    for file, base in (("packaging/desktop.toml", "tetron-wm"), ("packaging/essentials.toml", "tetron-wm-desktop"),
+                       ("packaging/recommended.toml", "tetron-wm-essentials"),
+                       ("packaging/extras.toml", "tetron-wm-recommended")):
         p = Path(file)
         if not p.exists():
             problems.append(f"{p} missing")
@@ -56,7 +58,7 @@ def check_desktop_deb() -> dict:
 
 
 def check_suite_apps() -> dict:
-    """CON-WD05: assets/suite-apps.txt is what the generator makes, and its tests pass."""
+    """CON-WD05: assets/suite-apps.txt and the size debs' recommends are what the generator makes, and its tests pass."""
     import subprocess
     gen = subprocess.run([sys.executable, "scripts/gen_suite_lists.py", "--check"], capture_output=True, text=True)
     # The bundled tetron-wm-startpage helper's tests ride along with the suite list's.

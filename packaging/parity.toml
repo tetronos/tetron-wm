@@ -32,23 +32,39 @@ inapp = "Settings > Appearance > Get more themes"
 
 [[row]]
 step = "2b"
-what = "apps of the desktop size that distributions package (mpv, chafa, fbi, ...)"
-deb = "tetron-wm-desktop (Recommends)"
+what = "the tools tetron-wm's features call (mpv, chafa, fbi, ...), part of the essentials size"
+deb = "tetron-wm-desktop (Recommends; tetron-wm-essentials depends on it)"
 iso = "tetron-wm-desktop"
 inapp = "Settings > General > Apps"
 iso_packages = ["tetron-wm-desktop", "mpv", "chafa", "fbi"]
 
 [[row]]
 step = "2b"
-what = "apps of the extras size (git)"
+what = "apps of the essentials size that distributions package (git, tmux, ripgrep, ...)"
+deb = "tetron-wm-essentials (Recommends)"
+iso = "tetron-wm-essentials"
+inapp = "Settings > General > Apps"
+iso_packages = ["tetron-wm-essentials", "git", "tmux"]
+
+[[row]]
+step = "2b"
+what = "apps of the recommended size (lazygit, neovim, podman, ...)"
+deb = "tetron-wm-recommended (Recommends)"
+iso = "tetron-wm-recommended"
+inapp = "Settings > General > Apps"
+iso_packages = ["tetron-wm-recommended"]
+
+[[row]]
+step = "2b"
+what = "apps of the extras size (none yet)"
 deb = "tetron-wm-extras (Recommends)"
-iso = "none: the Desktop ISO installs the desktop size"
+iso = "none: the Desktop ISO installs the essentials and recommended sizes"
 inapp = "Settings > General > Apps"
 
 [[row]]
 step = "2b"
 what = "apps no distribution packages (fresh, uv, catt, casttui, Nerd Font symbols, opencode)"
-deb = "none: not in Debian; packaging/script-only.toml"
+deb = "none: not in Debian; the [[script]] entries of lists/tetron.toml"
 iso = "none: not yet on the ISO, installed in-app"
 inapp = "Settings > General > Apps (runs the suite installer)"
 

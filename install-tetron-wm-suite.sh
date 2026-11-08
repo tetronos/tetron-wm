@@ -26,16 +26,19 @@
 #      themes         — every theme in the repository's themes/ with its picture,
 #                       into ~/.local/share/tetron-wm/themes/; never overwrites
 #      size           — which apps come with it (asked of everyone):           [Linux, macOS]
-#                         minimal  tetron-wm only
-#                         desktop  plus the tools its features use (default): chafa,
-#                                  mpv, poppler, w3m, htop, sshfs, mc, vim, ... and
-#                                  fresh, uv, catt, casttui, a Nerd Font, opencode
-#                         extras   plus extra apps (git)
-#                       The list is assets/suite-apps.txt, generated from
-#                       packaging/*.toml (the same sets as the tetron-wm-desktop
-#                       and tetron-wm-extras debs). On Debian and Ubuntu, when
-#                       tetron-wm is the apt package, those debs are installed so
-#                       apt tracks the set; otherwise the apps one by one.
+#                         minimal      tetron-wm only
+#                         essentials   plus the tools its features use and one
+#                                      good app per need (default): chafa, mpv,
+#                                      htop, mc, vim, git, tmux, ripgrep, ... and
+#                                      fresh, uv, catt, casttui, a Nerd Font, opencode
+#                         recommended  plus a curated pick in every category
+#                         extras       plus the extra apps
+#                       The list is assets/suite-apps.txt, generated from the
+#                       "App sets" section of lists/tetron.toml (the same sets as
+#                       the tetron-wm-desktop, -essentials, -recommended and
+#                       -extras debs). On Debian and Ubuntu, when tetron-wm is
+#                       the apt package, those debs are installed so apt tracks
+#                       the set; otherwise the apps one by one.
 #      services       — PipeWire audio (volume, outputs), NetworkManager (Wi-Fi),
 #                       BlueZ (Bluetooth). Default NO: they change how the
 #                       machine manages sound, network and Bluetooth
@@ -58,7 +61,8 @@
 #   --wm / --no-wm             force the tetron-wm step on/off
 #   --config / --no-config     force the config-dir step on/off
 #   --themes / --no-themes     force the extra-themes download on/off (default yes)
-#   --size S                   minimal | desktop | extras (default desktop; asked when not given)
+#   --size S                   minimal | essentials | recommended | extras (default essentials;
+#                              asked when not given; desktop is read as essentials)
 #   --apps-list FILE           read the app list from FILE (Settings > General > Apps hands
 #                              over the list it counted from); default: the list published
 #                              for this core minor, then the repository's
@@ -161,7 +165,8 @@ while [ $# -gt 0 ]; do
   shift
 done
 case "$PROFILE" in ""|gui|console|login|appliance) ;; *) die "--profile must be gui, console, login or appliance" ;; esac
-case "$SIZE" in ""|minimal|desktop|extras) ;; *) die "--size must be minimal, desktop or extras" ;; esac
+[ "$SIZE" = desktop ] && SIZE=essentials   # the size's name before recommended existed
+case "$SIZE" in ""|minimal|essentials|recommended|extras) ;; *) die "--size must be minimal, essentials, recommended or extras" ;; esac
 case "$VT" in ""|[1-9]|[1-5][0-9]|6[0-3]) ;; *) die "--vt must be a VT number 1-63" ;; esac
 case "$FSVT" in [1-9]|[1-5][0-9]|6[0-3]) ;; *) die "--fullscreen-vt must be a VT number 1-63" ;; esac
 
@@ -240,8 +245,14 @@ asset_for() {
   [ -n "$RELEASE_ASSETS" ] || RELEASE_ASSETS="$(fetch "$RELEASES/expanded_assets/$tag" 2>/dev/null || true)"
   printf '%s' "$RELEASE_ASSETS" | grep -o "${1}_[^\"/<> ]*_${2}\.deb" | head -1 || true
 }
-# The size's metapackages: desktop needs tetron-wm-desktop, extras both.
-size_debs() { case "$SIZE" in desktop) echo tetron-wm-desktop ;; extras) echo "tetron-wm-desktop tetron-wm-extras" ;; esac; }
+# The size's metapackages: each size adds its own to the smaller sizes'.
+size_debs() {
+  case "$SIZE" in
+    essentials) echo "tetron-wm-desktop tetron-wm-essentials" ;;
+    recommended) echo "tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended" ;;
+    extras) echo "tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended tetron-wm-extras" ;;
+  esac
+}
 # Every metapackage of the size is in the release (Architecture all).
 release_has_size_debs() {
   local p; [ -n "$(size_debs)" ] || return 1
@@ -363,7 +374,7 @@ ensure_truecolor() {
 }
 
 # ── Step 2b: the apps of the chosen size, and system services ─────────────────
-# The apps are defined once, in packaging/*.toml, and generated into
+# The apps are defined once, in lists/tetron.toml, and generated into
 # assets/suite-apps.txt (WMINST-001): one "size:group:check:apt:dnf:pacman:brew"
 # line per package (an empty name = not on that system) and "size:script:name"
 # per app no distro packages. A size installs its lines and the smaller sizes'.
@@ -388,7 +399,8 @@ load_apps() {
   fi
   [ -n "$APPS" ] || warn "could not read the app list (assets/suite-apps.txt); no apps will be installed"
 }
-size_rank() { case "$1" in minimal) echo 0 ;; desktop) echo 1 ;; extras) echo 2 ;; *) echo 9 ;; esac; }
+# desktop: the essentials lines of a list written before recommended existed.
+size_rank() { case "$1" in minimal) echo 0 ;; essentials|desktop) echo 1 ;; recommended) echo 2 ;; extras) echo 3 ;; *) echo 9 ;; esac; }
 # apps_for SIZE GROUP: the "check:apt:dnf:pacman:brew" lines (or script names)
 # of GROUP for SIZE and the smaller sizes.
 apps_for() {
@@ -494,7 +506,7 @@ size_list() {
 $(apps_for "$SIZE" gui)"
   missing_pkgs "$l"
 }
-services_list() { missing_pkgs "$(apps_for desktop services)"; }
+services_list() { missing_pkgs "$(apps_for essentials services)"; }
 
 # fresh is in no Linux distro repository; its official installer picks the
 # right method itself (.deb, .rpm, AUR, …). Offered with the extras when missing.
@@ -913,9 +925,9 @@ do_uninstall() {
   if [ "$PURGE" = 1 ]; then
     if deb_host && wm_packaged; then
       # apt owns it: removing the file by hand would leave a broken package.
-      if confirm "Remove the tetron-wm package and its desktop/extras packages with apt?" n; then
+      if confirm "Remove the tetron-wm package and its size packages with apt?" n; then
         # shellcheck disable=SC2046
-        $SUDO apt-get remove -y $(for p in tetron-wm-extras tetron-wm-desktop tetron-wm; do
+        $SUDO apt-get remove -y $(for p in tetron-wm-extras tetron-wm-recommended tetron-wm-essentials tetron-wm-desktop tetron-wm; do
           dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null | grep -qx installed && echo "$p"; done) \
           && log "removed the tetron-wm packages (apt autoremove removes the apps they brought)"
       fi
@@ -998,15 +1010,16 @@ main() {
     PROFILE=gui; apply_profile gui
   fi
 
-  # Size: every user chooses; desktop is the default.
+  # Size: every user chooses; essentials is the default.
   if [ -z "$SIZE" ]; then
-    SIZE=desktop
+    SIZE=essentials
     if [ "$HAVE_TTY" = 1 ]; then
       choose "How much do you want installed?" 2 \
         "minimal: tetron-wm only" \
-        "desktop: tetron-wm and the tools its features use (recommended)" \
-        "extras: desktop plus extra apps (git)"
-      case "$CHOICE" in 1) SIZE=minimal ;; 3) SIZE=extras ;; esac
+        "essentials: tetron-wm, the tools its features use and one good app per need (default)" \
+        "recommended: essentials plus a curated pick in every category" \
+        "extras: recommended plus the extra apps"
+      case "$CHOICE" in 1) SIZE=minimal ;; 3) SIZE=recommended ;; 4) SIZE=extras ;; esac
     fi
   fi
   load_apps

@@ -44,8 +44,10 @@ class DesktopIsAMetapackageOnTetronWm(Constraint):
 
     `packaging/desktop.toml` is a metapackage (no files entry with src
     binary or asset) and its depends names tetron-wm (WMDEB-007);
-    `packaging/extras.toml` is a metapackage whose depends names
-    tetron-wm-desktop (WMDEB-009).
+    `packaging/essentials.toml`, `recommended.toml` and `extras.toml` are
+    metapackages whose depends name tetron-wm-desktop,
+    tetron-wm-essentials and tetron-wm-recommended (WMDEB-010, WMDEB-011,
+    WMDEB-009).
     ENFORCEMENT (reconcile.py): desktop_deb.ok is true.
     """
     constraint_id = "CON-WD04"
@@ -56,7 +58,8 @@ class SuiteAppListGenerated(Constraint):
     """CONSTRAINT-ID: CON-WD05
 
     `assets/suite-apps.txt` equals what `scripts/gen_suite_lists.py`
-    generates from the package tomls (WMINST-001), so a toml edit without
+    generates from `lists/tetron.toml` (WMINST-001), and so are the
+    recommends arrays of the four metapackage tomls, so an edit without
     regenerating fails the gate.
     ENFORCEMENT (reconcile.py): suite_apps.current is true.
     """

@@ -6,8 +6,8 @@
 # - no Suggests was installed, not even through a Recommends of a Recommends.
 #   A Suggests such as openssh-server would start a network service.
 # mkdeb's own install test uses --no-install-recommends, so it covers neither
-# (WMDEB-007, WMDEB-009).
-# Usage: packaging/test-metapackages.sh [-i IMAGE] tetron-wm.deb tetron-wm-desktop.deb [tetron-wm-extras.deb]
+# (WMDEB-007, WMDEB-009, WMDEB-010, WMDEB-011).
+# Usage: packaging/test-metapackages.sh [-i IMAGE] tetron-wm.deb tetron-wm-desktop.deb [tetron-wm-essentials.deb ...]
 set -eu
 image="debian:trixie"
 [ "${1:-}" = "-i" ] && { image="$2"; shift 2; }

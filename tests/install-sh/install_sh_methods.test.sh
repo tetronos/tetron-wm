@@ -46,15 +46,17 @@ mkdeb 9.9.8-1 $R/download/v9.9.8; mkraw 9.9.8 $R/download/v9.9.8
 # must never take it for tetron-wm.
 printf '<a href="/o/r/releases/download/x/tetron-wm-desktop_9.9.9-1_all.deb">tetron-wm-desktop_9.9.9-1_all.deb</a>\n' >> $R/download/v9.9.9/assets.html
 mkdeb 9.9.9-1 $R/download/v9.9.9; mkraw 9.9.9 $R/download/v9.9.9
-mkmeta tetron-wm-desktop 9.9.8-1 $R/download/v9.9.8; mkmeta tetron-wm-desktop 9.9.9-1 $R/download/v9.9.9
+for m in tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended; do
+  mkmeta $m 9.9.8-1 $R/download/v9.9.8; mkmeta $m 9.9.9-1 $R/download/v9.9.9
+done
 mkraw 9.9.7 $R/download/v9.9.7                       # v9.9.7: no .deb
 mkdeb 9.9.6-1 $R/download/v9.9.6; mkraw 9.9.6 $R/download/v9.9.6
 echo 0000 > $R/download/v9.9.6/tetron-wm_9.9.6-1_$arch.deb.sha256   # v9.9.6: bad checksum
 for t in v9.9.6 v9.9.7 v9.9.8 v9.9.9; do cp $R/download/$t/assets.html $R/expanded_assets/$t; done
 
 run() { TETRON_WM_TAG="$1" TETRON_WM_RELEASES_URL=file://$R TETRON_WM_SKIP_DEPS=1 sh /src/install.sh </dev/null > /tmp/out 2>&1; }
-reset() { dpkg -P tetron-wm-desktop tetron-wm >/dev/null 2>&1 || true; rm -f /usr/local/bin/tetron-wm; }
-mver() { dpkg-query -W -f='${Version}' tetron-wm-desktop 2>/dev/null || true; }
+reset() { dpkg -P tetron-wm-recommended tetron-wm-essentials tetron-wm-desktop tetron-wm >/dev/null 2>&1 || true; rm -f /usr/local/bin/tetron-wm; }
+mver() { dpkg-query -W -f='${Version}' "${1:-tetron-wm-desktop}" 2>/dev/null || true; }
 ver() { dpkg-query -W -f='${Version}' tetron-wm 2>/dev/null || true; }
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1 (rc=$rc ver=$(ver) usrbin=$(/usr/bin/tetron-wm 2>&1) local=$(ls /usr/local/bin/tetron-wm 2>&1))"; sed 's/^/    /' /tmp/out; fail=1; fi; }
@@ -79,6 +81,12 @@ check "bad checksum: refused, nothing installed" '[ $rc = 1 ] && [ -z "$(ver)" ]
 
 reset; dpkg -i $R/download/v9.9.8/tetron-wm_9.9.8-1_$arch.deb $R/download/v9.9.8/tetron-wm-desktop_9.9.8-1_all.deb >/dev/null; run v9.9.9; rc=$?
 check "installed tetron-wm-desktop moves to the release with tetron-wm" '[ $rc = 0 ] && [ "$(ver)" = 9.9.9-1 ] && [ "$(mver)" = 9.9.9-1 ]'
+
+reset; dpkg -i $R/download/v9.9.8/tetron-wm_9.9.8-1_$arch.deb $R/download/v9.9.8/tetron-wm-desktop_9.9.8-1_all.deb $R/download/v9.9.8/tetron-wm-recommended_9.9.8-1_all.deb >/dev/null; run v9.9.9; rc=$?
+check "size packages up to the largest installed move together; a smaller one missing is added" '[ $rc = 0 ] && [ "$(mver tetron-wm-recommended)" = 9.9.9-1 ] && [ "$(mver tetron-wm-essentials)" = 9.9.9-1 ] && [ "$(mver)" = 9.9.9-1 ]'
+
+reset; dpkg -i $R/download/v9.9.8/tetron-wm_9.9.8-1_$arch.deb $R/download/v9.9.8/tetron-wm-desktop_9.9.8-1_all.deb >/dev/null; run v9.9.9; rc=$?
+check "only tetron-wm-desktop installed: essentials not added" '[ $rc = 0 ] && [ "$(mver)" = 9.9.9-1 ] && [ -z "$(mver tetron-wm-essentials)" ]'
 
 reset; dpkg -i $R/download/v9.9.8/tetron-wm_9.9.8-1_$arch.deb >/dev/null; run v9.9.9; rc=$?
 check "metapackage not installed: not added by an update" '[ $rc = 0 ] && [ "$(ver)" = 9.9.9-1 ] && [ -z "$(mver)" ]'

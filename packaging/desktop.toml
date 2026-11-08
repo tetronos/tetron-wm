@@ -8,7 +8,7 @@
 # repo is not configured.
 # Tools Debian does not package (fresh, casttui, catt, uv, opencode,
 # a symbols Nerd Font) stay with install-tetron-wm-suite.sh
-# (packaging/script-only.toml).
+# (the [[script]] entries of lists/tetron.toml).
 name = "tetron-wm-desktop"
 description = "tetron-wm with the tools its features use"
 long_description = """
@@ -38,17 +38,37 @@ license = "MIT"
 homepage = "https://github.com/tetronos/tetron-wm"
 depends = ["tetron-wm (>= {minor})"]
 recommends = [
-  "mpv", "chafa", "poppler-utils", "upower", "w3m", "gpm",
-  "xclip", "wl-clipboard", "alsa-utils", "sshpass", "fonts-dejavu-core",
-  "7zip | p7zip-full", "gnupg",
-  "python3", "curl", "openssh-client", "unzip", "console-setup-linux",
-  "htop", "sshfs", "mc", "vim", "tetron-browser", "fbi",
+  "mpv",
+  "chafa",
+  "poppler-utils",
+  "upower",
+  "w3m",
+  "gpm",
+  "xclip",
+  "wl-clipboard",
+  "alsa-utils",
+  "sshpass",
+  "fonts-dejavu-core",
+  "7zip | p7zip-full",
+  "gnupg",
+  "python3",
+  "curl",
+  "openssh-client",
+  "unzip",
+  "console-setup-linux",
+  "htop",
+  "sshfs",
+  "mc",
+  "vim",
+  "tetron-browser",
+  "fbi",
 ]
+# btop is a Recommends of tetron-wm-recommended, so not a Suggests here.
 # kmscon (>= 9.1): Debian 12 ships 9.0.0, without truecolor and mouse passthrough.
 # openssh-server is only a Suggests: Debian starts the SSH server
 # on install, which must never happen just because this package was installed.
 suggests = [
-  "btop", "age",
+  "age",
   "pipewire", "wireplumber", "network-manager", "bluez", "kmscon (>= 9.1)",
   "openssh-server", "openssh-sftp-server",
 ]

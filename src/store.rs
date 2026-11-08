@@ -531,7 +531,7 @@ mod tests {
         let i = st.filtered().iter().position(|a| a.bin == "fresh").expect("fresh listed");
         st.selected = i;
         let buf = st.render(110, 30);
-        assert!((0..30).any(|y| row_text(&buf, y, 110).contains("In the desktop set")));
+        assert!((0..30).any(|y| row_text(&buf, y, 110).contains("In the essentials set")));
     }
 
     /// The command parses as POSIX shell (`sh -n`).

@@ -59,12 +59,14 @@ pub fn running_is_packaged() -> bool {
     })
 }
 
-/// How much of the app set is installed (WMINST-005): the suite script's
-/// sizes, the same as the tetron-wm / tetron-wm-desktop / tetron-wm-extras debs.
+/// How much of the app sets is installed (WMINST-005): the suite script's
+/// sizes, the same as the tetron-wm, tetron-wm-essentials (with
+/// tetron-wm-desktop), tetron-wm-recommended and tetron-wm-extras debs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Size {
     Minimal,
-    Desktop,
+    Essentials,
+    Recommended,
     Extras,
 }
 
@@ -72,15 +74,20 @@ impl Size {
     pub fn name(self) -> &'static str {
         match self {
             Size::Minimal => "minimal",
-            Size::Desktop => "desktop",
+            Size::Essentials => "essentials",
+            Size::Recommended => "recommended",
             Size::Extras => "extras",
         }
     }
 
+    /// A size recorded in the suite state. "desktop" (before the sets) had
+    /// only the tools tetron-wm uses, so it counts as minimal and the Apps
+    /// row offers essentials.
     fn parse(s: &str) -> Option<Size> {
         match s.trim() {
-            "minimal" => Some(Size::Minimal),
-            "desktop" => Some(Size::Desktop),
+            "minimal" | "desktop" => Some(Size::Minimal),
+            "essentials" => Some(Size::Essentials),
+            "recommended" => Some(Size::Recommended),
             "extras" => Some(Size::Extras),
             _ => None,
         }
@@ -99,13 +106,16 @@ pub fn state_value(state: &str, key: &str) -> Option<String> {
     state.lines().rev().find_map(|l| l.strip_prefix(&prefix)).map(str::to_string)
 }
 
-/// The installed size: the metapackages dpkg has, else the suite script's
-/// record, else minimal.
+/// The installed size: the largest metapackage dpkg has, else the suite
+/// script's record, else minimal. tetron-wm-desktop alone (an install from
+/// before the sets) is not a size of its own.
 pub fn size_from(info_dir: &Path, state: &str) -> Size {
     if dpkg_has(info_dir, "tetron-wm-extras") {
         Size::Extras
-    } else if dpkg_has(info_dir, "tetron-wm-desktop") {
-        Size::Desktop
+    } else if dpkg_has(info_dir, "tetron-wm-recommended") {
+        Size::Recommended
+    } else if dpkg_has(info_dir, "tetron-wm-essentials") {
+        Size::Essentials
     } else {
         state_value(state, "size").and_then(|s| Size::parse(&s)).unwrap_or(Size::Minimal)
     }
@@ -145,8 +155,9 @@ pub fn install_method() -> &'static str {
 /// release added).
 pub fn size_choices(current: Size) -> Vec<Size> {
     match current {
-        Size::Minimal => vec![Size::Desktop, Size::Extras],
-        Size::Desktop => vec![Size::Extras],
+        Size::Minimal => vec![Size::Essentials, Size::Recommended, Size::Extras],
+        Size::Essentials => vec![Size::Recommended, Size::Extras],
+        Size::Recommended => vec![Size::Extras],
         Size::Extras => vec![Size::Extras],
     }
 }
@@ -202,20 +213,19 @@ impl Host {
     }
 }
 
+/// The size of a list line; "desktop" is the essentials lines of a list
+/// written before the sets.
 fn size_rank(s: &str) -> u8 {
     match s {
-        "desktop" => 1,
-        "extras" => 2,
+        "essentials" | "desktop" => 1,
+        "recommended" => 2,
+        "extras" => 3,
         _ => u8::MAX,
     }
 }
 
 fn size_level(s: Size) -> u8 {
-    match s {
-        Size::Minimal => 0,
-        Size::Desktop => 1,
-        Size::Extras => 2,
-    }
+    s as u8
 }
 
 /// The apps of `size` and the smaller sizes in `list` (the suite-apps.txt
@@ -321,47 +331,58 @@ mod tests {
     }
 
     const LIST: &str = "# header\n\
-desktop:apps:mpv:mpv:mpv:mpv:mpv\n\
-desktop:apps:gpm:gpm:gpm:gpm:\n\
-desktop:gui:xclip:xclip:xclip:xclip:\n\
-desktop:apps:tetron-browser:tetron-browser:::\n\
-desktop:services:nmcli:network-manager:NetworkManager:networkmanager:\n\
+essentials:apps:mpv:mpv:mpv:mpv:mpv\n\
+essentials:apps:gpm:gpm:gpm:gpm:\n\
+essentials:gui:xclip:xclip:xclip:xclip:\n\
+essentials:apps:tetron-browser:tetron-browser:::\n\
+essentials:services:nmcli:network-manager:NetworkManager:networkmanager:\n\
+recommended:apps:lazygit:lazygit::lazygit:lazygit\n\
 extras:apps:git:git:git:git:git\n\
-desktop:apps:uv::uv:uv:uv\n\
-desktop:apps:blueutil::::blueutil\n\
-desktop:script:fresh\n\
-desktop:script:nerd-font\n\
-desktop:script:helpers\n\
-desktop:script:opencode\n";
+essentials:apps:uv::uv:uv:uv\n\
+essentials:apps:blueutil::::blueutil\n\
+essentials:script:fresh\n\
+essentials:script:nerd-font\n\
+essentials:script:helpers\n\
+essentials:script:opencode\n";
 
     #[test]
     fn missing_counts_the_size_and_smaller_never_services() {
         let none = |_: &str| false;
         let h = host(true, false, true, false);
         assert!(missing_in(LIST, Size::Minimal, &h, &none).is_empty(), "minimal has no apps");
-        let d = missing_in(LIST, Size::Desktop, &h, &none);
+        let d = missing_in(LIST, Size::Essentials, &h, &none);
         assert_eq!(d, ["mpv", "gpm", "tetron-browser", "uv", "fresh", "nerd-font", "helpers", "opencode"]);
+        let r = missing_in(LIST, Size::Recommended, &h, &none);
+        assert!(r.contains(&"lazygit".to_string()) && r.len() == d.len() + 1, "recommended adds its own rows: {r:?}");
         let e = missing_in(LIST, Size::Extras, &h, &none);
-        assert!(e.contains(&"git".to_string()) && e.len() == d.len() + 1, "extras adds its own rows: {e:?}");
+        assert!(e.contains(&"git".to_string()) && e.len() == r.len() + 1, "extras adds its own rows: {e:?}");
         assert!(!e.iter().any(|n| n == "network-manager"), "services never count");
     }
 
     #[test]
     fn missing_follows_the_host() {
         let none = |_: &str| false;
-        let d = missing_in(LIST, Size::Desktop, &host(true, true, false, true), &none);
+        let d = missing_in(LIST, Size::Essentials, &host(true, true, false, true), &none);
         assert!(d.contains(&"xclip".to_string()), "gui rows with a desktop session: {d:?}");
         assert!(!d.contains(&"gpm".to_string()), "no mouse device: no gpm");
         assert!(!d.contains(&"helpers".to_string()), "the deb ships the helpers");
-        let mac = missing_in(LIST, Size::Desktop, &host(false, false, true, false), &none);
+        let mac = missing_in(LIST, Size::Essentials, &host(false, false, true, false), &none);
         assert!(mac.contains(&"blueutil".to_string()) && !mac.contains(&"gpm".to_string()), "brew names on macOS: {mac:?}");
         assert!(!mac.contains(&"tetron-browser".to_string()), "no brew name: not counted");
     }
 
     #[test]
+    fn a_list_from_before_the_sets_reads_desktop_as_essentials() {
+        let none = |_: &str| false;
+        let old = "desktop:apps:mpv:mpv:mpv:mpv:mpv\nextras:apps:git:git:git:git:git\n";
+        let h = host(true, false, true, false);
+        assert_eq!(missing_in(old, Size::Essentials, &h, &none), ["mpv"]);
+    }
+
+    #[test]
     fn present_apps_are_not_missing() {
         let have = |c: &str| matches!(c, "mpv" | "gpm" | "tetron-browser" | "uv" | "fresh" | "nerd-font" | "tetron-wm-startpage" | "opencode");
-        assert!(missing_in(LIST, Size::Desktop, &host(true, false, true, false), &have).is_empty());
+        assert!(missing_in(LIST, Size::Essentials, &host(true, false, true, false), &have).is_empty());
     }
 
     #[test]
@@ -370,6 +391,8 @@ desktop:script:opencode\n";
         let linux = missing_in(crate::catalog::suite_apps(), Size::Extras, &host(true, true, true, false), &none);
         assert!(linux.len() > 20, "{linux:?}");
         assert!(linux.contains(&"fresh".to_string()) && linux.contains(&"git".to_string()));
+        let ess = missing_in(crate::catalog::suite_apps(), Size::Essentials, &host(true, true, true, false), &none);
+        assert!(ess.contains(&"git".to_string()) && !ess.contains(&"lazygit".to_string()), "{ess:?}");
     }
 
     #[test]
@@ -450,8 +473,14 @@ desktop:script:opencode\n";
         assert_eq!(size_from(&d, ""), Size::Minimal);
         assert_eq!(size_from(&d, "vt=1\nsize=desktop\nsize=extras\n"), Size::Extras, "last value wins");
         assert_eq!(size_from(&d, "size=bogus\n"), Size::Minimal);
+        assert_eq!(size_from(&d, "size=desktop\n"), Size::Minimal, "desktop before the sets: offer essentials");
+        assert_eq!(size_from(&d, "size=recommended\n"), Size::Recommended);
         std::fs::write(d.join("tetron-wm-desktop.list"), "/.\n").unwrap();
-        assert_eq!(size_from(&d, "size=minimal\n"), Size::Desktop, "dpkg wins over the record");
+        assert_eq!(size_from(&d, "size=essentials\n"), Size::Essentials, "tetron-wm-desktop alone is no size");
+        std::fs::write(d.join("tetron-wm-essentials.list"), "/.\n").unwrap();
+        assert_eq!(size_from(&d, "size=minimal\n"), Size::Essentials, "dpkg wins over the record");
+        std::fs::write(d.join("tetron-wm-recommended.list"), "/.\n").unwrap();
+        assert_eq!(size_from(&d, ""), Size::Recommended);
         std::fs::write(d.join("tetron-wm-extras.list"), "/.\n").unwrap();
         assert_eq!(size_from(&d, ""), Size::Extras);
         std::fs::remove_dir_all(&d).ok();
@@ -467,8 +496,9 @@ desktop:script:opencode\n";
 
     #[test]
     fn apps_row_offers_only_larger_sizes() {
-        assert_eq!(size_choices(Size::Minimal), [Size::Desktop, Size::Extras]);
-        assert_eq!(size_choices(Size::Desktop), [Size::Extras]);
+        assert_eq!(size_choices(Size::Minimal), [Size::Essentials, Size::Recommended, Size::Extras]);
+        assert_eq!(size_choices(Size::Essentials), [Size::Recommended, Size::Extras]);
+        assert_eq!(size_choices(Size::Recommended), [Size::Extras]);
         assert_eq!(size_choices(Size::Extras), [Size::Extras], "a check, not a downgrade");
     }
 
@@ -487,7 +517,7 @@ desktop:script:opencode\n";
         assert!(std::process::Command::new("sh").args(["-n", "-c", &cmd]).status().unwrap().success(), "{cmd}");
         assert!(!cmd.contains("--apps-list"), "{cmd}");
         let odd = Path::new("/home/a b/it's/suite-apps.txt");
-        let with = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Desktop, Some(odd));
+        let with = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Essentials, Some(odd));
         assert!(std::process::Command::new("sh").args(["-n", "-c", &with]).status().unwrap().success(), "{with}");
         assert!(with.contains("--apps-list '/home/a b/it'\\''s/suite-apps.txt'"), "{with}");
         assert!(cmd.contains("--size extras") && cmd.contains("--no-wm") && cmd.contains("--no-console"), "{cmd}");

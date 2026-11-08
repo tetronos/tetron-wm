@@ -167,11 +167,12 @@ jobs:
             ${{ steps.deb.outputs.deb }}
             ${{ steps.deb.outputs.sha256 }}
 
-      # tetron-wm-desktop (WMDEB-007) and tetron-wm-extras (WMDEB-009) are
+      # tetron-wm-desktop (WMDEB-007), tetron-wm-essentials (WMDEB-010),
+      # tetron-wm-recommended (WMDEB-011) and tetron-wm-extras (WMDEB-009) are
       # metapackages (Architecture all), so they are built once, on the amd64
       # job. The action's own install test would install each alone, where its
       # tetron-wm dependency is not in any archive, and without Recommends;
-      # instead test-metapackages.sh installs all three debs together,
+      # instead test-metapackages.sh installs all five debs together,
       # Recommends included, and checks every Recommends installed and no
       # Suggests (an SSH server, for example) pulled in.
       - name: Build tetron-wm-desktop .deb
@@ -183,6 +184,28 @@ jobs:
           version: ${{ needs.decide.outputs.tag }}
           maintainer: ${{ vars.DEB_MAINTAINER }}
           out: deb-desktop-out
+          test: "false"
+
+      - name: Build tetron-wm-essentials .deb
+        id: essentials
+        if: matrix.deb_arch == 'amd64'
+        uses: tetronos/tetron-packaging@87d8405791a0e679af6deb720fe932410f38feb5
+        with:
+          deb-toml: packaging/essentials.toml
+          version: ${{ needs.decide.outputs.tag }}
+          maintainer: ${{ vars.DEB_MAINTAINER }}
+          out: deb-essentials-out
+          test: "false"
+
+      - name: Build tetron-wm-recommended .deb
+        id: recommended
+        if: matrix.deb_arch == 'amd64'
+        uses: tetronos/tetron-packaging@87d8405791a0e679af6deb720fe932410f38feb5
+        with:
+          deb-toml: packaging/recommended.toml
+          version: ${{ needs.decide.outputs.tag }}
+          maintainer: ${{ vars.DEB_MAINTAINER }}
+          out: deb-recommended-out
           test: "false"
 
       - name: Build tetron-wm-extras .deb
@@ -198,7 +221,7 @@ jobs:
 
       - name: Test the metapackages with their Recommends
         if: matrix.deb_arch == 'amd64'
-        run: packaging/test-metapackages.sh "${{ steps.deb.outputs.deb }}" "${{ steps.desktop.outputs.deb }}" "${{ steps.extras.outputs.deb }}"
+        run: packaging/test-metapackages.sh "${{ steps.deb.outputs.deb }}" "${{ steps.desktop.outputs.deb }}" "${{ steps.essentials.outputs.deb }}" "${{ steps.recommended.outputs.deb }}" "${{ steps.extras.outputs.deb }}"
 
       - name: Attach the metapackages to release
         if: matrix.deb_arch == 'amd64'
@@ -208,5 +231,9 @@ jobs:
           files: |
             ${{ steps.desktop.outputs.deb }}
             ${{ steps.desktop.outputs.sha256 }}
+            ${{ steps.essentials.outputs.deb }}
+            ${{ steps.essentials.outputs.sha256 }}
+            ${{ steps.recommended.outputs.deb }}
+            ${{ steps.recommended.outputs.sha256 }}
             ${{ steps.extras.outputs.deb }}
             ${{ steps.extras.outputs.sha256 }}

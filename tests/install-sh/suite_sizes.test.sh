@@ -29,9 +29,11 @@ IN
 run debian:trixie '
 A=$(dpkg --print-architecture)
 assets() { printf "%s\n" "$@" > /rel/expanded_assets/v9.9.9; }
-assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-extras_9.9.9-1_all.deb
-out="$(plan)"; ok "debian fresh, default size: desktop through the metapackage" "echo \"\$out\" | grep -q \"size=desktop method=deb\" && echo \"\$out\" | grep -q \"apt install tetron-wm-desktop \""
-out="$(plan --size extras)"; ok "debian --size extras: both metapackages" "echo \"\$out\" | grep -q \"apt install tetron-wm-desktop tetron-wm-extras\""
+assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-essentials_9.9.9-1_all.deb tetron-wm-recommended_9.9.9-1_all.deb tetron-wm-extras_9.9.9-1_all.deb
+out="$(plan)"; ok "debian fresh, default size: essentials through its metapackages" "echo \"\$out\" | grep -q \"size=essentials method=deb\" && echo \"\$out\" | grep -q \"apt install tetron-wm-desktop tetron-wm-essentials (\""
+out="$(plan --size desktop)"; ok "--size desktop is read as essentials" "echo \"\$out\" | grep -q \"size=essentials\""
+out="$(plan --size recommended)"; ok "debian --size recommended: three metapackages" "echo \"\$out\" | grep -q \"apt install tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended (\""
+out="$(plan --size extras)"; ok "debian --size extras: all four metapackages" "echo \"\$out\" | grep -q \"apt install tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended tetron-wm-extras (\""
 out="$(plan)"; ok "no mouse device: the metapackage without gpm" "echo \"\$out\" | grep -q \"without gpm (no mouse device)\""
 out="$(plan --size minimal)"; ok "debian --size minimal: no apps" "echo \"\$out\" | grep -q \"size=minimal\" && echo \"\$out\" | grep -q \"apps: none\""
 out="$(plan --no-extras)"; ok "--no-extras means minimal" "echo \"\$out\" | grep -q \"size=minimal\""
@@ -43,6 +45,8 @@ out="$(plan)"; ok "with a mouse device: gpm stays in" "echo \"\$out\" | grep -q 
 rm -f /dev/input/mice
 out="$(plan --convert)"; ok "raw copy with --convert: becomes the deb" "echo \"\$out\" | grep -q \"method=deb wm=y convert=y\""
 rm /usr/local/bin/tetron-wm
+assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-extras_9.9.9-1_all.deb
+out="$(plan)"; ok "release with only the metapackages from before the sets: apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*ripgrep\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm\""
 assets tetron-wm_9.9.9-1_$A.deb
 out="$(plan)"; ok "release without metapackages: deb, apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*chafa\""
 assets
@@ -50,8 +54,10 @@ out="$(plan)"; ok "release without any deb: raw" "echo \"\$out\" | grep -q \"met
 '
 run fedora:latest '
 out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=raw\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
-ok "desktop size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
-ok "fedora desktop: fbida (View full screen images)" "echo \"\$out\" | grep -q fbida"
+ok "essentials size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
+ok "fedora essentials: fbida (View full screen images)" "echo \"\$out\" | grep -q fbida"
+ok "fedora essentials: git, bind-utils; no recommended app" "echo \"\$out\" | grep -q \" git \" && echo \"\$out\" | grep -q bind-utils && ! echo \"\$out\" | grep -q ShellCheck"
+out="$(plan --size recommended)"; ok "fedora recommended: dnf names of the recommended set" "echo \"\$out\" | grep -q ShellCheck && echo \"\$out\" | grep -q ffmpeg-free && ! echo \"\$out\" | grep -q lazygit"
 printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
 out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"
 m="$(sed -n "s/^LISTS_MINOR=\"\(.*\)\"$/\1/p" /src/install-tetron-wm-suite.sh)"
@@ -63,5 +69,7 @@ ok "run on its own: the list published for its core minor" "echo \"\$out\" | gre
 '
 run archlinux:latest '
 out="$(plan)"; ok "arch: pacman names from the list" "echo \"\$out\" | grep -q \"apps: .*poppler \" && echo \"\$out\" | grep -q ttf-dejavu && echo \"\$out\" | grep -q openssh"
+ok "arch essentials: gptfdisk, openbsd-netcat" "echo \"\$out\" | grep -q gptfdisk && echo \"\$out\" | grep -q openbsd-netcat"
+out="$(plan --size recommended)"; ok "arch recommended: github-cli, go-yq, base-devel" "echo \"\$out\" | grep -q github-cli && echo \"\$out\" | grep -q go-yq && echo \"\$out\" | grep -q base-devel"
 '
 exit $fail

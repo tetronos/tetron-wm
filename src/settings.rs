@@ -209,7 +209,7 @@ pub struct Settings {
     have_curl: bool,
 }
 
-/// "apt package, size desktop" for Settings > About.
+/// "apt package, size essentials" for Settings > About.
 fn install_info() -> String {
     format!("{}, size {}", crate::packaging::install_method(), crate::packaging::installed_size().name())
 }
@@ -1170,8 +1170,8 @@ impl Settings {
         buf.write_str(cx, 12, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
         buf.write_str(cx, 13, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
         buf.write_str(cx, 14, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
-        buf.write_str(cx, 15, "Apps: desktop adds the tools tetron-wm uses; extras", pal_dim(), pal_bg());
-        buf.write_str(cx, 16, "adds git. Installs in a window (sudo asks).", pal_dim(), pal_bg());
+        buf.write_str(cx, 15, "Apps: essentials, recommended, extras, each adding to", pal_dim(), pal_bg());
+        buf.write_str(cx, 16, "the one before. Installs in a window (sudo asks).", pal_dim(), pal_bg());
         buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
     }
 
@@ -2105,7 +2105,9 @@ mod tests {
         s.apps_size = Size::Minimal;
         s.have_curl = true;
         s.sel = 3;
-        assert!(screen(&s).contains("install desktop"));
+        assert!(screen(&s).contains("install essentials"));
+        s.right();
+        assert!(screen(&s).contains("install recommended"));
         s.right();
         assert!(screen(&s).contains("install extras"));
         s.toggle();
@@ -2161,11 +2163,11 @@ mod tests {
         use crate::packaging::Size;
         let mut s = Settings::new(Config::default());
         s.enter_section(GENERAL);
-        s.apps_size = Size::Desktop;
+        s.apps_size = Size::Essentials;
         s.have_curl = true;
         s.apps_missing = vec!["fresh".into(), "uv".into()];
-        assert!(s.apps_value().starts_with("desktop, 2 missing"), "{}", s.apps_value());
+        assert!(s.apps_value().starts_with("essentials, 2 missing"), "{}", s.apps_value());
         s.apps_missing.clear();
-        assert!(s.apps_value().starts_with("desktop:"), "{}", s.apps_value());
+        assert!(s.apps_value().starts_with("essentials:"), "{}", s.apps_value());
     }
 }

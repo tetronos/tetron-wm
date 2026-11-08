@@ -1,0 +1,98 @@
+# tetron-wm-recommended: a metapackage for mkdeb (no binary, Architecture all).
+# Built once per release by the build-deb action. Spec: spec/packaging.py (WMDEB-011).
+#
+# The recommended size: tetron-wm-essentials plus a curated pick in every
+# category. The recommends array is written by scripts/gen_suite_lists.py from
+# the "App sets" section of lists/tetron.toml (set = "recommended").
+name = "tetron-wm-recommended"
+description = "tetron-wm with the essential and recommended terminal apps"
+long_description = """
+Installs tetron-wm-essentials and a curated pick of terminal apps in every
+category: disks and backup, system monitors, containers (podman,
+distrobox), office and writing, mail, feeds and chat, a calendar, tasks
+and passwords, network tools, image tools, programming tools (lazygit,
+neovim, a compiler, gh) and media (cmus, ffmpeg).
+
+Each app is a Recommends, so it can be removed later without removing this
+package; a name a release does not have is skipped. Firewalls and services
+the apps bring are installed, never enabled by this package."""
+section = "metapackages"
+license = "MIT"
+homepage = "https://github.com/tetronos/tetron-wm"
+depends = ["tetron-wm-essentials (>= {minor})"]
+recommends = [
+  "duf",
+  "smartmontools",
+  "nvme-cli",
+  "testdisk",
+  "gddrescue",
+  "unar",
+  "rclone",
+  "restic",
+  "lm-sensors",
+  "powertop",
+  "needrestart",
+  "ufw",
+  "podman",
+  "podman-compose",
+  "distrobox",
+  "pandoc",
+  "hunspell",
+  "hunspell-en-us",
+  "qpdf",
+  "catdoc",
+  "docx2txt",
+  "aria2",
+  "taskwarrior",
+  "pass",
+  "kpcli",
+  "mtr-tiny",
+  "nmap",
+  "iperf3",
+  "iftop",
+  "xh",
+  "tcpdump",
+  "arp-scan",
+  "imagemagick",
+  "libimage-exiftool-perl",
+  "catimg",
+  "git-delta",
+  "yq",
+  "bat",
+  "neovim",
+  "build-essential",
+  "python3-venv",
+  "shellcheck",
+  "gh",
+  "direnv",
+  "entr",
+  "just",
+  "hyperfine",
+  "gdb",
+  "strace",
+  "ffmpeg",
+  "mediainfo",
+  "sox",
+  "aerc",
+  "btop",
+  "calcurse",
+  "cava",
+  "cmus",
+  "durdraw",
+  "glow",
+  "lazygit",
+  "lnav",
+  "micro",
+  "ncdu",
+  "nethogs",
+  "newsboat",
+  "nvtop",
+  "s-tui",
+  "sc-im",
+  "termshark",
+  "tig",
+  "visidata",
+  "wavemon",
+  "weechat",
+]
+files = []

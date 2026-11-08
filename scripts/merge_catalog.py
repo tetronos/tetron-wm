@@ -29,10 +29,12 @@ SUITE = ROOT / "assets" / "suite-apps.txt"
 SCHEMA = 1
 IMPORTED = ["awesome-tuis"]
 REQUIRED = ["name", "bin", "category", "description", "homepage"]
-OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg"]
+OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg", "set"]
 MANAGERS = ("apt", "dnf", "pacman", "brew")
 RECIPE_KEYS = {"install", "method", "verified", "os", "requires_cwd", "tip"}
 TIERS = {"default", "recommended", "optional"}
+# Suite sizes (WMINST-001) and the catalog tier an app of each gets.
+SIZES = {"essentials": "default", "recommended": "recommended", "extras": "optional"}
 ORDER = ["name", "bin", "variants", "category", "description", "homepage", "cli", "needs_url",
          "recipe", "pkg", "tier", "set", "sources"]
 
@@ -42,8 +44,8 @@ def fail(msg):
 
 
 def suite_sets(text):
-    """Command name -> smallest size ("desktop" or "extras") in the suite list."""
-    rank = {"desktop": 1, "extras": 2}
+    """Command name -> smallest size (essentials, recommended, extras) in the suite list."""
+    rank = {s: i for i, s in enumerate(SIZES)}
     sets = {}
     for line in text.splitlines():
         if not line or line.startswith("#"):
@@ -67,13 +69,17 @@ def check_ours(app, i):
         fail(f"{app['name']}: unknown fields {sorted(extra)}")
     if "tier" in app and app["tier"] not in TIERS:
         fail(f"{app['name']}: tier must be one of {sorted(TIERS)}")
+    if "set" in app and app["set"] not in SIZES:
+        fail(f"{app['name']}: set must be one of {list(SIZES)}")
     if "recipe" in app and (set(app["recipe"]) - RECIPE_KEYS or "install" not in app["recipe"]):
         fail(f"{app['name']}: recipe needs install and only {sorted(RECIPE_KEYS)}")
     if "pkg" in app and (set(app["pkg"]) - set(MANAGERS) or not all(isinstance(v, str) for v in app["pkg"].values())):
         fail(f"{app['name']}: pkg takes only {list(MANAGERS)} as strings")
 
 
-def merge(lists=LISTS, suite_path=SUITE):
+def merged_apps(lists=LISTS):
+    """Every app of the lists merged, with its package names (pkg), before
+    the suite sets give tiers (scripts/gen_suite_lists.py reads this too)."""
     apps, by_name, by_bin = [], {}, {}
 
     def find(a):
@@ -120,7 +126,11 @@ def merge(lists=LISTS, suite_path=SUITE):
             a["pkg"] = {k: names[k] for k in MANAGERS if k in names}
         else:
             a.pop("pkg", None)
+    return apps
 
+
+def merge(lists=LISTS, suite_path=SUITE):
+    apps = merged_apps(lists)
     suite = suite_path.read_text(encoding="utf-8")
     sets = suite_sets(suite)
     out = []
@@ -128,10 +138,11 @@ def merge(lists=LISTS, suite_path=SUITE):
         missing = [k for k in REQUIRED if not a.get(k)]
         if missing:
             fail(f"{a['name']}: missing {missing} (add them in lists/tetron.toml)")
+        a.pop("set", None)
         s = sets.get(a["bin"])
         if s:
             a["set"] = s
-        a.setdefault("tier", "default" if s else "optional")
+        a.setdefault("tier", SIZES[s] if s else "optional")
         for k in ("cli", "needs_url"):
             if not a.get(k):
                 a.pop(k, None)

@@ -132,14 +132,19 @@ asset_of() {
   printf '%s' "$ASSETS" | grep -o "${1}_[^\"/<> ]*_$2\.deb" | head -1 || true
 }
 deb_asset() { asset_of "$PKG" "$1"; }
-# The tetron-wm-desktop / tetron-wm-extras debs of this release for the ones
-# installed here, so they move to the release with tetron-wm (a new Recommends
-# then arrives with the update).
+# The size debs of this release up to the largest one installed here, so they
+# move to the release with tetron-wm (a new Recommends then arrives with the
+# update) and a larger size finds the smaller ones it depends on.
 meta_assets() {
-  for m in tetron-wm-desktop tetron-wm-extras; do
-    dpkg-query -W -f='${db:Status-Status}' "$m" 2>/dev/null | grep -qx installed || continue
+  top=""
+  for m in tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended tetron-wm-extras; do
+    dpkg-query -W -f='${db:Status-Status}' "$m" 2>/dev/null | grep -qx installed && top="$m"
+  done
+  [ -n "$top" ] || return 0
+  for m in tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended tetron-wm-extras; do
     a="$(asset_of "$m" all)"
     [ -n "$a" ] && printf '%s ' "$a"
+    [ "$m" = "$top" ] && break
   done
   return 0
 }
@@ -215,11 +220,10 @@ else
 fi
 
 # tetron-wm only: the apps its features use come with the suite script's sizes
-# (minimal, desktop, extras), the same sets as the tetron-wm-desktop and
-# tetron-wm-extras debs. The suite script calls this with TETRON_WM_SKIP_DEPS=1
+# (minimal, essentials, recommended, extras), the same sets as the size debs. The suite script calls this with TETRON_WM_SKIP_DEPS=1
 # and installs them itself, so the pointer is only for a direct run.
 if [ "${TETRON_WM_SKIP_DEPS:-0}" != "1" ]; then
-  echo "tetron-wm: for the apps its features use (the desktop size), run:"
+  echo "tetron-wm: for the apps its features use (the essentials size), run:"
   echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install-tetron-wm-suite.sh | bash"
   echo "  It finds tetron-wm already installed and only adds what is missing."
 fi

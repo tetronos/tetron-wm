@@ -97,8 +97,8 @@ class DesktopMetapackage(Requirement):
     `tetron-wm-desktop` (`packaging/desktop.toml`, a metapackage: no
     binary, Architecture all) Depends `tetron-wm (>= {minor})`, so any
     later tetron-wm satisfies it and it never blocks an upgrade, and
-    Recommends the apps tetron-wm calls, by names present in Debian 12 and
-    13 and Ubuntu 22.04 and 24.04 (apt installs Recommends by default, so
+    Recommends the apps tetron-wm calls (the desktop set of WMINST-001), by
+    names present in Debian 12 and 13 and Ubuntu 22.04 and 24.04 (apt installs Recommends by default, so
     `apt install tetron-wm-desktop` brings the full set). One Recommends
     is the exception to those names: tetron-browser (amd64), the web
     browser tetron-wm opens pages in, comes from the tetronos apt repo
@@ -107,7 +107,7 @@ class DesktopMetapackage(Requirement):
     script's one-by-one apt path skips every name apt has no candidate
     for, so a missing one never fails the batch. Services
     (pipewire, wireplumber, network-manager, bluez) and kmscon are
-    Suggests, as are btop, age and openssh-server (an SSH server must never
+    Suggests, as are age and openssh-server (an SSH server must never
     start just because the desktop set was installed). Tools Debian does not package (carbonyl, fresh,
     casttui, catt, uv, opencode, a symbols Nerd Font) stay with the
     installer scripts; catt and casttui join the suite script's desktop
@@ -131,16 +131,41 @@ class DesktopMetapackage(Requirement):
     """
 
 
+class EssentialsMetapackage(Requirement):
+    """REQUIREMENT-ID: WMDEB-010
+
+    `tetron-wm-essentials` (`packaging/essentials.toml`, a metapackage,
+    Architecture all) Depends `tetron-wm-desktop (>= {minor})` and
+    Recommends the essentials set of WMINST-001: one good pick per need
+    (files and disks, system, an editor, web, network, images,
+    programming, sound). tetron-wm-desktop keeps the tools tetron-wm's own
+    features call and the systemd units (WMDEB-007), so no file moves
+    between packages. A Recommends missing on a release is skipped by apt.
+    """
+
+
+class RecommendedMetapackage(Requirement):
+    """REQUIREMENT-ID: WMDEB-011
+
+    `tetron-wm-recommended` (`packaging/recommended.toml`, a metapackage,
+    Architecture all) Depends `tetron-wm-essentials (>= {minor})` and
+    Recommends the recommended set of WMINST-001: a curated pick in every
+    category. A package it brings that has a service or a firewall is
+    installed, never enabled, by this package.
+    """
+
+
 class ExtrasMetapackage(Requirement):
     """REQUIREMENT-ID: WMDEB-009
 
     `tetron-wm-extras` (`packaging/extras.toml`, a metapackage, Architecture
-    all) Depends `tetron-wm-desktop (>= {minor})` and Recommends the
-    nice-to-have apps tetron-wm does not need for its own features (git).
-    fbi is in tetron-wm-desktop: View full screen uses it for images.
-    Three sizes result: tetron-wm (nothing else), tetron-wm-desktop (every feature), tetron-wm-extras (every feature plus
-    the extra apps). Release CI builds it once next to tetron-wm-desktop
-    and checks its Recommends install together with the other two debs.
+    all) Depends `tetron-wm-recommended (>= {minor})` and Recommends the
+    extras set of WMINST-001, apps added over time beyond the recommended
+    set (empty while none is chosen). Four sizes result: minimal
+    (tetron-wm), essentials (tetron-wm-desktop and tetron-wm-essentials),
+    recommended, extras. Release CI builds the four metapackages once, on
+    the amd64 job, and checks their Recommends install together with the
+    tetron-wm deb.
     """
 
 
@@ -156,21 +181,29 @@ class SuiteScriptOnDpkgHost(Requirement):
 class AppListSingleSource(Requirement):
     """REQUIREMENT-ID: WMINST-001
 
-    The app sets are defined once. `packaging/desktop.toml` and
-    `packaging/extras.toml` define the desktop and extras sizes by Debian
-    name. `packaging/os-names.toml` gives, per Debian name, the check that
-    tells it is present (a command, `font=NAME`, or `consolefonts`) and the
-    Fedora, Arch and Homebrew names where they differ (an empty name: not
-    on that OS), each verified in a container or against Homebrew; it also
-    holds packages that are on some OSes but in no deb (uv, blueutil), and
-    the services the suite script offers separately. `packaging/
-    script-only.toml` lists apps no distro packages (catt, casttui, fresh,
-    the Nerd Font, the helper scripts on a raw install) with their size.
-    `scripts/gen_suite_lists.py` (stdlib) writes `assets/suite-apps.txt`
-    from them, one `size:group:check:apt:dnf:pacman:brew` line per package
-    and `size:script:name` per script-only app. Every Recommends of both
-    tomls appears in it, and each entry of the suite script's former lists
-    is either in it or in the generator's written drop list with a reason.
+    The app sets are defined once, in the "App sets" section of
+    `lists/tetron.toml`: four sets, desktop (the tools tetron-wm's
+    features call), essentials, recommended and extras. A `[[package]]`
+    entry is a member that is not a Store app: its Debian name, the check
+    that tells it is present (a command, `font=NAME`, or `consolefonts`;
+    none: in the deb only), the Fedora, Arch and Homebrew names where they
+    differ (an empty name: not on that OS), each verified in a container or
+    against Homebrew, an optional group (gui, services) and the deb
+    relation where it is not the plain name. An `[[app]]` with `set` is a
+    Store app in a set: its bin is the check and its package names are its
+    merged `pkg` (Repology plus our overrides, WMCAT-005). A `[[script]]`
+    entry is an app no distro packages (catt, casttui, fresh, opencode, the
+    Nerd Font, the helper scripts on a raw install), installed by the suite
+    script's own method. `scripts/gen_suite_lists.py` (stdlib) writes
+    `assets/suite-apps.txt` from them, one
+    `size:group:check:apt:dnf:pacman:brew` line per member with a check and
+    `size:script:name` per script entry, where size is the suite size of
+    the set (desktop and essentials: essentials), and writes the
+    `recommends` array of `packaging/<set>.toml` for each of the four
+    metapackages (services stay hand-written Suggests and must be listed
+    there). A name listed twice, an unknown field or set fails the
+    generator. The catalog tier of a Store app in a set follows its size:
+    essentials default, recommended recommended, extras optional.
     """
 
 
@@ -181,16 +214,18 @@ class SuiteScriptSizes(Requirement):
     WMINST-003 (other systems), since both replace the same hand-written
     lists. `install-tetron-wm-suite.sh`:
 
-    - Asks every user the size: minimal (tetron-wm only), desktop (the
-      default, preselected) or extras; `--size` answers it, `-y` takes
-      desktop, `--no-extras` means minimal, `--extras` keeps the default.
+    - Asks every user the size: minimal (tetron-wm only), essentials (the
+      default, preselected), recommended or extras; `--size` answers it,
+      `-y` takes essentials, `--no-extras` means minimal, `--extras` keeps
+      the default. The older size name desktop is read as essentials.
     - Reads the apps from `assets/suite-apps.txt` (the checkout's copy when
       run from one, else fetched from the branch), never from lists of its
       own. A size installs its lines and the smaller sizes' lines; gui
       lines only with a desktop session; services lines only after their
       own question (default no).
     - On a Debian or Ubuntu host where tetron-wm is the apt package and the
-      release has the size's metapackage, installs that metapackage from the
+      release has the size's metapackages (essentials: tetron-wm-desktop and
+      tetron-wm-essentials; each larger size adds its own), installs them from the
       release (checked against its .sha256) with apt, so apt tracks the set.
       Otherwise (tetron-wm not from the package, or no metapackage in the
       release) it installs the same apps one by one with the package
@@ -227,8 +262,9 @@ class InstallShBinaryOnly(Requirement):
     the suite script's sizes); at the end it prints the suite script
     command for the apps, unless the suite script called it
     (TETRON_WM_SKIP_DEPS=1). TETRON_WM_INSTALL_DEPS is no longer read.
-    When it installs or upgrades the tetron-wm deb and tetron-wm-desktop or
-    tetron-wm-extras is installed, the release's matching metapackage debs
+    When it installs or upgrades the tetron-wm deb and any of the
+    metapackages tetron-wm-desktop, -essentials, -recommended or -extras is
+    installed, the release's matching metapackage debs
     are checked against their .sha256 and installed in the same apt
     command, so a release's new Recommends reach existing machines. Systems > Add Remote no longer sets
     TETRON_WM_INSTALL_DEPS.
@@ -241,9 +277,12 @@ class InstallMethodAndSize(Requirement):
     tetron-wm knows how it was installed and which size is present, without
     a shell-out: the method is "apt package" when dpkg owns the running
     binary, "cargo" when it runs from a cargo bin directory, else "binary";
-    the size is extras or desktop when dpkg has the tetron-wm-extras or
-    tetron-wm-desktop package, else the `size` in the suite script's
-    `~/.config/tetron-wm/suite-state`, else minimal. Settings > About shows
+    the size is extras, recommended or essentials when dpkg has the
+    tetron-wm-extras, tetron-wm-recommended or tetron-wm-essentials
+    package, else the `size` in the suite script's
+    `~/.config/tetron-wm/suite-state` (desktop read as essentials), else
+    minimal; tetron-wm-desktop alone (an install from before the sets) is
+    minimal plus tools, shown as minimal so the row offers essentials. Settings > About shows
     both. `packaging/desktop.toml` suggests `kmscon (>= 9.1)`, since Debian
     12 ships kmscon 9.0.0 without truecolor and mouse passthrough.
     """
@@ -254,7 +293,7 @@ class SettingsAppsRow(Requirement):
 
     Depends on WMINST-002 and WMINST-005. Settings > General has an Apps
     row showing the installed size. Left and Right pick a larger size
-    (from minimal: desktop or extras; from desktop: extras); at extras the
+    (from minimal: essentials, recommended or extras; and so on); at extras the
     only choice is a check that reruns the suite script for extras, adding
     anything a release added. Enter opens a terminal window running
     `install-tetron-wm-suite.sh --size <size>` fetched from the branch,
@@ -264,7 +303,7 @@ class SettingsAppsRow(Requirement):
     curl the row says it is needed and Enter does nothing.
 
     The row also says how many apps of the installed size are missing
-    ("desktop, 3 missing"), by the checks of `assets/suite-apps.txt`
+    ("essentials, 3 missing"), by the checks of `assets/suite-apps.txt`
     (compiled into the binary): the rows of that size and the smaller
     ones, package rows only where this OS has a name for them, gui rows
     only with a desktop session, gpm only with a mouse device, never the
@@ -304,7 +343,7 @@ class OpencodeForTheAssistant(Requirement):
     """REQUIREMENT-ID: WMINST-010
 
     opencode, the agent the ✦ Assistant runs by default, comes with the
-    desktop size: a `desktop:script:opencode` row in the app list. On Linux
+    essentials size: an `essentials:script:opencode` row in the app list. On Linux
     the suite script takes upstream's GitHub "latest" release, its stable
     channel (the one its own installer and npm `latest` follow), downloads
     the tarball for this CPU (opencode-linux-x64, x64-baseline without

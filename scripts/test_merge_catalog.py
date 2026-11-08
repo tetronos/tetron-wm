@@ -9,7 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import merge_catalog as mc  # noqa: E402
 
-SUITE = "# list\ndesktop:apps:htop:htop:htop:htop:htop\nextras:apps:git:git:git:git:git\ndesktop:script:fresh\ndesktop:services:pipewire:pipewire:::\n"
+SUITE = ("# list\nessentials:apps:htop:htop:htop:htop:htop\nrecommended:apps:lazygit:lazygit::lazygit:lazygit\n"
+         "extras:apps:git:git:git:git:git\nessentials:script:fresh\nessentials:services:pipewire:pipewire:::\n")
 
 
 def app(name, bin_, cat="Tools"):
@@ -47,11 +48,13 @@ class Merge(unittest.TestCase):
         self.assertNotIn("distinct", a["Amp"])
 
     def test_tier_and_set_from_the_suite_list(self):
-        imported = [app("htop", "htop"), app("git", "git"), app("Fresh", "fresh"), app("pipewire", "pipewire"), app("x", "x")]
+        imported = [app("htop", "htop"), app("git", "git"), app("Fresh", "fresh"), app("pipewire", "pipewire"), app("x", "x"),
+                    app("lazygit", "lazygit")]
         doc, a = self.merged(imported, '[[app]]\nname = "x"\ntier = "recommended"\n')
-        self.assertEqual((a["htop"]["set"], a["htop"]["tier"]), ("desktop", "default"))
-        self.assertEqual(a["git"]["set"], "extras")
-        self.assertEqual(a["Fresh"]["set"], "desktop")
+        self.assertEqual((a["htop"]["set"], a["htop"]["tier"]), ("essentials", "default"))
+        self.assertEqual((a["lazygit"]["set"], a["lazygit"]["tier"]), ("recommended", "recommended"))
+        self.assertEqual((a["git"]["set"], a["git"]["tier"]), ("extras", "optional"))
+        self.assertEqual(a["Fresh"]["set"], "essentials")
         self.assertNotIn("set", a["pipewire"], "services are not a set")
         self.assertEqual((a["x"]["tier"], "set" in a["x"]), ("recommended", False))
         self.assertEqual(doc["suite_apps"], SUITE)
