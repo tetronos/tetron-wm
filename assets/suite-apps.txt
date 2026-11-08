@@ -134,3 +134,8 @@ essentials:script:casttui
 essentials:script:nerd-font
 essentials:script:helpers
 essentials:script:opencode
+recommended:script:croft
+recommended:script:pyradio
+recommended:script:llm
+recommended:script:yt-dlp
+recommended:script:freebuff

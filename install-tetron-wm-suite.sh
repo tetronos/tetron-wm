@@ -68,7 +68,8 @@
 #                              for this core minor, then the repository's
 #   --no-extras                same as --size minimal (older flag)
 #   --no-scripts               leave out the apps no distribution packages (opencode, fresh,
-#                              uv, catt, casttui, the Nerd Font, the helper scripts)
+#                              uv, catt, casttui, the Nerd Font, the helper scripts; with
+#                              recommended also croft, pyradio, llm, yt-dlp, freebuff)
 #   --convert / --no-convert   Debian and Ubuntu: replace a tetron-wm that is not from a
 #                              package with the apt package (asked, default no)
 #   --services / --no-services force the system-services step on/off
@@ -642,6 +643,85 @@ install_opencode() {
   rm -rf "$tmp"
 }
 
+# The recommended size's apps no distribution packages (WMINST-012): pyradio,
+# llm (with its Ollama plugin) and yt-dlp with `uv tool install` (Settings >
+# Updates upgrades them with the other uv tools); croft, its musl build checked
+# against the release's SHA256SUMS (it updates itself); freebuff, the native
+# binary its npm launcher would fetch, checked against the sha256 the npm
+# package lists (binaryChecksums), so no node is needed. Linux only for croft
+# and freebuff.
+SCRIPT_APPS="croft pyradio llm yt-dlp freebuff"
+PYRADIO_SRC="git+https://github.com/coderholic/pyradio"
+CROFT_URL="https://github.com/vitali87/croft/releases/latest/download"
+FREEBUFF_NPM="https://registry.npmjs.org/freebuff/latest"
+FREEBUFF_DL="https://codebuff.com/api/releases/download"
+FREEBUFF_DIR="$HOME/.local/share/freebuff"
+# yt-dlp counts only in ~/.local/bin: a distribution's copy (Debian's comes
+# with mpv's Recommends) falls behind the sites it reads.
+script_app_present() { if [ "$1" = yt-dlp ]; then [ -x "$HOME/.local/bin/yt-dlp" ]; else have_tool "$1"; fi; }
+script_apps_missing() {
+  local a out=""
+  for a in $SCRIPT_APPS; do want_script "$a" && ! script_app_present "$a" && out="${out:+$out }$a"; done
+  printf '%s' "$out"
+}
+install_uv_app() {
+  local uv; uv="$(uv_bin)"
+  [ -n "$uv" ] || { warn "uv is missing; $1 not installed"; return 0; }
+  local -a args
+  case "$1" in
+    pyradio) args=("$PYRADIO_SRC" --with rich --with requests --with dnspython --with psutil --with netifaces-plus --with python-dateutil --with charset-normalizer) ;;
+    llm) args=(llm --with llm-ollama) ;;
+    yt-dlp) args=("yt-dlp[default]") ;;
+    *) return 0 ;;
+  esac
+  log "installing $1: $uv tool install ${args[*]}"
+  "$uv" tool install "${args[@]}" || warn "$1 did not install"
+}
+install_croft() {
+  [ "$IS_LINUX" = 1 ] || { warn "croft: Linux builds only here; see https://github.com/vitali87/croft"; return 0; }
+  local f tmp; f="croft-$(uname -m)-unknown-linux-musl"; tmp="$(mktemp -d)"
+  log "installing croft ($f, checked against the release's SHA256SUMS) into ~/.local/bin"
+  if fetch "$CROFT_URL/$f.tar.gz" > "$tmp/$f.tar.gz" && fetch "$CROFT_URL/SHA256SUMS" > "$tmp/SHA256SUMS" \
+    && grep " $f.tar.gz\$" "$tmp/SHA256SUMS" | (cd "$tmp" && sha256sum -c - >/dev/null) \
+    && tar xzf "$tmp/$f.tar.gz" -C "$tmp"; then
+    mkdir -p "$HOME/.local/bin" && install -m 755 "$tmp/$f/croft" "$HOME/.local/bin/croft"
+  else
+    warn "croft did not install (download or checksum failed); see https://github.com/vitali87/croft"
+  fi
+  rm -rf "$tmp"
+}
+# The binaryChecksums key for this CPU: x64 needs AVX2, else x64-baseline.
+freebuff_target() {
+  case "$(uname -m)" in
+    x86_64|amd64) grep avx2 /proc/cpuinfo >/dev/null 2>&1 && echo linux-x64 || echo linux-x64-baseline ;;
+    aarch64|arm64) echo linux-arm64 ;;
+    *) return 1 ;;
+  esac
+}
+# freebuff and tree-sitter.wasm (which it reads next to itself) go to
+# ~/.local/share/freebuff with the version; ~/.local/bin/freebuff links there.
+install_freebuff() {
+  [ "$IS_LINUX" = 1 ] || { warn "freebuff: Linux only here; npm install -g freebuff elsewhere"; return 0; }
+  have python3 || { warn "python3 is missing; freebuff not installed"; return 0; }
+  local t rel ver sum tmp
+  t="$(freebuff_target)" || { warn "no freebuff build for $(uname -m)"; return 0; }
+  rel="$(fetch "$FREEBUFF_NPM" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["version"], d["binaryChecksums"][sys.argv[1]])' "$t" 2>/dev/null)" || rel=""
+  read -r ver sum <<<"$rel"
+  case "${ver:-}" in ""|*[!0-9A-Za-z.+-]*) warn "could not read the freebuff release from npm; see https://github.com/CodebuffAI/codebuff"; return 0 ;; esac
+  tmp="$(mktemp -d)"
+  log "installing freebuff $ver ($t, checked against the sha256 its npm package lists) into $FREEBUFF_DIR"
+  if fetch "$FREEBUFF_DL/$ver/freebuff-$t.tar.gz" > "$tmp/fb.tar.gz" && sha256sum -c - <<<"$sum  $tmp/fb.tar.gz" >/dev/null \
+    && tar xzf "$tmp/fb.tar.gz" -C "$tmp" freebuff; then
+    mkdir -p "$FREEBUFF_DIR" "$HOME/.local/bin"
+    tar xzf "$tmp/fb.tar.gz" -C "$tmp" tree-sitter.wasm 2>/dev/null && install -m 644 "$tmp/tree-sitter.wasm" "$FREEBUFF_DIR/"
+    install -m 755 "$tmp/freebuff" "$FREEBUFF_DIR/freebuff" && echo "$ver" > "$FREEBUFF_DIR/version" \
+      && ln -sfn "$FREEBUFF_DIR/freebuff" "$HOME/.local/bin/freebuff"
+  else
+    warn "freebuff did not install (download or checksum failed); see https://github.com/CodebuffAI/codebuff"
+  fi
+  rm -rf "$tmp"
+}
+
 # The symbols-only Nerd Font: the glyphs tetron-wm draws for icon_style = "nerd".
 # No distro packages it; tiny, and fontconfig uses it only as a fallback.
 # fontconfig answers when present; without it, look for the font file.
@@ -1064,6 +1144,7 @@ main() {
     { want_script catt || want_script casttui; } && [ -n "$cast" ] && shown="${shown:+$shown }$cast"
     want_script nerd-font && nerd_font_missing && shown="${shown:+$shown }nerd-font"
     want_script opencode && ! have_tool opencode && shown="${shown:+$shown }opencode"
+    local more; more="$(script_apps_missing)"; [ -n "$more" ] && shown="${shown:+$shown }$more"
   fi
   [ "$IS_LINUX" = 1 ] && services="$(services_list)"
   if [ -n "$services" ]; then
@@ -1118,6 +1199,9 @@ main() {
     { want_script catt || want_script casttui; } && [ -n "$(cast_tools_missing)" ] && install_cast_tools
     want_script nerd-font && nerd_font_missing && { apt_first tetronos-nerd-font-symbols || install_nerd_font; }
     want_script opencode && ! have_tool opencode && install_opencode
+    local a; for a in $(script_apps_missing); do
+      case "$a" in croft) install_croft ;; freebuff) install_freebuff ;; *) install_uv_app "$a" ;; esac
+    done
     # The deb ships the helper scripts; a raw install gets them here.
     want_script helpers && ! { deb_host && wm_packaged; } && [ -n "$(own_apps_missing)" ] && install_own_apps
   fi

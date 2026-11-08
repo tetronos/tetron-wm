@@ -836,6 +836,31 @@ name = "opencode"
 set = "essentials"
 how = "the agent of the ✦ Assistant: its stable release tarball for this CPU, checked against GitHub's sha256 digest, into ~/.local/bin (Homebrew on macOS); Settings > Updates replaces it the same way"
 
+[[script]]
+name = "croft"
+set = "recommended"
+how = "its musl release for this CPU, checked against the release's SHA256SUMS, into ~/.local/bin (Linux); it updates itself"
+
+[[script]]
+name = "pyradio"
+set = "recommended"
+how = "uv tool install from github.com/coderholic/pyradio with its Python dependencies; Settings > Updates upgrades the uv tools"
+
+[[script]]
+name = "llm"
+set = "recommended"
+how = "uv tool install llm --with llm-ollama; Settings > Updates upgrades the uv tools"
+
+[[script]]
+name = "yt-dlp"
+set = "recommended"
+how = "uv tool install yt-dlp[default], since distribution packages fall behind the sites; Settings > Updates upgrades the uv tools"
+
+[[script]]
+name = "freebuff"
+set = "recommended"
+how = "the native binary its npm launcher fetches from codebuff.com, checked against the sha256 the npm package lists, into ~/.local/share/freebuff linked from ~/.local/bin (Linux); Settings > Updates replaces it the same way"
+
 
 # ── AI ──────────────────────────────────────────────────────────
 

@@ -63,7 +63,7 @@ inapp = "Settings > General > Apps"
 
 [[row]]
 step = "2b"
-what = "apps no distribution packages (fresh, uv, catt, casttui, Nerd Font symbols, opencode)"
+what = "apps no distribution packages (essentials: fresh, uv, catt, casttui, Nerd Font symbols, opencode; recommended: croft, pyradio, llm, yt-dlp, freebuff)"
 deb = "none: not in Debian; the [[script]] entries of lists/tetron.toml"
 iso = "none: not yet on the ISO, installed in-app"
 inapp = "Settings > General > Apps (runs the suite installer)"

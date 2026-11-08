@@ -239,7 +239,7 @@ impl AppsDlg {
                     format!("{:<12} {:<52} {state}", s.title(), self.size_note(s))
                 } else if i == self.checkbox_row() {
                     let tick = if self.scripts { "[x]" } else { "[ ]" };
-                    format!("{tick} also the apps no distribution packages (opencode, fresh, uv, catt, casttui, Nerd Font)")
+                    format!("{tick} also the apps no distribution packages (their own installers)")
                 } else {
                     format!("Remove set: {}", self.installed.name())
                 };

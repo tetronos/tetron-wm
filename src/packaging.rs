@@ -405,6 +405,8 @@ fn check_present(check: &str) -> bool {
         c if c.starts_with("font=") => fonts(&c[5..]).unwrap_or_else(|| {
             any_file(&[PathBuf::from("/usr/share/fonts/truetype/dejavu"), PathBuf::from("/usr/share/fonts/dejavu")], "DejaVuSansMono")
         }),
+        // The suite's yt-dlp is the uv one: a distribution's copy falls behind the sites (WMINST-012).
+        "yt-dlp" => home.join(".local/bin/yt-dlp").is_file(),
         c => crate::catalog::is_installed(c) || home.join(".local/bin").join(c).is_file(),
     }
 }
@@ -424,11 +426,13 @@ pub fn missing_rows_here(size: Size) -> Vec<Missing> {
 /// updater (WMINST-009): uv itself when no package owns it, then the uv tools;
 /// then opencode in ~/.local/bin when upstream's latest (stable) release
 /// differs, its tarball checked against GitHub's sha256 digest (WMINST-010;
-/// `opencode upgrade` would install a second copy in ~/.opencode/bin). Errors never stop the tetron-wm
-/// update that follows.
+/// `opencode upgrade` would install a second copy in ~/.opencode/bin); then
+/// freebuff in ~/.local/share/freebuff when npm lists a newer version, its
+/// archive checked against the sha256 the npm package lists (WMINST-012).
+/// Errors never stop the tetron-wm update that follows.
 pub fn tool_updates_snippet() -> String {
     "u=\"$(command -v uv 2>/dev/null || { [ -x \"$HOME/.local/bin/uv\" ] && echo \"$HOME/.local/bin/uv\"; } || true)\"; \
-if [ -n \"$u\" ]; then echo 'Updating uv and the apps it installed (catt, casttui)…'; \
+if [ -n \"$u\" ]; then echo 'Updating uv and the apps it installed (catt, casttui, pyradio, llm, yt-dlp)…'; \
 if ! dpkg -S \"$(readlink -f \"$u\")\" >/dev/null 2>&1; then \"$u\" self update 2>/dev/null || true; fi; \
 \"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> @LOG@; echo; fi; \
 o=\"$HOME/.local/bin/opencode\"; if [ -x \"$o\" ] && [ \"$(uname -s)\" = Linux ] && command -v python3 >/dev/null; then \
@@ -440,6 +444,16 @@ if [ -n \"$a\" ] && [ -n \"$t\" ] && [ \"$t\" != \"$v\" ]; then echo \"Updating 
 url=\"$(echo \"$rel\" | cut -d' ' -f2)\"; sum=\"$(echo \"$rel\" | cut -d' ' -f3)\"; d=\"$(mktemp -d)\"; \
 if curl -fsSL -o \"$d/$f\" \"$url\" && echo \"$sum  $d/$f\" | sha256sum -c - >/dev/null && tar xzf \"$d/$f\" -C \"$d\" opencode && install -m 755 \"$d/opencode\" \"$o\"; \
 then echo \"update: opencode $t\" >> @LOG@; else echo 'opencode was not updated (download or checksum failed)'; fi; \
+rm -rf \"$d\"; echo; fi; fi; \
+f=\"$HOME/.local/share/freebuff\"; if [ -x \"$f/freebuff\" ] && [ -f \"$f/version\" ] && command -v python3 >/dev/null; then \
+case \"$(uname -m)\" in x86_64|amd64) t=linux-x64; grep avx2 /proc/cpuinfo >/dev/null 2>&1 || t=linux-x64-baseline;; aarch64|arm64) t=linux-arm64;; *) t=;; esac; \
+rel=\"$(curl -fsSL https://registry.npmjs.org/freebuff/latest 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[\"version\"], d[\"binaryChecksums\"][sys.argv[1]])' \"$t\" 2>/dev/null)\"; \
+n=\"${rel%% *}\"; sum=\"${rel#* }\"; v=\"$(cat \"$f/version\")\"; case \"$n\" in ''|*[!0-9A-Za-z.+-]*) n=;; esac; \
+if [ -n \"$t\" ] && [ -n \"$n\" ] && [ \"$n\" != \"$v\" ]; then echo \"Updating freebuff $v to $n (checked against the sha256 its npm package lists)…\"; d=\"$(mktemp -d)\"; \
+if curl -fsSL -o \"$d/fb.tar.gz\" \"https://codebuff.com/api/releases/download/$n/freebuff-$t.tar.gz\" && echo \"$sum  $d/fb.tar.gz\" | sha256sum -c - >/dev/null \
+&& tar xzf \"$d/fb.tar.gz\" -C \"$d\" freebuff && install -m 755 \"$d/freebuff\" \"$f/freebuff\"; \
+then tar xzf \"$d/fb.tar.gz\" -C \"$d\" tree-sitter.wasm 2>/dev/null && install -m 644 \"$d/tree-sitter.wasm\" \"$f/\"; \
+echo \"$n\" > \"$f/version\"; echo \"update: freebuff $n\" >> @LOG@; else echo 'freebuff was not updated (download or checksum failed)'; fi; \
 rm -rf \"$d\"; echo; fi; fi; "
         .replace("@LOG@", &crate::logfile::shell_path())
 }
@@ -583,12 +597,19 @@ essentials:script:opencode\n";
     }
 
     #[test]
+    fn freebuff_update_is_checked_and_in_place() {
+        let s = tool_updates_snippet();
+        assert!(s.contains("$HOME/.local/share/freebuff") && s.contains("binaryChecksums") && s.contains("registry.npmjs.org/freebuff/latest"), "{s}");
+        assert!(s.find(".local/bin/opencode").unwrap() < s.find("share/freebuff").unwrap(), "after the opencode step");
+    }
+
+    #[test]
     fn opencode_update_does_nothing_without_our_copy() {
         let home = tmp("noopencode");
         let out = std::process::Command::new("sh").arg("-c").arg(tool_updates_snippet()).env("HOME", &home)
             .env("PATH", "/usr/bin:/bin").output().unwrap();
         let text = String::from_utf8_lossy(&out.stdout);
-        assert!(!text.contains("opencode"), "{text}");
+        assert!(!text.contains("opencode") && !text.contains("freebuff"), "{text}");
         let _ = std::fs::remove_dir_all(&home);
     }
 

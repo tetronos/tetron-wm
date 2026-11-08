@@ -59,6 +59,9 @@ ok "fedora essentials: fbida (View full screen images)" "echo \"\$out\" | grep -
 ok "fedora essentials: git, bind-utils; no recommended app" "echo \"\$out\" | grep -q \" git \" && echo \"\$out\" | grep -q bind-utils && ! echo \"\$out\" | grep -q ShellCheck"
 out="$(plan --no-scripts)"; ok "--no-scripts: packages only, no opencode, no fresh" "echo \"\$out\" | grep -q fbida && ! echo \"\$out\" | grep -q \" opencode\" && ! echo \"\$out\" | grep -q \" fresh\""
 out="$(plan --size recommended)"; ok "fedora recommended: dnf names of the recommended set" "echo \"\$out\" | grep -q ShellCheck && echo \"\$out\" | grep -q ffmpeg-free && ! echo \"\$out\" | grep -q lazygit"
+ok "fedora recommended: croft, pyradio, llm, yt-dlp, freebuff (script apps)" "for a in croft pyradio llm yt-dlp freebuff; do echo \"\$out\" | grep -q \" \$a\" || exit 1; done"
+ok "essentials plans none of the recommended script apps" "! plan | grep -E -q \" (croft|pyradio|freebuff)\""
+out="$(plan --size recommended --no-scripts)"; ok "recommended --no-scripts: no croft, no freebuff" "echo \"\$out\" | grep -q ShellCheck && ! echo \"\$out\" | grep -q \" croft\" && ! echo \"\$out\" | grep -q \" freebuff\""
 printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
 out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"
 m="$(sed -n "s/^LISTS_MINOR=\"\(.*\)\"$/\1/p" /src/install-tetron-wm-suite.sh)"

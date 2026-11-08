@@ -310,8 +310,8 @@ class SettingsAppsDialog(Requirement):
     Depends on WMINST-007. The Apps dialog, inside Settings, lists
     Essentials, Recommended and Extras (Extras only when the app list has
     extras apps), each with what it adds and how many of its apps are
-    missing here; a checkbox "also the apps no distribution packages"
-    (opencode, fresh, uv, catt, casttui, the Nerd Font), ticked by default;
+    missing here; a checkbox "also the apps no distribution packages (their
+    own installers)", ticked by default;
     and, on a Debian or Ubuntu host where tetron-wm-essentials is installed,
     "Remove set: <installed size>". Up and Down move, Enter or Space
     chooses, Left / Right or Space flip the checkbox, Esc closes; section
@@ -378,6 +378,31 @@ class OpencodeForTheAssistant(Requirement):
     when that release differs from `opencode --version` (not `opencode
     upgrade`, which installs a second copy in ~/.opencode/bin). Settings >
     General > Apps counts it when missing.
+    """
+
+
+class RecommendedScriptApps(Requirement):
+    """REQUIREMENT-ID: WMINST-012
+
+    Depends on WMINST-002 and WMINST-009. The recommended size brings five
+    apps no distribution packages, as `recommended:script:<name>` rows in
+    the app list (left out with --no-scripts, counted by Settings > General
+    > Apps when missing): pyradio (`uv tool install` from its git
+    repository with its Python dependencies), llm (`uv tool install llm
+    --with llm-ollama`) and yt-dlp (`uv tool install yt-dlp[default]`),
+    which Settings > Updates upgrades with the other uv tools (yt-dlp
+    counts as present only in ~/.local/bin: a distribution's copy, such as
+    the one mpv's Recommends brings on Debian, falls behind the sites); croft, its
+    musl release for this CPU, installed into ~/.local/bin only when it
+    matches the release's SHA256SUMS (croft updates itself); freebuff, the
+    native binary its npm launcher would fetch from codebuff.com
+    (linux-x64, x64-baseline without AVX2, arm64), installed only when it
+    matches the sha256 the npm package lists for that target
+    (binaryChecksums), into ~/.local/share/freebuff with tree-sitter.wasm
+    and a version file, linked from ~/.local/bin/freebuff, so no node is
+    needed. Settings > Updates, after the opencode step, replaces it the
+    same way when npm lists another version. croft and freebuff are Linux
+    only here.
     """
 
 
