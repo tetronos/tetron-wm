@@ -23,6 +23,11 @@ carry user-visible feature work and the occasional breaking config change.
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.
 
 ### Fixed
+- Settings > General > Apps no longer counts programs in /usr/sbin and /sbin as missing (gpm, gdisk, parted, smartmontools, nvme-cli, powertop, needrestart, ufw, iftop, arp-scan, nethogs): a normal user's PATH lacks those directories on Debian and Ubuntu. The suite installer checks the same way.
+- The Apps dialog's download size no longer reads "unknown" when an offered package is already installed: only packages that are not installed are given to apt (apt run as the user failed when it would only mark them manual).
+- The Apps dialog counts the missing apps again each time it opens, so apps installed from a shell meanwhile no longer show as missing until a reload.
+- The Apps dialog's text wraps at the panel width instead of being cut mid-word, and the Remove set confirmation names the apps with their own installers that stay installed.
+- yt-dlp is installed with deno (`yt-dlp[default,deno]`), the JS runtime it needs for YouTube, inside its own uv environment; without one, YouTube gives fewer formats and a deprecation warning.
 - Play full screen on a machine with no working sound device played the whole video and then reported an error (mpv exits 2 when it can not open audio); mpv now falls back to no sound (`--audio-fallback-to-null=yes`).
 - A missing folder (no `~/Desktop` on a fresh user) is no longer logged on every desktop reload; it is a `debug` line, and other listing failures are `WARN`.
 

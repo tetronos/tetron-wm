@@ -310,8 +310,9 @@ class SettingsAppsDialog(Requirement):
     Depends on WMINST-007. The Apps dialog, inside Settings, lists
     Essentials, Recommended and Extras (Extras only when the app list has
     extras apps), each with what it adds and how many of its apps are
-    missing here; a checkbox "also the apps no distribution packages (their
-    own installers)", ticked by default;
+    missing here (PATH is scanned again when the dialog opens, and
+    /usr/sbin and /sbin count, which a Debian user's PATH lacks); a
+    checkbox "also the apps with their own installers", ticked by default;
     and, on a Debian or Ubuntu host where tetron-wm-essentials is installed,
     "Remove set: <installed size>". Up and Down move, Enter or Space
     chooses, Left / Right or Space flip the checkbox, Esc closes; section
@@ -321,7 +322,8 @@ class SettingsAppsDialog(Requirement):
     Right switch the buttons, Esc goes back). Installing a size shows the
     missing apps it adds (a script app marked "its own installer"), their
     count, on an apt host the download size of the packages among them
-    (`apt-cache policy` keeps the names this release has, `apt-get
+    (`apt-cache policy` keeps the names this release has and that are not
+    installed, `apt-get
     install --print-uris` sums the sizes, run as the user off the main
     loop), that it needs the network and the sudo password, and how to
     undo it. Install runs `install-tetron-wm-suite.sh --size <size>` in a
@@ -332,7 +334,8 @@ class SettingsAppsDialog(Requirement):
     tetron-wm-desktop; then runs `sudo apt-get remove <debs> && sudo
     apt-get autoremove` in a terminal window without -y, so apt lists the
     apps and asks. Apps the user installed by hand stay (apt marks them
-    manual), and so do the script apps. On Fedora, Arch and macOS there is
+    manual), and so do the script apps, which the confirmation names. All
+    text wraps at the panel width. On Fedora, Arch and macOS there is
     no Remove set: nothing records which apps a set added.
     """
 
@@ -389,7 +392,9 @@ class RecommendedScriptApps(Requirement):
     the app list (left out with --no-scripts, counted by Settings > General
     > Apps when missing): pyradio (`uv tool install` from its git
     repository with its Python dependencies), llm (`uv tool install llm
-    --with llm-ollama`) and yt-dlp (`uv tool install yt-dlp[default]`),
+    --with llm-ollama`) and yt-dlp (`uv tool install
+    yt-dlp[default,deno]`, deno being the JS runtime it needs for YouTube,
+    kept inside the tool's venv),
     which Settings > Updates upgrades with the other uv tools (yt-dlp
     counts as present only in ~/.local/bin: a distribution's copy, such as
     the one mpv's Recommends brings on Debian, falls behind the sites); croft, its

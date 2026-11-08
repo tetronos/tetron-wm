@@ -62,24 +62,62 @@ pub struct AppsDlg {
     sizes: Vec<Size>,
     /// The size debs Remove set would remove (empty: no Remove set row).
     remove: Vec<&'static str>,
+    /// The apps with their own installers that the removed sizes brought and
+    /// that are here: Remove set leaves them, the confirmation says so.
+    kept: Vec<String>,
     sel: usize,
     scripts: bool,
     confirm: Option<Confirm>,
 }
 
-/// Lines of the app list in the confirmation that fit above the buttons.
-fn list_rows(h: i32) -> usize {
-    (h - 11).max(1) as usize
+/// `s` in lines of at most `width` characters, broken between words (a
+/// word longer than a line is split).
+fn wrap(s: &str, width: usize) -> Vec<String> {
+    let width = width.max(1);
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for word in s.split_whitespace() {
+        let mut word: Vec<char> = word.chars().collect();
+        while word.len() > width {
+            if !cur.is_empty() {
+                out.push(std::mem::take(&mut cur));
+            }
+            out.push(word.drain(..width).collect());
+        }
+        let n = cur.chars().count();
+        if n > 0 && n + 1 + word.len() > width {
+            out.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.extend(word);
+    }
+    if !cur.is_empty() || out.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
+/// `s` cut to `width` characters, ending in an ellipsis when something was cut.
+fn fit(s: &str, width: usize) -> String {
+    if s.chars().count() <= width {
+        return s.to_string();
+    }
+    let mut t: String = s.chars().take(width.saturating_sub(1)).collect();
+    t.push('\u{2026}');
+    t
 }
 
 impl AppsDlg {
     /// `extras_listed`: the list has extras apps (else Extras is not offered).
-    pub fn new(installed: Size, have_curl: bool, apt: bool, missing: Vec<Missing>, extras_listed: bool, remove: Vec<&'static str>) -> AppsDlg {
+    /// `kept`: the script apps here that Remove set leaves installed.
+    pub fn new(installed: Size, have_curl: bool, apt: bool, missing: Vec<Missing>, extras_listed: bool, remove: Vec<&'static str>, kept: Vec<String>) -> AppsDlg {
         let mut sizes = vec![Size::Essentials, Size::Recommended];
         if extras_listed {
             sizes.push(Size::Extras);
         }
-        AppsDlg { installed, have_curl, apt, missing, sizes, remove, sel: 0, scripts: true, confirm: None }
+        AppsDlg { installed, have_curl, apt, missing, sizes, remove, kept, sel: 0, scripts: true, confirm: None }
     }
 
     fn rows(&self) -> usize {
@@ -236,19 +274,25 @@ impl AppsDlg {
                     } else {
                         format!("{add} to add")
                     };
-                    format!("{:<12} {:<52} {state}", s.title(), self.size_note(s))
+                    format!("{:<12} {state}", s.title())
                 } else if i == self.checkbox_row() {
                     let tick = if self.scripts { "[x]" } else { "[ ]" };
-                    format!("{tick} also the apps no distribution packages (their own installers)")
+                    format!("{tick} also the apps with their own installers")
                 } else {
                     format!("Remove set: {}", self.installed.name())
                 };
                 let (fg, bg) = if sel { (pal_fg(), pal_sel()) } else { (pal_dim(), pal_bg()) };
-                put(buf, y, &format!("{} {line}", if sel { "\u{25B8}" } else { " " }), fg, bg);
+                put(buf, y, &fit(&format!("{} {line}", if sel { "\u{25B8}" } else { " " }), width), fg, bg);
             }
-            let y = 6 + self.rows() as i32;
-            put(buf, y, "Enter chooses (a confirmation follows). Space or Left/Right ticks the box.", pal_dim(), pal_bg());
-            put(buf, y + 1, "Installs in a terminal window, where sudo asks for your password. Esc closes.", pal_dim(), pal_bg());
+            // The selected size's note leads the help, so the rows stay short.
+            let note = self.sizes.get(self.sel).map(|&s| format!("{}: {}. ", s.title(), self.size_note(s))).unwrap_or_default();
+            let help = format!(
+                "{note}Enter chooses (a confirmation follows). Space or Left/Right ticks the box. \
+Installs in a terminal window, where sudo asks for your password. Esc closes."
+            );
+            for (i, l) in wrap(&help, width).iter().enumerate() {
+                put(buf, 6 + self.rows() as i32 + i as i32, l, pal_dim(), pal_bg());
+            }
             return;
         };
         let (title, lines): (String, Vec<String>) = match c.what {
@@ -271,22 +315,38 @@ impl AppsDlg {
             What::Remove => (format!("Remove set: {}", self.installed.name()), self.remove.iter().map(|p| p.to_string()).collect()),
         };
         put(buf, 1, "General \u{203A} Apps", pal_accent(), pal_bg());
-        put(buf, 3, &title, pal_fg(), pal_bg());
-        let (l1, l2) = match c.what {
-            What::Install(_) => (
-                "Needs the network and your sudo password. Apps already here are kept.",
+        let mut y = 3;
+        for l in wrap(&title, width) {
+            put(buf, y, &l, pal_fg(), pal_bg());
+            y += 1;
+        }
+        let info = match c.what {
+            What::Install(_) => format!(
+                "Needs the network and your sudo password. Apps already here are kept. {}",
                 if self.apt { "Undo: Remove set here, then apt lists what it removes and asks." } else { "Undo: remove the apps one by one with your package manager." },
             ),
-            What::Remove => (
-                "Removes these packages. apt then lists the apps no other package needs",
-                "and asks before removing them. Apps you installed yourself stay.",
-            ),
+            What::Remove => {
+                let mut t = "Removes these packages. apt then lists the apps no other package needs and asks before removing them. \
+Apps you installed yourself stay."
+                    .to_string();
+                if !self.kept.is_empty() {
+                    t.push_str(&format!(
+                        " The apps with their own installers stay too: {}; remove one with uv tool uninstall NAME (uv tools) or from ~/.local/bin.",
+                        self.kept.join(", ")
+                    ));
+                }
+                t
+            }
         };
-        put(buf, 4, l1, pal_dim(), pal_bg());
-        put(buf, 5, l2, pal_dim(), pal_bg());
-        let rows = list_rows(h);
+        for l in wrap(&info, width) {
+            put(buf, y, &l, pal_dim(), pal_bg());
+            y += 1;
+        }
+        let top = y + 1;
+        // The list ends above the "more" line and the buttons.
+        let rows = (h - 3 - top).max(1) as usize;
         for (i, l) in lines.iter().skip(c.scroll).take(rows).enumerate() {
-            put(buf, 7 + i as i32, &format!("  {l}"), pal_fg(), pal_bg());
+            put(buf, top + i as i32, &fit(&format!("  {l}"), width), pal_fg(), pal_bg());
         }
         if lines.len() > rows {
             put(buf, h - 3, &format!("  \u{2191}\u{2193} {} more", lines.len().saturating_sub(c.scroll + rows)), pal_dim(), pal_bg());
@@ -299,7 +359,7 @@ impl AppsDlg {
         let (cf, cb) = if c.ok { (pal_dim(), pal_bg()) } else { (pal_fg(), pal_sel()) };
         buf.write_str(cx, h - 2, ok, of, ob);
         buf.write_str(cx + 14, h - 2, "[ Cancel ]", cf, cb);
-        buf.write_str(cx + 26, h - 2, "Left/Right switch, Enter, Esc back", pal_dim(), pal_bg());
+        buf.write_str(cx + 26, h - 2, &fit("Left/Right switch, Enter, Esc back", width.saturating_sub(26)), pal_dim(), pal_bg());
     }
 }
 
@@ -313,7 +373,7 @@ mod tests {
 
     fn dlg(apt: bool, remove: Vec<&'static str>) -> AppsDlg {
         let missing = vec![m("tmux", "tmux", Size::Essentials), m("opencode", "", Size::Essentials), m("lazygit", "lazygit", Size::Recommended)];
-        AppsDlg::new(Size::Essentials, true, apt, missing, false, remove)
+        AppsDlg::new(Size::Essentials, true, apt, missing, false, remove, vec!["croft".into(), "freebuff".into()])
     }
 
     #[test]
@@ -370,9 +430,9 @@ mod tests {
 
     #[test]
     fn extras_only_when_listed_and_no_install_without_curl() {
-        let d = AppsDlg::new(Size::Minimal, true, false, vec![], true, vec![]);
+        let d = AppsDlg::new(Size::Minimal, true, false, vec![], true, vec![], vec![]);
         assert_eq!(d.sizes, [Size::Essentials, Size::Recommended, Size::Extras]);
-        let mut d = AppsDlg::new(Size::Minimal, false, false, vec![], false, vec![]);
+        let mut d = AppsDlg::new(Size::Minimal, false, false, vec![], false, vec![], vec![]);
         assert_eq!(d.enter(), Outcome::None);
         assert!(d.confirm.is_none(), "without curl a size does nothing");
     }
@@ -394,5 +454,44 @@ mod tests {
         let s = text(&d);
         assert!(s.contains("Install Recommended: 3 apps to add, download about 42 MB"), "{s}");
         assert!(s.contains("opencode (its own installer)") && s.contains("[ Cancel ]"), "{s}");
+    }
+
+    #[test]
+    fn wrap_breaks_between_words_and_fit_marks_a_cut() {
+        assert_eq!(wrap("one two three four", 9), ["one two", "three", "four"]);
+        assert_eq!(wrap("abcdefghij", 4), ["abcd", "efgh", "ij"]);
+        assert_eq!(wrap("", 5), [""]);
+        assert_eq!(fit("abcdef", 4), "abc\u{2026}");
+        assert_eq!(fit("abc", 4), "abc");
+    }
+
+    /// At the width Settings gives the dialog (62 columns in an 80 column
+    /// window, less in a smaller one) no word is cut; lines used to end
+    /// mid-word there.
+    #[test]
+    fn narrow_panel_wraps_instead_of_cutting() {
+        let (w, h, cx) = (60, 30, 4);
+        let text = |d: &AppsDlg| {
+            let mut b = CellBuffer::new(w, h);
+            d.render(&mut b, cx, w, h);
+            (0..h).map(|y| (0..w).filter_map(|x| b.get(x, y).map(|c| c.ch)).collect::<String>()).collect::<Vec<_>>().join("\n")
+        };
+        let mut d = dlg(true, vec!["tetron-wm-essentials"]);
+        let s = text(&d);
+        for word in "Space or Left/Right ticks the box. sudo asks for your password. Esc closes.".split_whitespace() {
+            assert!(s.split_whitespace().any(|x| x == word), "{word} missing in\n{s}");
+        }
+        assert!(s.contains("[x] also the apps with their own installers") && s.contains("2 to add"), "{s}");
+        assert!(s.contains("Essentials: the tools tetron-wm uses and one good app") && s.contains("per need.") && !s.contains('\u{2026}'), "{s}");
+        d.down();
+        d.enter();
+        let s = text(&d);
+        assert!(s.contains("computing\u{2026}") && s.split_whitespace().any(|x| x == "asks."), "{s}");
+        d.esc();
+        d.sel = 3;
+        d.enter();
+        let s = text(&d);
+        assert!(s.contains("croft, freebuff;") && s.contains("tetron-wm-essentials"), "{s}");
+        assert!(s.split_whitespace().any(|x| x == "~/.local/bin."), "{s}");
     }
 }

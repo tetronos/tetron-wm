@@ -281,6 +281,21 @@ pub fn missing_rows(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) 
     out
 }
 
+/// The apps with their own installers of `from` and the larger sizes in
+/// `list` that `present` finds: Remove set (apt) leaves them, so its
+/// confirmation names them (the helpers come with the deb, the Nerd Font is
+/// not an app, so neither is named).
+pub fn kept_scripts(list: &str, from: Size, present: &dyn Fn(&str) -> bool) -> Vec<String> {
+    list.lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| {
+            let f: Vec<&str> = l.split(':').collect();
+            (f.len() == 3 && f[1] == "script" && size_rank(f[0]) >= size_level(from) && !matches!(f[2], "helpers" | "nerd-font") && present(f[2]))
+                .then(|| f[2].to_string())
+        })
+        .collect()
+}
+
 /// [`missing_rows`] by display name.
 pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) -> bool) -> Vec<String> {
     missing_rows(list, size, host, present).into_iter().map(|m| m.name).collect()
@@ -329,15 +344,22 @@ echo; printf 'Press Enter to close. '; read _",
     )
 }
 
-/// The packages of `apt-cache policy` output that have a candidate.
+/// The packages of `apt-cache policy` output that are not installed and have
+/// a candidate. An installed one is left out: it downloads nothing, and apt
+/// run as the user fails (exit 100, it can not write extended_states) when it
+/// would only mark automatic packages as manual.
 fn with_candidate(policy: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur: Option<&str> = None;
+    let mut installed = false;
     for l in policy.lines() {
         if !l.starts_with(' ') && l.ends_with(':') {
             cur = Some(l.trim_end_matches(':'));
+            installed = false;
+        } else if let Some(i) = l.trim().strip_prefix("Installed:") {
+            installed = i.trim() != "(none)";
         } else if let (Some(n), Some(c)) = (cur, l.trim().strip_prefix("Candidate:")) {
-            if c.trim() != "(none)" {
+            if c.trim() != "(none)" && !installed {
                 out.push(n.to_string());
             }
             cur = None;
@@ -378,8 +400,8 @@ pub fn fmt_download(bytes: u64) -> String {
     format!("about {} MB", (bytes / 1_000_000).max(1))
 }
 
-/// Whether a check of the app list holds here: a command on PATH or in
-/// ~/.local/bin, alternatives with `|`, `font=NAME`, `consolefonts`, or
+/// Whether a check of the app list holds here: a command on PATH, in
+/// ~/.local/bin, /usr/sbin or /sbin, alternatives with `|`, `font=NAME`, `consolefonts`, or
 /// `nerd-font`.
 fn check_present(check: &str) -> bool {
     if check.contains('|') {
@@ -407,7 +429,12 @@ fn check_present(check: &str) -> bool {
         }),
         // The suite's yt-dlp is the uv one: a distribution's copy falls behind the sites (WMINST-012).
         "yt-dlp" => home.join(".local/bin/yt-dlp").is_file(),
-        c => crate::catalog::is_installed(c) || home.join(".local/bin").join(c).is_file(),
+        // /usr/sbin and /sbin: a normal user's PATH lacks them on Debian and
+        // Ubuntu, where gpm, parted, ufw, nethogs and others live.
+        c => {
+            crate::catalog::is_installed(c)
+                || [home.join(".local/bin"), PathBuf::from("/usr/sbin"), PathBuf::from("/sbin")].iter().any(|d| d.join(c).is_file())
+        }
     }
 }
 
@@ -415,6 +442,14 @@ fn check_present(check: &str) -> bool {
 /// per font check, so call it on entering Settings, not per frame.
 pub fn missing_apps(size: Size) -> Vec<String> {
     missing_rows_here(size).into_iter().map(|m| m.name).collect()
+}
+
+/// [`kept_scripts`] for this machine.
+pub fn kept_scripts_here(from: Size) -> Vec<String> {
+    if from == Size::Minimal {
+        return Vec::new();
+    }
+    kept_scripts(crate::catalog::suite_apps(), from, &check_present)
 }
 
 /// [`missing_rows`] for this machine (runs the checks, so not per frame).
@@ -557,9 +592,19 @@ essentials:script:opencode\n";
     }
 
     #[test]
+    fn kept_scripts_are_the_removed_sizes_script_apps_here() {
+        let list = format!("{LIST}recommended:script:croft\nrecommended:script:freebuff\n");
+        let here = |c: &str| matches!(c, "fresh" | "nerd-font" | "helpers" | "croft");
+        assert_eq!(kept_scripts(&list, Size::Essentials, &here), ["fresh", "croft"], "no helpers, no font, only what is here");
+        assert_eq!(kept_scripts(&list, Size::Recommended, &here), ["croft"], "essentials stays, so its apps are not named");
+    }
+
+    #[test]
     fn download_size_parsers() {
         let policy = "glow:\n  Installed: (none)\n  Candidate: (none)\n  Version table:\ntmux:\n  Installed: (none)\n  Candidate: 3.5a-3\n  Version table:\n     3.5a-3 500\n";
         assert_eq!(with_candidate(policy), ["tmux"]);
+        let auto = "gpm:\n  Installed: 1.20.7-11+b2\n  Candidate: 1.20.7-11+b2\n  Version table:\nmtr:\n  Installed: (none)\n  Candidate: 0.95-1\n";
+        assert_eq!(with_candidate(auto), ["mtr"], "an installed package is not asked about");
         let uris = "'http://deb.debian.org/debian/pool/main/t/tmux/tmux_3.5a-3_amd64.deb' tmux_3.5a-3_amd64.deb 476020 SHA256:ab\n'http://x/y.deb' y.deb 1000 SHA256:cd\n";
         assert_eq!(sum_uri_sizes(uris), 477_020);
         assert_eq!(fmt_download(477_020), "about 1 MB");

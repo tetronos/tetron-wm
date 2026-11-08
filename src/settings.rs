@@ -381,16 +381,23 @@ impl Settings {
 
     /// Open the Apps dialog: reads the missing apps (font checks run fc-list)
     /// and the size debs Remove set would remove.
+    /// PATH is scanned again first, so apps installed outside tetron-wm since
+    /// Settings opened count (the row's count follows).
     fn open_apps_dlg(&mut self) {
         use crate::packaging::{self as pk, Size};
+        crate::catalog::refresh_installed();
         let size = pk::installed_size();
+        let missing = pk::missing_rows_here(Size::Extras);
+        self.apps_size = size;
+        self.apps_missing = missing.iter().filter(|m| m.size <= size).map(|m| m.name.clone()).collect();
         self.apps_dlg = Some(crate::appsdlg::AppsDlg::new(
             size,
             self.have_curl,
             std::path::Path::new("/usr/bin/apt-get").exists(),
-            pk::missing_rows_here(Size::Extras),
+            missing,
             pk::list_has_size(crate::catalog::suite_apps(), Size::Extras),
             pk::remove_debs_here(size),
+            pk::kept_scripts_here(size),
         ));
     }
 

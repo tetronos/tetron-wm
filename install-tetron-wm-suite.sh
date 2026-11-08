@@ -120,7 +120,8 @@ have() { command -v "$1" >/dev/null 2>&1; }
 tty_ok() { { : </dev/tty; } 2>/dev/null; }
 # A user tool: on PATH, or in ~/.local/bin, where uv and the upstream
 # installers put it even when that directory is not on PATH yet.
-have_tool() { have "$1" || [ -x "$HOME/.local/bin/$1" ]; }
+# /usr/sbin and /sbin: a normal user's PATH lacks them on Debian and Ubuntu.
+have_tool() { have "$1" || [ -x "$HOME/.local/bin/$1" ] || [ -x "/usr/sbin/$1" ] || [ -x "/sbin/$1" ]; }
 
 usage() { sed -n '2,/^set -euo/p' "$0" | sed 's/^# \{0,1\}//; s/^#$//' | sed '$d'; exit "${1:-0}"; }
 
@@ -671,7 +672,8 @@ install_uv_app() {
   case "$1" in
     pyradio) args=("$PYRADIO_SRC" --with rich --with requests --with dnspython --with psutil --with netifaces-plus --with python-dateutil --with charset-normalizer) ;;
     llm) args=(llm --with llm-ollama) ;;
-    yt-dlp) args=("yt-dlp[default]") ;;
+    # deno: the JS runtime yt-dlp needs for YouTube, inside its own uv venv.
+    yt-dlp) args=("yt-dlp[default,deno]") ;;
     *) return 0 ;;
   esac
   log "installing $1: $uv tool install ${args[*]}"
