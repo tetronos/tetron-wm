@@ -12112,7 +12112,7 @@
      "linux"
     ]
    },
-   "tier": "recommended",
+   "tier": "optional",
    "sources": [
     "tetron"
    ]
