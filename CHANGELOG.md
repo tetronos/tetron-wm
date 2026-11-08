@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.5] — 2026-11-08
+
 ### Added
 - The desktop size brings opencode, the agent the ✦ Assistant runs, so the Assistant works after a fresh install: the suite installer downloads upstream's stable release for this CPU (baseline build without AVX2), checks it against the sha256 digest GitHub records for it and puts it in `~/.local/bin`; Settings > Updates replaces it the same way when a newer release is out; Settings > General > Apps counts it when missing. The Store installs it the same way instead of with npm.
 - Store: AI Mode is marked as a default app (the tetron-wm deb and the suite installer bring it).
