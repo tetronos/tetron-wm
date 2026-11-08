@@ -13540,28 +13540,6 @@
    ]
   },
   {
-   "name": "carbonyl",
-   "bin": "carbonyl",
-   "category": "Web",
-   "description": "Chromium running inside your terminal",
-   "homepage": "https://github.com/fathyb/carbonyl",
-   "recipe": {
-    "install": "npm install --global carbonyl@0.0.3-next.ab80a27",
-    "method": "npm",
-    "verified": true,
-    "os": [
-     "macos",
-     "linux",
-     "windows"
-    ]
-   },
-   "tier": "optional",
-   "sources": [
-    "awesome-tuis",
-    "tetron"
-   ]
-  },
-  {
    "name": "castero",
    "bin": "castero",
    "category": "Web",
@@ -14107,6 +14085,25 @@
     ]
    },
    "tier": "optional",
+   "sources": [
+    "tetron"
+   ]
+  },
+  {
+   "name": "torrentTUI",
+   "bin": "torrenttui",
+   "category": "Web",
+   "description": "A BitTorrent client: magnet links and .torrent files, built-in torrent search, command palette (:), background sessions.",
+   "homepage": "https://github.com/thijsvos/torrentTUI",
+   "recipe": {
+    "install": "mkdir -p ~/.local/bin && curl -fsSL -o ~/.local/bin/torrenttui https://github.com/thijsvos/torrentTUI/releases/latest/download/torrenttui-linux-$(uname -m) && chmod 755 ~/.local/bin/torrenttui",
+    "method": "binary",
+    "verified": true,
+    "os": [
+     "linux"
+    ]
+   },
+   "tier": "recommended",
    "sources": [
     "tetron"
    ]

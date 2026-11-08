@@ -6,7 +6,11 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Removed
+- Store: carbonyl (Chromium in the terminal); tetron-browser covers the web.
+
 ### Added
+- Store: torrentTUI, a BitTorrent client with built-in search (https://github.com/thijsvos/torrentTUI), its release binary into `~/.local/bin`.
 - Store: croft, a VS Code style IDE in the terminal (https://github.com/vitali87/croft), installed from its signed-checksum release into `~/.local/bin`, where its own updater keeps it current. Its icons need a Nerd Font (`tetronos-nerd-font-symbols`); kmscon picks up a newly installed font after it restarts.
 
 ## [0.15.4] — 2026-11-08

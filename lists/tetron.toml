@@ -13,6 +13,7 @@ exclude = [
   "termui",         # Go widget library, not a runnable app
   "iconicfonts",    # patched-font collection, not a runnable app
   "learnbyexample", # collection of separate tutorial apps, no single binary
+  "carbonyl",       # Chromium in the terminal; tetron-browser covers the web (USER 2026-11-08)
   "dua-cli",        # same app as dua (command dua)
 ]
 
@@ -5212,14 +5213,6 @@ verified = true
 os = ["macos", "linux"]
 
 [[app]]
-name = "carbonyl"
-[app.recipe]
-install = "npm install --global carbonyl@0.0.3-next.ab80a27"
-method = "npm"
-verified = true
-os = ["macos", "linux", "windows"]
-
-[[app]]
 name = "castero"
 [app.recipe]
 install = "pip install castero"
@@ -5464,6 +5457,19 @@ homepage = "https://github.com/vitali87/croft"
 tier = "recommended"
 [app.recipe]
 install = "f=croft-$(uname -m)-unknown-linux-musl; u=https://github.com/vitali87/croft/releases/latest/download; d=$(mktemp -d) && cd \"$d\" && curl -fsSLO $u/$f.tar.gz && curl -fsSLO $u/SHA256SUMS && sha256sum -c --ignore-missing SHA256SUMS && tar xzf $f.tar.gz && mkdir -p ~/.local/bin && install -m 755 $f/croft ~/.local/bin/croft && cd / && rm -rf \"$d\""
+method = "binary"
+verified = true
+os = ["linux"]
+
+[[app]]
+name = "torrentTUI"
+bin = "torrenttui"
+category = "Web"
+description = "A BitTorrent client: magnet links and .torrent files, built-in torrent search, command palette (:), background sessions."
+homepage = "https://github.com/thijsvos/torrentTUI"
+tier = "recommended"
+[app.recipe]
+install = "mkdir -p ~/.local/bin && curl -fsSL -o ~/.local/bin/torrenttui https://github.com/thijsvos/torrentTUI/releases/latest/download/torrenttui-linux-$(uname -m) && chmod 755 ~/.local/bin/torrenttui"
 method = "binary"
 verified = true
 os = ["linux"]
