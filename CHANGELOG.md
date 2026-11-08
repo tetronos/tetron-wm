@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.4] — 2026-11-08
+
 ### Added
 - Store: **Update list** button (top right, or F5) fetches the newest app catalog for this tetron-wm version from https://tetronos.github.io/apt/lists/0.15/catalog.json, only when pressed. A list that does not check out (wrong format, no apps, download failed) changes nothing; a good one is kept in `~/.local/share/tetron-wm/catalog.json` and used by the Store, the launcher and Settings > General > Apps. The suite installer run on its own reads its app list from the same place (then from the repository), and Settings > General > Apps hands it the list it counted from (`--apps-list FILE`).
 - Store: an app that comes with a suite size says so ("In the desktop set").
