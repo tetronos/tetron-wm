@@ -56,7 +56,7 @@ The suite installer (`install-tetron-wm-suite.sh`, see the [README](../README.md
 | Richer icons | A Symbols Nerd Font | Use `icon_style = "auto"` (default), which needs no special font | Only for `icon_style = "nerd"`. The suite installer can install it. |
 | Screenshots (leader `s`, launcher Screenshot, `tetron-wm screenshot`) | A PSF console font in `/usr/share/consolefonts` (Debian and Ubuntu `console-setup-linux`, Fedora `kbd`, Arch `terminus-font`) | A window says the screenshot was not saved and why | Draws the screen with the console font into a PNG. Most installs already have it; minimal cloud and container images do not. |
 | Real images in windows | A terminal with the Kitty graphics protocol (Kitty, Ghostty, WezTerm) | Images are drawn as cells instead | |
-| AI assistant (✦) | `opencode`, or `hermes` | Settings → Assistant marks the agent "(not installed)" | Switch in Settings → Assistant. [opencode](https://opencode.ai) |
+| AI assistant (✦) | `opencode`, or `hermes` | Settings → Assistant marks the agent "(not installed)" | The suite installer puts opencode in `~/.local/bin` with the desktop size (stable release tarball checked against GitHub's sha256 digest) and Settings → Updates keeps it current. Switch to hermes in Settings → Assistant. [opencode](https://github.com/anomalyco/opencode) |
 | Updates from Settings | `curl`; `cargo` for the dev channel | Update manually with the install command | The main channel downloads a prebuilt release. |
 | Mesh VPN segment | `tetron` and `tetron-tui` | No VPN segment | [tetron-tui](https://github.com/tetronos/tetron-tui). Optional companion. |
 

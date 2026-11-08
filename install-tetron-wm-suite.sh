@@ -29,7 +29,7 @@
 #                         minimal  tetron-wm only
 #                         desktop  plus the tools its features use (default): chafa,
 #                                  mpv, poppler, w3m, htop, sshfs, mc, vim, ... and
-#                                  fresh, uv, catt, casttui, a Nerd Font
+#                                  fresh, uv, catt, casttui, a Nerd Font, opencode
 #                         extras   plus extra apps (fbi, git)
 #                       The list is assets/suite-apps.txt, generated from
 #                       packaging/*.toml (the same sets as the tetron-wm-desktop
@@ -583,6 +583,50 @@ install_cast_tools() {
   fi
 }
 
+# opencode: the agent of the ✦ Assistant (WMINST-010). No distro packages it.
+# Upstream's stable channel is its GitHub "latest" release (what its own
+# installer and npm `latest` follow; the 2.x line is separate). The tarball
+# for this CPU (baseline without AVX2, musl on musl systems) is checked
+# against the sha256 digest GitHub records for the asset (1.x releases carry
+# no SHA256SUMS) and goes to ~/.local/bin. Settings > Updates replaces it the
+# same way: `opencode upgrade` would put a second copy in ~/.opencode/bin.
+# Homebrew on macOS.
+OPENCODE_API="https://api.github.com/repos/anomalyco/opencode/releases/latest"
+opencode_asset() {
+  local a
+  case "$(uname -m)" in
+    x86_64|amd64) a=x64; grep avx2 /proc/cpuinfo >/dev/null 2>&1 || a=x64-baseline ;;
+    aarch64|arm64) a=arm64 ;;
+    *) return 1 ;;
+  esac
+  grep -i musl <<<"$(ldd --version 2>&1)" >/dev/null && a="$a-musl"
+  echo "opencode-linux-$a.tar.gz"
+}
+# "TAG URL SHA256" of asset $1 in the latest release.
+opencode_release() {
+  fetch "$OPENCODE_API" | python3 -c 'import json,sys; r=json.load(sys.stdin); a=[x for x in r["assets"] if x["name"]==sys.argv[1]][0]; print(r["tag_name"], a["browser_download_url"], a["digest"].split(":")[1])' "$1"
+}
+install_opencode() {
+  if [ "$IS_LINUX" = 0 ]; then
+    have brew && { brew install opencode || warn "opencode did not install; see https://opencode.ai"; }
+    return 0
+  fi
+  have python3 || { warn "python3 is missing; opencode not installed"; return 0; }
+  local f rel tag url sum tmp
+  f="$(opencode_asset)" || { warn "no opencode build for $(uname -m); see https://opencode.ai"; return 0; }
+  rel="$(opencode_release "$f" 2>/dev/null)" || rel=""
+  read -r tag url sum <<<"$rel"
+  [ -n "${sum:-}" ] || { warn "could not read the opencode release from GitHub; see https://opencode.ai"; return 0; }
+  tmp="$(mktemp -d)"
+  log "installing opencode $tag ($f, checked against GitHub's sha256 digest) into ~/.local/bin"
+  if fetch "$url" > "$tmp/$f" && sha256sum -c - <<<"$sum  $tmp/$f" >/dev/null && tar xzf "$tmp/$f" -C "$tmp" opencode; then
+    mkdir -p "$HOME/.local/bin" && install -m 755 "$tmp/opencode" "$HOME/.local/bin/opencode"
+  else
+    warn "opencode did not install (download or checksum failed); see https://opencode.ai"
+  fi
+  rm -rf "$tmp"
+}
+
 # The symbols-only Nerd Font: the glyphs tetron-wm draws for icon_style = "nerd".
 # No distro packages it; tiny, and fontconfig uses it only as a fallback.
 # fontconfig answers when present; without it, look for the font file.
@@ -982,6 +1026,7 @@ main() {
     local cast; cast="$(cast_tools_missing)"
     { want_script catt || want_script casttui; } && [ -n "$cast" ] && shown="${shown:+$shown }$cast"
     want_script nerd-font && nerd_font_missing && shown="${shown:+$shown }nerd-font"
+    want_script opencode && ! have_tool opencode && shown="${shown:+$shown }opencode"
   fi
   [ "$IS_LINUX" = 1 ] && services="$(services_list)"
   if [ -n "$services" ]; then
@@ -1035,6 +1080,7 @@ main() {
     want_script casttui && ! have_tool casttui && { apt_first casttui || true; }
     { want_script catt || want_script casttui; } && [ -n "$(cast_tools_missing)" ] && install_cast_tools
     want_script nerd-font && nerd_font_missing && { apt_first tetronos-nerd-font-symbols || install_nerd_font; }
+    want_script opencode && ! have_tool opencode && install_opencode
     # The deb ships the helper scripts; a raw install gets them here.
     want_script helpers && ! { deb_host && wm_packaged; } && [ -n "$(own_apps_missing)" ] && install_own_apps
   fi

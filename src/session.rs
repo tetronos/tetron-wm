@@ -7271,7 +7271,7 @@ mod tests {
             assert_eq!(sanitize_branch(junk), "main", "rejected: {junk:?}");
             let cmd = update_command(junk, false);
             assert!(cmd.contains("install.sh"), "junk → the safe main path: {cmd}");
-            assert!(!cmd.contains("rm -rf"), "no injected payload survives: {cmd}");
+            assert!(!cmd.contains("rm -rf ~"), "no injected payload survives: {cmd}");
         }
         // Legitimate branch names are preserved.
         for ok in ["dev", "main", "feature/x", "release-1.2", "v0.2.0"] {

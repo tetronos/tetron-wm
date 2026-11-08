@@ -17,7 +17,7 @@ Press Enter at each question to take the default: the desktop size, and the setu
 | Size | What you get |
 |---|---|
 | minimal | tetron-wm only. Everything works that needs no other program; features that need one (image wallpaper, video, PDF pages, sound controls, ...) stay off until that program is installed. |
-| desktop (default) | tetron-wm plus the tools its features use: tetron-browser (Debian and Ubuntu amd64, from the [tetronos apt repo](https://tetronos.github.io/apt)), chafa, mpv, poppler-utils, w3m, htop, upower, gpm, xclip and wl-clipboard (with a desktop session), alsa-utils, openssh-client, sshpass, sshfs, 7zip, unzip, gnupg, python3, curl, console fonts, the DejaVu font, mc and vim; also fresh, uv, catt, casttui and the Symbols Nerd Font, which no distribution packages. |
+| desktop (default) | tetron-wm plus the tools its features use: tetron-browser (Debian and Ubuntu amd64, from the [tetronos apt repo](https://tetronos.github.io/apt)), chafa, mpv, poppler-utils, w3m, htop, upower, gpm, xclip and wl-clipboard (with a desktop session), alsa-utils, openssh-client, sshpass, sshfs, 7zip, unzip, gnupg, python3, curl, console fonts, the DejaVu font, mc and vim; also fresh, uv, catt, casttui, the Symbols Nerd Font and opencode (the agent of the ✦ Assistant), which no distribution packages. |
 | extras | desktop plus fbi and git. |
 
 System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a size: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
@@ -46,7 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh 
 sudo apt install ./tetron-wm_<version>_amd64.deb ./tetron-wm-desktop_<version>_all.deb
 ```
 
-This gives the same packages as the suite installer, without the apps no distribution packages (fresh, uv, catt, casttui, the Nerd Font) and without the console setup. On a machine with no mouse device (`/dev/input/mice` missing: headless servers, many VMs), add `gpm-` to that command: Debian's gpm, the console mouse, fails to install there. The suite installer does this for you, and Systems > Add Remote installs gpm on a remote only when it has a mouse device. Over ssh the mouse comes from your own terminal, so a remote never needs gpm for that.
+This gives the same packages as the suite installer, without the apps no distribution packages (fresh, uv, catt, casttui, the Nerd Font, opencode) and without the console setup. On a machine with no mouse device (`/dev/input/mice` missing: headless servers, many VMs), add `gpm-` to that command: Debian's gpm, the console mouse, fails to install there. The suite installer does this for you, and Systems > Add Remote installs gpm on a remote only when it has a mouse device. Over ssh the mouse comes from your own terminal, so a remote never needs gpm for that.
 
 **From source**, with a [Rust toolchain](https://rustup.rs) 1.95 or newer: `cargo install --git https://github.com/tetronos/tetron-wm`. tetron-wm only.
 

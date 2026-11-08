@@ -7,7 +7,8 @@
 # (amd64), which comes from the tetronos apt repo; apt skips it where that
 # repo is not configured.
 # Tools Debian does not package (fresh, casttui, catt, uv, opencode,
-# a symbols Nerd Font) stay with install-tetron-wm-suite.sh.
+# a symbols Nerd Font) stay with install-tetron-wm-suite.sh
+# (packaging/script-only.toml).
 name = "tetron-wm-desktop"
 description = "tetron-wm with the tools its features use"
 long_description = """

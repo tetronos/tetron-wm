@@ -50,6 +50,7 @@ out="$(plan)"; ok "release without any deb: raw" "echo \"\$out\" | grep -q \"met
 '
 run fedora:latest '
 out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=raw\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
+ok "desktop size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
 out="$(plan --size extras)"; ok "fedora extras: fbida" "echo \"\$out\" | grep -q fbida"
 printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
 out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"

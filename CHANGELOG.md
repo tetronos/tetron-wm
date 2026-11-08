@@ -6,16 +6,18 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- The desktop size brings opencode, the agent the ✦ Assistant runs, so the Assistant works after a fresh install: the suite installer downloads upstream's stable release for this CPU (baseline build without AVX2), checks it against the sha256 digest GitHub records for it and puts it in `~/.local/bin`; Settings > Updates replaces it the same way when a newer release is out; Settings > General > Apps counts it when missing. The Store installs it the same way instead of with npm.
+- Store: AI Mode is marked as a default app (the tetron-wm deb and the suite installer bring it).
+- Store: kptui, a password manager for KeePass vaults (https://github.com/pepa65/kptui), its release binary into `~/.local/bin` (x86_64; elsewhere `cargo install kptui`).
+- Store: torrentTUI, a BitTorrent client with built-in search (https://github.com/thijsvos/torrentTUI), its release binary into `~/.local/bin`.
+- Store: croft, a VS Code style IDE in the terminal (https://github.com/vitali87/croft), installed from its signed-checksum release into `~/.local/bin`, where its own updater keeps it current. Its icons need a Nerd Font (`tetronos-nerd-font-symbols`); kmscon picks up a newly installed font after it restarts.
+
 ### Changed
 - Store: pyradio (internet radio) installs with `uv tool install` from its repository with its dependencies, instead of its own installer, which needs pipx; Settings > Updates keeps it current.
 
 ### Removed
 - Store: carbonyl (Chromium in the terminal); tetron-browser covers the web.
-
-### Added
-- Store: kptui, a password manager for KeePass vaults (https://github.com/pepa65/kptui), its release binary into `~/.local/bin` (x86_64; elsewhere `cargo install kptui`).
-- Store: torrentTUI, a BitTorrent client with built-in search (https://github.com/thijsvos/torrentTUI), its release binary into `~/.local/bin`.
-- Store: croft, a VS Code style IDE in the terminal (https://github.com/vitali87/croft), installed from its signed-checksum release into `~/.local/bin`, where its own updater keeps it current. Its icons need a Nerd Font (`tetronos-nerd-font-symbols`); kmscon picks up a newly installed font after it restarts.
 
 ## [0.15.4] — 2026-11-08
 

@@ -35,3 +35,4 @@ desktop:script:catt
 desktop:script:casttui
 desktop:script:nerd-font
 desktop:script:helpers
+desktop:script:opencode

@@ -21,3 +21,7 @@ how = "Symbols Nerd Font: ~/.local/share/fonts on Linux, a Homebrew cask on macO
 [script.helpers]
 size = "desktop"
 how = "tetron-wm-startpage and tetron-aimode from scripts/ into ~/.local/bin, only when tetron-wm is not the deb (the deb ships them)"
+
+[script.opencode]
+size = "desktop"
+how = "the agent of the ✦ Assistant: its stable release tarball for this CPU, checked against GitHub's sha256 digest, into ~/.local/bin (Homebrew on macOS); Settings > Updates replaces it the same way"

@@ -285,6 +285,24 @@ class ToolSelfUpdates(Requirement):
     """
 
 
+class OpencodeForTheAssistant(Requirement):
+    """REQUIREMENT-ID: WMINST-010
+
+    opencode, the agent the ✦ Assistant runs by default, comes with the
+    desktop size: a `desktop:script:opencode` row in the app list. On Linux
+    the suite script takes upstream's GitHub "latest" release, its stable
+    channel (the one its own installer and npm `latest` follow), downloads
+    the tarball for this CPU (opencode-linux-x64, x64-baseline without
+    AVX2, arm64, with -musl on musl systems), installs it into ~/.local/bin
+    only when it matches the sha256 digest GitHub records for the asset
+    (1.x releases carry no SHA256SUMS); on macOS Homebrew. Settings >
+    Updates, after the uv step, replaces ~/.local/bin/opencode the same way
+    when that release differs from `opencode --version` (not `opencode
+    upgrade`, which installs a second copy in ~/.opencode/bin). Settings >
+    General > Apps counts it when missing.
+    """
+
+
 class InstallGuide(Requirement):
     """REQUIREMENT-ID: WMINST-006
 

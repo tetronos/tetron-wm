@@ -288,13 +288,26 @@ pub fn missing_apps(size: Size) -> Vec<String> {
 }
 
 /// The step of every update command that updates the apps with their own
-/// updater (WMINST-009): uv itself when no package owns it, then the uv tools.
-/// Errors never stop the tetron-wm update that follows.
+/// updater (WMINST-009): uv itself when no package owns it, then the uv tools;
+/// then opencode in ~/.local/bin when upstream's latest (stable) release
+/// differs, its tarball checked against GitHub's sha256 digest (WMINST-010;
+/// `opencode upgrade` would install a second copy in ~/.opencode/bin). Errors never stop the tetron-wm
+/// update that follows.
 pub fn tool_updates_snippet() -> &'static str {
     "u=\"$(command -v uv 2>/dev/null || { [ -x \"$HOME/.local/bin/uv\" ] && echo \"$HOME/.local/bin/uv\"; } || true)\"; \
 if [ -n \"$u\" ]; then echo 'Updating uv and the apps it installed (catt, casttui)…'; \
 if ! dpkg -S \"$(readlink -f \"$u\")\" >/dev/null 2>&1; then \"$u\" self update 2>/dev/null || true; fi; \
-\"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> \"$HOME/tetron-wm-debug.log\"; echo; fi; "
+\"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> \"$HOME/tetron-wm-debug.log\"; echo; fi; \
+o=\"$HOME/.local/bin/opencode\"; if [ -x \"$o\" ] && [ \"$(uname -s)\" = Linux ] && command -v python3 >/dev/null; then \
+case \"$(uname -m)\" in x86_64|amd64) a=x64; grep avx2 /proc/cpuinfo >/dev/null 2>&1 || a=x64-baseline;; aarch64|arm64) a=arm64;; *) a=;; esac; \
+[ -n \"$a\" ] && ldd --version 2>&1 | grep -i musl >/dev/null && a=\"$a-musl\"; f=\"opencode-linux-$a.tar.gz\"; \
+rel=\"$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest 2>/dev/null | python3 -c 'import json,sys; r=json.load(sys.stdin); a=[x for x in r[\"assets\"] if x[\"name\"]==sys.argv[1]][0]; print(r[\"tag_name\"], a[\"browser_download_url\"], a[\"digest\"].split(\":\")[1])' \"$f\" 2>/dev/null)\"; \
+t=\"${rel%% *}\"; t=\"${t#v}\"; v=\"$(\"$o\" --version 2>/dev/null | sed 's/.*v//')\"; \
+if [ -n \"$a\" ] && [ -n \"$t\" ] && [ \"$t\" != \"$v\" ]; then echo \"Updating opencode $v to $t (checked against GitHub's sha256 digest)…\"; \
+url=\"$(echo \"$rel\" | cut -d' ' -f2)\"; sum=\"$(echo \"$rel\" | cut -d' ' -f3)\"; d=\"$(mktemp -d)\"; \
+if curl -fsSL -o \"$d/$f\" \"$url\" && echo \"$sum  $d/$f\" | sha256sum -c - >/dev/null && tar xzf \"$d/$f\" -C \"$d\" opencode && install -m 755 \"$d/opencode\" \"$o\"; \
+then echo \"update: opencode $t\" >> \"$HOME/tetron-wm-debug.log\"; else echo 'opencode was not updated (download or checksum failed)'; fi; \
+rm -rf \"$d\"; echo; fi; fi; "
 }
 
 #[cfg(test)]
@@ -316,7 +329,8 @@ desktop:apps:uv::uv:uv:uv\n\
 desktop:apps:blueutil::::blueutil\n\
 desktop:script:fresh\n\
 desktop:script:nerd-font\n\
-desktop:script:helpers\n";
+desktop:script:helpers\n\
+desktop:script:opencode\n";
 
     #[test]
     fn missing_counts_the_size_and_smaller_never_services() {
@@ -324,7 +338,7 @@ desktop:script:helpers\n";
         let h = host(true, false, true, false);
         assert!(missing_in(LIST, Size::Minimal, &h, &none).is_empty(), "minimal has no apps");
         let d = missing_in(LIST, Size::Desktop, &h, &none);
-        assert_eq!(d, ["mpv", "gpm", "tetron-browser", "uv", "fresh", "nerd-font", "helpers"]);
+        assert_eq!(d, ["mpv", "gpm", "tetron-browser", "uv", "fresh", "nerd-font", "helpers", "opencode"]);
         let e = missing_in(LIST, Size::Extras, &h, &none);
         assert!(e.contains(&"git".to_string()) && e.len() == d.len() + 1, "extras adds its own rows: {e:?}");
         assert!(!e.iter().any(|n| n == "network-manager"), "services never count");
@@ -344,7 +358,7 @@ desktop:script:helpers\n";
 
     #[test]
     fn present_apps_are_not_missing() {
-        let have = |c: &str| matches!(c, "mpv" | "gpm" | "tetron-browser" | "uv" | "fresh" | "nerd-font" | "tetron-wm-startpage");
+        let have = |c: &str| matches!(c, "mpv" | "gpm" | "tetron-browser" | "uv" | "fresh" | "nerd-font" | "tetron-wm-startpage" | "opencode");
         assert!(missing_in(LIST, Size::Desktop, &host(true, false, true, false), &have).is_empty());
     }
 
@@ -360,6 +374,24 @@ desktop:script:helpers\n";
     fn tool_updates_snippet_is_valid_sh() {
         let ok = std::process::Command::new("sh").args(["-n", "-c", tool_updates_snippet()]).status().unwrap().success();
         assert!(ok, "{}", tool_updates_snippet());
+    }
+
+    #[test]
+    fn opencode_update_is_checked_and_in_place() {
+        let s = tool_updates_snippet();
+        assert!(s.contains("$HOME/.local/bin/opencode") && s.contains("sha256sum -c") && s.contains("releases/latest"), "{s}");
+        assert!(!s.contains("opencode upgrade"), "its own upgrade installs a second copy elsewhere");
+        assert!(s.find("tool upgrade --all").unwrap() < s.find(".local/bin/opencode").unwrap(), "after the uv step");
+    }
+
+    #[test]
+    fn opencode_update_does_nothing_without_our_copy() {
+        let home = tmp("noopencode");
+        let out = std::process::Command::new("sh").arg("-c").arg(tool_updates_snippet()).env("HOME", &home)
+            .env("PATH", "/usr/bin:/bin").output().unwrap();
+        let text = String::from_utf8_lossy(&out.stdout);
+        assert!(!text.contains("opencode"), "{text}");
+        let _ = std::fs::remove_dir_all(&home);
     }
 
     fn tmp(name: &str) -> PathBuf {
