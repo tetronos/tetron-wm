@@ -1,0 +1,29 @@
+# Full screen video, images and PDFs under kmscon: tetron-wm hands the file to
+# this waiter, which switches the seat to tty9 through logind, runs mpv (or
+# fbi, fbgs) there and switches back. The instance is the user name, for
+# example tetron-wm-fullscreen@ann.service. Shipped by tetron-wm-desktop and
+# not enabled by it; Settings > Windows > Full screen helper service, the
+# TetronOS Desktop and install-tetron-wm-suite.sh --fullscreen enable it.
+# One instance owns tty9 at a time.
+[Unit]
+Description=tetron-wm full screen video waiter on tty9 for %i
+After=systemd-user-sessions.service
+Conflicts=getty@tty9.service
+
+[Service]
+User=%i
+ExecStart=/usr/bin/tetron-wm fullscreen-waiter --vt 9
+Restart=always
+RestartSec=1
+TTYPath=/dev/tty9
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=tty
+StandardError=journal
+PAMName=login
+UtmpIdentifier=tty9
+UtmpMode=user
+
+[Install]
+WantedBy=multi-user.target

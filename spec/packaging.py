@@ -113,6 +113,20 @@ class DesktopMetapackage(Requirement):
     tier (WMDEB-008). Release CI builds it once, on the amd64 job, and tests it by
     installing it together with that job's tetron-wm .deb in a clean
     container with the tetronos apt repo configured, Recommends included.
+
+    It ships two systemd units and enables neither (no maintainer scripts):
+    the full screen waiter template
+    /usr/lib/systemd/system/tetron-wm-fullscreen@.service (instance = user
+    name, `User=%i`, VT 9, `/usr/bin/tetron-wm fullscreen-waiter --vt 9`)
+    and the app server user unit
+    /usr/lib/systemd/user/tetron-wm-apphost.service (through a login shell,
+    for the PATH and locale of a login). Settings > Windows switches the
+    waiter instance of the running user (the unit an older suite installer
+    wrote, `tetron-wm-fullscreen.service`, wins where it exists); the daemon
+    starts the apphost unit when it is enabled for the user and otherwise
+    spawns the apphost itself. The suite script enables the template
+    instance when tetron-wm-desktop is installed and the VT is 9, replacing
+    a unit it wrote earlier.
     """
 
 
@@ -122,8 +136,8 @@ class ExtrasMetapackage(Requirement):
     `tetron-wm-extras` (`packaging/extras.toml`, a metapackage, Architecture
     all) Depends `tetron-wm-desktop (>= {minor})` and Recommends the
     nice-to-have apps tetron-wm does not need for its own features (git).
-    fbi is in tetron-wm-desktop: View full screen uses it for images. Three sizes result: tetron-wm (nothing else),
-    tetron-wm-desktop (every feature), tetron-wm-extras (every feature plus
+    fbi is in tetron-wm-desktop: View full screen uses it for images.
+    Three sizes result: tetron-wm (nothing else), tetron-wm-desktop (every feature), tetron-wm-extras (every feature plus
     the extra apps). Release CI builds it once next to tetron-wm-desktop
     and checks its Recommends install together with the other two debs.
     """

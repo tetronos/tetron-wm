@@ -1,0 +1,19 @@
+# The tetron-wm app server as a user service: apps keep running across UI
+# reloads and updates, and the server restarts after a crash. Shipped by
+# tetron-wm-desktop and not enabled by it (the TetronOS Desktop enables it for
+# every user with systemctl --global enable). Without it tetron-wm starts the
+# app server on demand. Run through a login shell so apps get the PATH and
+# locale of a login (~/.local/bin included where ~/.profile adds it).
+# `tetron-wm service install` writes a unit of the same name in
+# ~/.config/systemd/user, which takes precedence over this one.
+[Unit]
+Description=tetron-wm apphost (keeps your terminal apps alive)
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -lc 'exec /usr/bin/tetron-wm --apphost'
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -123,6 +123,20 @@ fn launchd_plist_path() -> Option<PathBuf> {
 fn systemd_unit_path() -> Option<PathBuf> {
     dirs::config_dir().map(|c| c.join("systemd/user").join(SYSTEMD_UNIT))
 }
+/// Where tetron-wm-desktop installs the same unit for every user.
+const PACKAGED_UNIT: &str = "/usr/lib/systemd/user/tetron-wm-apphost.service";
+
+/// Whether the packaged user unit is enabled for this user (on the TetronOS
+/// Desktop, `systemctl --global enable`). Present but not enabled means the
+/// user did not choose the service: the daemon starts the apphost itself.
+fn packaged_unit_enabled() -> bool {
+    std::path::Path::new(PACKAGED_UNIT).exists()
+        && matches!(
+            Command::new("systemctl").args(["--user", "--quiet", "is-enabled", SYSTEMD_UNIT]).status(),
+            Ok(s) if s.success()
+        )
+}
+
 fn profile_path() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".profile"))
 }
@@ -268,10 +282,8 @@ pub fn ensure_started() -> bool {
             )
         }
         Backend::Systemd => {
-            let Some(path) = systemd_unit_path() else {
-                return false;
-            };
-            if !path.exists() {
+            let own = systemd_unit_path().is_some_and(|p| p.exists());
+            if !own && !packaged_unit_enabled() {
                 return false;
             }
             matches!(
@@ -309,6 +321,9 @@ pub fn status() -> io::Result<()> {
         Backend::Systemd => {
             if let Some(p) = systemd_unit_path() {
                 println!("  unit:     {} (installed: {})", p.display(), p.exists());
+            }
+            if std::path::Path::new(PACKAGED_UNIT).exists() {
+                println!("  packaged: {PACKAGED_UNIT} (enabled: {})", packaged_unit_enabled());
             }
             let _ = Command::new("systemctl")
                 .args(["--user", "--no-pager", "status", SYSTEMD_UNIT])

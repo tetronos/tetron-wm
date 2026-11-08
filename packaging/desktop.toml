@@ -27,7 +27,12 @@ and the text browser w3m), the CPU monitor the tray opens
 Each is a Recommends, so it can be removed later without removing this
 package. System services (PipeWire, NetworkManager, BlueZ, an SSH server)
 and kmscon are only suggested: installing this package never starts a
-network service."""
+network service.
+
+It also ships two systemd units and enables neither: the full screen video
+helper on tty9 (tetron-wm-fullscreen@.service, one instance per user,
+switched in Settings > Windows) and the app server as a user service
+(tetron-wm-apphost.service)."""
 section = "metapackages"
 license = "MIT"
 homepage = "https://github.com/tetronos/tetron-wm"
@@ -47,4 +52,14 @@ suggests = [
   "pipewire", "wireplumber", "network-manager", "bluez", "kmscon (>= 9.1)",
   "openssh-server", "openssh-sftp-server",
 ]
-files = []
+
+# systemd units, not enabled by the package (no maintainer scripts).
+[[files]]
+src = "systemd/tetron-wm-fullscreen@.service"
+dst = "usr/lib/systemd/system/tetron-wm-fullscreen@.service"
+mode = "0644"
+
+[[files]]
+src = "systemd/tetron-wm-apphost.service"
+dst = "usr/lib/systemd/user/tetron-wm-apphost.service"
+mode = "0644"

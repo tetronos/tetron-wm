@@ -798,7 +798,12 @@ EOF
 # A waiter runs as the user on a spare VT in its own login session; the client
 # asks it to play, it switches there through logind (no root), runs mpv and
 # switches back. See src/fullscreen.rs. The unit runs as the user, never root.
+# With tetron-wm-desktop installed, its template unit (VT 9, /usr/bin/tetron-wm)
+# is used, one instance per user, as on the TetronOS Desktop and from Settings;
+# a unit this script wrote earlier is then removed. Another VT, or no template,
+# writes FS_UNIT as before.
 FS_UNIT=/etc/systemd/system/tetron-wm-fullscreen.service
+FS_TEMPLATE=/usr/lib/systemd/system/tetron-wm-fullscreen@.service
 setup_fullscreen() {
   local vt="$1" wm user; wm="$(wm_bin)"
   have systemctl || { warn "no systemd (systemctl): skipping the full screen helper"; return 0; }
@@ -806,6 +811,17 @@ setup_fullscreen() {
   have mpv || warn "mpv is not installed: the helper will refuse to play until it is"
   user="$(logname 2>/dev/null || echo "${SUDO_USER:-$USER}")"
   [ "$user" != root ] || { warn "run this as your own user, not root: skipping the full screen helper"; return 0; }
+  if [ "$vt" = 9 ] && [ -f "$FS_TEMPLATE" ] && [ "$wm" = /usr/bin/tetron-wm ]; then
+    if $SUDO grep -qF "$OVR_MARK" "$FS_UNIT" 2>/dev/null; then
+      log "replacing the full screen helper this script wrote with the packaged one"
+      $SUDO systemctl disable --now tetron-wm-fullscreen.service 2>/dev/null || true
+      $SUDO rm -f "$FS_UNIT"; $SUDO systemctl daemon-reload
+    fi
+    $SUDO systemctl enable --now "tetron-wm-fullscreen@$user.service"
+    state_set fullscreen_vt "$vt"; state_set fullscreen_unit "tetron-wm-fullscreen@$user.service"
+    log "full screen helper is on tty$vt (tetron-wm-fullscreen@$user). Right-click a video in tetron-wm on kmscon: Play full screen."
+    return 0
+  fi
   log "installing the full screen helper on tty$vt (runs as $user)"
   $SUDO tee "$FS_UNIT" >/dev/null <<UNIT
 $OVR_MARK
@@ -879,6 +895,11 @@ do_uninstall() {
     $SUDO systemctl disable --now tetron-wm-fullscreen.service 2>/dev/null || true
     $SUDO rm -f "$FS_UNIT"; $SUDO systemctl daemon-reload
     log "removed the full screen helper"
+  fi
+  fsu="$(state_get fullscreen_unit)"
+  if [ -n "$fsu" ] && confirm "Disable the full screen video helper ($fsu)?" y; then
+    $SUDO systemctl disable --now "$fsu" 2>/dev/null || true
+    log "disabled $fsu (tetron-wm-desktop keeps the unit file)"
   fi
 
   # 3. apphost service

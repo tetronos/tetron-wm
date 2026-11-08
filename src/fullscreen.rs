@@ -23,13 +23,37 @@ pub fn set_enabled(on: bool) {
     ENABLED.store(on, Ordering::Relaxed);
 }
 
-/// The systemd unit the suite installer sets up for the waiter.
-pub const UNIT: &str = "tetron-wm-fullscreen.service";
+/// The packaged waiter unit (tetron-wm-desktop ships it in
+/// /usr/lib/systemd/system), one instance per user: `User=%i`, VT 9.
+pub const TEMPLATE: &str = "tetron-wm-fullscreen@.service";
+/// The unit older suite installers wrote, with the user written in. Still
+/// used where it exists, so a machine set up that way keeps working.
+pub const LEGACY_UNIT: &str = "tetron-wm-fullscreen.service";
+
+/// The template instance for `user`.
+pub fn instance(user: &str) -> String {
+    format!("tetron-wm-fullscreen@{user}.service")
+}
+
+/// The name of the user running this process (from the password database,
+/// not `$USER`, which a `su` or a service may leave stale).
+pub fn user_name() -> Option<String> {
+    // SAFETY: getpwuid returns a pointer into static storage or null; the
+    // name is copied out before any other passwd call can run here.
+    unsafe {
+        let pw = libc::getpwuid(libc::getuid());
+        if pw.is_null() || (*pw).pw_name.is_null() {
+            return None;
+        }
+        std::ffi::CStr::from_ptr((*pw).pw_name).to_str().ok().map(str::to_string)
+    }
+}
 
 /// Where the waiter service stands (Settings shows and switches it).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Service {
-    /// No unit installed (`install-tetron-wm-suite.sh --fullscreen` adds it).
+    /// No unit installed (tetron-wm-desktop ships the template;
+    /// `install-tetron-wm-suite.sh --fullscreen` sets it up without the deb).
     #[default]
     Missing,
     Stopped,
@@ -48,11 +72,31 @@ pub fn parse_service(show: &str) -> Service {
     }
 }
 
-/// Ask systemd (a short, capped shell-out; call it on open, not per frame).
+/// From `systemctl show` of the legacy unit then the instance (two blocks in
+/// that order), the unit in use and its state: the legacy unit when it is
+/// installed, otherwise the instance (`Missing` when no template is
+/// installed either).
+pub fn pick_unit(show: &str, inst: &str) -> (Service, String) {
+    let mut blocks = show.split("\n\n");
+    let legacy = parse_service(blocks.next().unwrap_or(""));
+    if legacy != Service::Missing {
+        return (legacy, LEGACY_UNIT.to_string());
+    }
+    (parse_service(blocks.next().unwrap_or("")), inst.to_string())
+}
+
+/// The waiter unit for this user and its state (a short, capped shell-out;
+/// call it on open, not per frame).
+pub fn service_unit() -> (Service, String) {
+    let inst = instance(&user_name().unwrap_or_default());
+    crate::system::run_capped("systemctl", &["show", "-p", "LoadState", "-p", "ActiveState", LEGACY_UNIT, &inst], 3)
+        .map(|s| pick_unit(&s, &inst))
+        .unwrap_or((Service::Missing, inst))
+}
+
+/// The state of [`service_unit`].
 pub fn service_state() -> Service {
-    crate::system::run_capped("systemctl", &["show", "-p", "LoadState", "-p", "ActiveState", UNIT], 3)
-        .map(|s| parse_service(&s))
-        .unwrap_or_default()
+    service_unit().0
 }
 
 /// Client side: enable and start (`on`) or disable and stop the unit, with
@@ -63,7 +107,8 @@ pub fn service_run(on: bool) -> i32 {
     // SAFETY: getuid never fails.
     let root = unsafe { libc::getuid() } == 0;
     let (program, mut args) = if root { ("systemctl", vec![]) } else { ("sudo", vec!["systemctl"]) };
-    args.extend([verb, "--now", UNIT]);
+    let unit = service_unit().1;
+    args.extend([verb, "--now", unit.as_str()]);
     crate::dbg_log(&format!("fullscreen waiter service: {program} {args:?}"));
     let code = match std::process::Command::new(program).args(&args).status() {
         Ok(s) if s.success() => {
@@ -568,6 +613,19 @@ mod tests {
         assert_eq!(parse_service(""), Service::Missing);
         assert_eq!(parse_service("LoadState=loaded\nActiveState=inactive\n"), Service::Stopped);
         assert_eq!(parse_service("LoadState=loaded\nActiveState=active\n"), Service::Running);
+    }
+
+    #[test]
+    fn the_legacy_unit_wins_where_it_is_installed_else_the_instance() {
+        let inst = instance("ann");
+        assert_eq!(inst, "tetron-wm-fullscreen@ann.service");
+        let legacy_on = "LoadState=loaded\nActiveState=active\n\nLoadState=loaded\nActiveState=inactive\n";
+        assert_eq!(pick_unit(legacy_on, &inst), (Service::Running, LEGACY_UNIT.to_string()));
+        let packaged = "LoadState=not-found\nActiveState=inactive\n\nLoadState=loaded\nActiveState=inactive\n";
+        assert_eq!(pick_unit(packaged, &inst), (Service::Stopped, inst.clone()));
+        let none = "LoadState=not-found\nActiveState=inactive\n\nLoadState=not-found\nActiveState=inactive\n";
+        assert_eq!(pick_unit(none, &inst), (Service::Missing, inst.clone()));
+        assert!(user_name().is_some_and(|n| !n.is_empty()));
     }
 
     use super::*;
