@@ -209,6 +209,10 @@ pub struct Flags {
     /// The menubar volume popover is open (by click or leader =); the client
     /// routes arrows, Enter, m / Space and Esc to it.
     pub tray_volume: bool,
+    /// The menubar brightness popover is open (by click or leader -); the
+    /// client routes Left / Right, Enter and Esc to it.
+    #[serde(default)]
+    pub tray_brightness: bool,
     /// The menubar Info menu is open (by click or leader i); the client routes
     /// arrows, Tab, Enter and Esc to it.
     pub tray_info: bool,

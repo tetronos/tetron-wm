@@ -66,6 +66,7 @@ pub mod systems;
 pub mod calendar;
 pub mod logsview;
 pub mod logfile;
+pub mod brightness;
 pub mod assistant;
 
 /// The crate version (from Cargo.toml).

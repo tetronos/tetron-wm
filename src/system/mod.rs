@@ -14,6 +14,9 @@ pub struct SystemState {
     pub net: Option<NetInfo>,
     pub bluetooth: BluetoothInfo,
     pub volume: VolumeInfo,
+    /// Panel backlight in percent; `None` without a backlight device
+    /// (desktops, VMs), which hides the brightness controls.
+    pub brightness: Option<u8>,
     pub known_networks: Vec<String>,
     pub caps: BackendCaps,
     /// Reachability of the saved remote systems (name → ssh port answered),
@@ -172,6 +175,11 @@ pub enum ControlIntent {
     VolumeDown,
     VolumeSet(u8),
     ToggleMute,
+    /// Screen brightness one step (`brightness::STEP`) up or down, or to a
+    /// percent. Linux backlight only.
+    BrightnessUp,
+    BrightnessDown,
+    BrightnessSet(u8),
     WifiSetEnabled(bool),
     WifiConnectKnown(String),
     BtSetEnabled(bool),

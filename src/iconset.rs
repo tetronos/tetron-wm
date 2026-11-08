@@ -110,6 +110,7 @@ pub enum Status {
     Net,
     Bell,
     Clipboard,
+    Brightness,
 }
 
 /// The glyph for a status indicator in a specific `style`.
@@ -129,6 +130,7 @@ pub fn status_for(s: Status, style: IconStyle) -> char {
             Net => '\u{21C4}',             // ⇄
             Bell => '\u{2022}',            // •
             Clipboard => '\u{00A7}',       // §
+            Brightness => '\u{00A4}',      // ¤ (a small sun)
         },
         // BMP symbols — render in essentially every console/monospace font.
         IconStyle::Ascii | IconStyle::Auto => match s {
@@ -143,6 +145,7 @@ pub fn status_for(s: Status, style: IconStyle) -> char {
             Net => '\u{2193}',             // ↓
             Bell => '\u{2022}',            // •
             Clipboard => '\u{00A7}',       // §
+            Brightness => '\u{00A4}',      // ¤ (a small sun)
         },
         // Nerd Font (FontAwesome) glyphs — needs a Nerd Font installed.
         IconStyle::Nerd => match s {
@@ -157,6 +160,7 @@ pub fn status_for(s: Status, style: IconStyle) -> char {
             Net => '\u{F0EC}',             //  exchange
             Bell => '\u{F0F3}',            //  bell
             Clipboard => '\u{F0EA}',       //  paste
+            Brightness => '\u{F185}',      //  sun-o
         },
         IconStyle::Emoji => match s {
             Cpu => '\u{1F5A5}',            // 🖥
@@ -170,6 +174,7 @@ pub fn status_for(s: Status, style: IconStyle) -> char {
             Net => '\u{1F517}',            // 🔗
             Bell => '\u{1F514}',           // 🔔
             Clipboard => '\u{1F4CB}',      // 📋
+            Brightness => '\u{1F506}',     // 🔆
         },
     }
 }

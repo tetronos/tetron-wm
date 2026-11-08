@@ -24,6 +24,7 @@ pub fn help_sections() -> &'static [HelpSection] {
                 ("f", "window picker (1-9 or Enter)"),
                 ("w", "move window: arrows, r resize"),
                 ("=", "volume: Left/Right, m mute"),
+                ("-", "brightness: Left/Right (laptops)"),
                 ("m / n", "maximize / minimize"),
                 ("Esc", "close window (asks first for apps)"),
                 ("[ / ]", "snap left / right half"),

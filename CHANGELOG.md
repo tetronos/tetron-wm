@@ -14,6 +14,7 @@ carry user-visible feature work and the occasional breaking config change.
 - fbi (full screen images on the framebuffer, View full screen) moved from tetron-wm-extras to tetron-wm-desktop, so the desktop size and the TetronOS Desktop ISO have it; extras now adds git.
 
 ### Added
+- Screen brightness, on a machine with a backlight (a laptop panel): a menubar segment left of the Info menu, leader `-` opens its popover (Left / Right in 5% steps, Esc closes), and Settings > Display has the same control. It is set through logind on the user's session (no root, no extra package), else with brightnessctl, else by writing to sysfs. Desktops with external monitors and virtual machines have no backlight: no segment, and Settings > Display says so.
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.
 
 ## [0.15.5] — 2026-11-08

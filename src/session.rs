@@ -451,6 +451,9 @@ pub enum ClientMsg {
     InfoOpen,
     /// Open (or close) the menubar volume popover from the keyboard (leader =).
     VolumeOpen,
+    /// Open (or close) the menubar brightness popover from the keyboard
+    /// (leader -). Nothing opens on a machine without a backlight.
+    BrightnessOpen,
     /// A key for the open volume popover (Left / Right level, Up / Down rows,
     /// Enter, m / Space mute, Esc).
     TrayKey(crate::tray::TrayKey),
@@ -1370,6 +1373,7 @@ impl SessionCore {
             // Sound section: the same intents the tray popover uses, so the
             // menubar and Settings can never disagree.
             Some(crate::settings::SettingsAction::VolumeDown) => self.apply_intent(crate::system::ControlIntent::VolumeDown),
+            Some(crate::settings::SettingsAction::BrightnessSet(p)) => self.apply_intent(crate::system::ControlIntent::BrightnessSet(p)),
             Some(crate::settings::SettingsAction::VolumeUp) => self.apply_intent(crate::system::ControlIntent::VolumeUp),
             Some(crate::settings::SettingsAction::VolumeSet(l)) => self.apply_intent(crate::system::ControlIntent::VolumeSet(l)),
             Some(crate::settings::SettingsAction::ToggleMute) => self.apply_intent(crate::system::ControlIntent::ToggleMute),
@@ -2172,6 +2176,9 @@ impl SessionCore {
                 I::VolumeDown => s.volume.level = s.volume.level.saturating_sub(5),
                 I::VolumeSet(l) => s.volume.level = (*l).min(100),
                 I::ToggleMute => s.volume.muted = !s.volume.muted,
+                I::BrightnessUp => s.brightness = s.brightness.map(|p| crate::brightness::step(p, true)),
+                I::BrightnessDown => s.brightness = s.brightness.map(|p| crate::brightness::step(p, false)),
+                I::BrightnessSet(p) => s.brightness = s.brightness.map(|_| (*p).clamp(crate::brightness::MIN_PCT, 100)),
                 I::WifiSetEnabled(on) => { if let Some(w) = s.wifi.as_mut() { w.enabled = *on; } }
                 I::BtSetEnabled(on) => s.bluetooth.enabled = *on,
                 _ => {}
@@ -2734,6 +2741,31 @@ or a remote-side error — its authorized_keys was left untouched)",
     /// Whether the Info menu is open (the client routes arrows to it).
     pub fn info_popover_open(&self) -> bool {
         self.tray.open() == Some(crate::tray::SegmentKind::Info)
+    }
+
+    /// Whether the brightness popover is open (the client routes its keys to it).
+    pub fn brightness_popover_open(&self) -> bool {
+        self.tray.open() == Some(crate::tray::SegmentKind::Brightness)
+    }
+
+    /// Leader `-`: toggle the brightness popover under its segment. Without a
+    /// backlight there is no segment and nothing opens.
+    fn brightness_open(&mut self) {
+        if self.brightness_popover_open() {
+            self.tray.close();
+            return;
+        }
+        let Some(x) = self
+            .tray_segments_now()
+            .iter()
+            .find(|s| s.kind == crate::tray::SegmentKind::Brightness)
+            .map(|s| s.rect.x)
+        else {
+            return;
+        };
+        self.launcher.close();
+        self.power_menu.close();
+        self.tray.open_at(crate::tray::SegmentKind::Brightness, x);
     }
 
     fn volume_open(&mut self) {
@@ -3685,6 +3717,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::DesktopCommit => self.desktop_commit(),
             ClientMsg::DesktopCancel => self.desktop.cancel_overlay(),
             ClientMsg::VolumeOpen => self.volume_open(),
+            ClientMsg::BrightnessOpen => self.brightness_open(),
             ClientMsg::InfoOpen => self.info_open(),
             ClientMsg::TrayKey(key) if self.info_popover_open() => {
                 // Enter applies the selected row's action, exactly what a click does.
@@ -3696,10 +3729,13 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             ClientMsg::TrayKey(key) => {
-                if self.tray.open() == Some(crate::tray::SegmentKind::Volume) {
-                    if let Some(intent) = self.tray.volume_key(key) {
-                        self.apply_intent(intent);
-                    }
+                let intent = match self.tray.open() {
+                    Some(crate::tray::SegmentKind::Volume) => self.tray.volume_key(key),
+                    Some(crate::tray::SegmentKind::Brightness) => self.tray.brightness_key(key),
+                    _ => None,
+                };
+                if let Some(intent) = intent {
+                    self.apply_intent(intent);
                 }
             }
             ClientMsg::MoveModeStart => self.move_mode_start(),

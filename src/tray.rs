@@ -22,6 +22,8 @@ pub enum SegmentKind {
     Mem,
     Battery,
     Volume,
+    /// Screen brightness: only on a machine with a backlight.
+    Brightness,
     Bluetooth,
     Wifi,
     Tetron,
@@ -286,6 +288,11 @@ pub fn tray_layout(
     }
     if bells > 0 {
         put(&mut texts, &mut info, placement, SegmentKind::Bell, format!("{} {bells}", status(Status::Bell)), false);
+    }
+    // Brightness, left of Info: a laptop control, never moved into the Info
+    // menu; fixed width so nothing shifts as it changes.
+    if let Some(p) = state.brightness {
+        texts.push((SegmentKind::Brightness, format!("{} {p:>3}", status(Status::Brightness))));
     }
     // The Info menu: fixed width, always present, a fixed distance from the right
     // corner (only the fixed-width clock and volume are right of it).
@@ -634,6 +641,7 @@ impl Tray {
         match kind {
             SegmentKind::Info => self.render_info(w, h, anchor_x, state, info),
             SegmentKind::Volume => self.render_volume(w, h, anchor_x, state),
+            SegmentKind::Brightness => self.render_brightness(w, anchor_x, state),
             SegmentKind::Wifi => self.render_wifi(w, h, anchor_x, state),
             SegmentKind::Bluetooth => self.render_bluetooth(w, h, anchor_x, state),
             SegmentKind::Tetron => self.render_tetron(w, h, anchor_x, state),
@@ -732,6 +740,48 @@ impl Tray {
     fn box_origin(&self, w: i32, anchor_x: i32, box_w: i32) -> Point {
         let x = anchor_x.min(w - box_w - 1).max(0);
         Point::new(x, 1)
+    }
+
+    /// Brightness popover: title with the percent, a level bar with ◂ ▸.
+    fn render_brightness(&self, w: i32, anchor_x: i32, st: &St) -> Rendered {
+        let box_w = 26;
+        let box_h = 5;
+        let origin = self.box_origin(w, anchor_x, box_w);
+        let mut buf = CellBuffer::new(box_w, box_h);
+        fill_box(&mut buf, box_w, box_h);
+        let t = crate::theme::current();
+        let Some(p) = st.brightness else {
+            buf.write_str(2, 1, "No backlight", t.text, t.window_bg);
+            buf.write_str(2, 3, "Esc", t.dim, t.window_bg);
+            return Rendered { layers: vec![layer(origin, buf)], hits: Vec::new(), bounds: Some(Rect::new(origin.x, origin.y, box_w, box_h)) };
+        };
+        buf.write_str(2, 1, &format!("Brightness {p}%"), t.text, t.window_bg);
+        for x in 1..box_w - 1 {
+            buf.set(x, 2, crate::cell::Cell { ch: ' ', fg: t.text, bg: t.active_bg, attrs: Default::default() });
+        }
+        let filled = (p as i32 * 10 / 100).clamp(0, 10) as usize;
+        let bar: String = (0..10).map(|i| if i < filled { crate::glyphs::ch(crate::glyphs::Glyph::BarOn) } else { crate::glyphs::ch(crate::glyphs::Glyph::BarOff) }).collect();
+        buf.write_str(2, 2, "◂", t.accent, t.active_bg);
+        buf.write_str(5, 2, &bar, t.text, t.active_bg);
+        buf.write_str(17, 2, "▸", t.accent, t.active_bg);
+        let hit = |lx: i32, intent: ControlIntent| PopoverHit { rect: Rect::new(origin.x + lx, origin.y + 2, 1, 1), intent };
+        let hits = vec![hit(2, ControlIntent::BrightnessDown), hit(17, ControlIntent::BrightnessUp)];
+        buf.write_str(2, box_h - 2, "←→ level  Esc", t.dim, t.window_bg);
+        Rendered { layers: vec![layer(origin, buf)], hits, bounds: Some(Rect::new(origin.x, origin.y, box_w, box_h)) }
+    }
+
+    /// A key while the brightness popover is open: Left / Right step the
+    /// level, Enter and Esc close. Returns the intent for the session to apply.
+    pub fn brightness_key(&mut self, key: TrayKey) -> Option<ControlIntent> {
+        match key {
+            TrayKey::Left => Some(ControlIntent::BrightnessDown),
+            TrayKey::Right => Some(ControlIntent::BrightnessUp),
+            TrayKey::Enter | TrayKey::Esc => {
+                self.close();
+                None
+            }
+            TrayKey::Up | TrayKey::Down | TrayKey::Mute => None,
+        }
     }
 
     fn render_volume(&self, w: i32, _h: i32, anchor_x: i32, st: &St) -> Rendered {
@@ -1135,6 +1185,25 @@ mod tests {
         let mut tools = crate::traytools::TrayTools::new();
         tools.insert("volume".into(), crate::traytools::ToolSpec::Many(Vec::new()));
         assert_eq!(volume_mixer(&tools, &|_| true, false), None);
+    }
+
+    #[test]
+    fn brightness_segment_only_with_a_backlight_and_its_keys() {
+        let mut st = SystemState::default();
+        let has = |st: &SystemState| tray_segments(st, 200, 0, 0).iter().any(|s| s.kind == SegmentKind::Brightness);
+        assert!(!has(&st), "no backlight: no segment");
+        st.brightness = Some(7);
+        let segs = tray_segments(&st, 200, 0, 0);
+        let b = segs.iter().position(|s| s.kind == SegmentKind::Brightness).expect("segment");
+        assert!(segs[b].text.ends_with("  7"), "fixed width: {:?}", segs[b].text);
+        assert_eq!(segs[b + 1].kind, SegmentKind::Info, "left of Info");
+        let mut tray = Tray::new();
+        tray.open_at(SegmentKind::Brightness, 50);
+        assert_eq!(tray.brightness_key(TrayKey::Left), Some(ControlIntent::BrightnessDown));
+        assert_eq!(tray.brightness_key(TrayKey::Right), Some(ControlIntent::BrightnessUp));
+        assert!(!tray.render(120, 30, &st).hits.is_empty());
+        assert_eq!(tray.brightness_key(TrayKey::Esc), None);
+        assert_eq!(tray.open(), None);
     }
 
     #[test]

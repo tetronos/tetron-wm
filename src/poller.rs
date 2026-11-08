@@ -132,6 +132,8 @@ fn run(state: Arc<RwLock<SystemState>>, gate: Gate) {
         let (used, total) = (sys.used_memory(), sys.total_memory());
         let clock_now = clock.now();
         let battery = read_battery();
+        // A few sysfs reads, like the battery: cheap enough every second.
+        let brightness = if cfg!(target_os = "linux") { crate::brightness::read_pct() } else { None };
 
         // The shell-backed metrics refresh less often than CPU/clock, or at once
         // when a hidden part becomes visible. Only the parts the UI shows are read.
@@ -158,6 +160,7 @@ fn run(state: Arc<RwLock<SystemState>>, gate: Gate) {
             s.mem.used = used;
             s.mem.total = total;
             s.battery = battery;
+            s.brightness = brightness;
             // Capabilities are cheap and fixed; always set so segments that depend
             // on them (Bluetooth) exist even when their data is not being read.
             s.caps = caps;

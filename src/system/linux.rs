@@ -87,6 +87,14 @@ impl SystemControl for LinuxBackend {
                 let v = read_volume();
                 wp(&set_volume_argv(v.level.saturating_sub(5)));
             }
+            ControlIntent::BrightnessSet(p) => {
+                crate::brightness::set_pct(*p);
+            }
+            ControlIntent::BrightnessUp | ControlIntent::BrightnessDown => {
+                if let Some(p) = crate::brightness::read_pct() {
+                    crate::brightness::set_pct(crate::brightness::step(p, *intent == ControlIntent::BrightnessUp));
+                }
+            }
             ControlIntent::ToggleMute => {
                 run_capped("wpctl", &["set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"], 2);
             }

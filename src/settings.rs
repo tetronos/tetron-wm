@@ -20,7 +20,7 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "Assistant", "Clipboard", "Terminal", "Sound", "General", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "Assistant", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
@@ -33,8 +33,9 @@ const ASSISTANT: usize = 5;
 const CLIPBOARD: usize = 6;
 const TERMINAL: usize = 7;
 const SOUND: usize = 8;
-const GENERAL: usize = 9;
-// About is last (index 10) and has no rows.
+const DISPLAY: usize = 9;
+const GENERAL: usize = 10;
+// About is last (index 11) and has no rows.
 
 /// Roles listed in the Default Apps section (config key, label).
 const DEFAULT_APP_ROLES: &[(&str, &str)] = &[
@@ -82,6 +83,9 @@ pub enum SettingsAction {
     /// Windows section: enable and start (`true`) or disable and stop the full
     /// screen waiter service. Runs `sudo systemctl` on the real terminal.
     WaiterService(bool),
+    /// Display: set the screen brightness to this percent now (machine
+    /// state, never written to the config).
+    BrightnessSet(u8),
     /// General > Config file: open it in the Default Apps editor.
     OpenConfigFile,
     /// General > Config file: write the example (only when there is no file).
@@ -181,6 +185,9 @@ pub struct Settings {
     /// The waiter service as of open / the last section entry (a shell-out, so
     /// never per frame).
     waiter: crate::fullscreen::Service,
+    /// Display: the backlight in percent as of open / entering Display (and
+    /// after each change); `None` without a backlight.
+    brightness: Option<u8>,
     /// Whether `config.toml` exists, as of open / entering General.
     cfg_exists: bool,
     /// General > Reset was pressed once; the next Enter on it resets. Any other
@@ -220,7 +227,7 @@ impl Settings {
             apphost_outdated: false, cfg, section: 0, sel: 0, action: None, update_status: String::new(),
             edit: None, text: None, stage_bg, stage_fg, previewing: false, colors_live: true,
             sound: None, outputs: Vec::new(), in_sidebar: false, wallpaper_note: None,
-            waiter: crate::fullscreen::service_state(), cfg_exists: config_file_exists(), reset_armed: false,
+            waiter: crate::fullscreen::service_state(), brightness: crate::brightness::read_pct(), cfg_exists: config_file_exists(), reset_armed: false,
             themes_status: String::new(), themes_busy: false, install_info: install_info(),
             apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_pick: 0, have_curl: crate::catalog::is_installed("curl"),
         }.with_wallpaper_note()
@@ -287,6 +294,8 @@ impl Settings {
             self.action = Some(SettingsAction::RefreshSound);
         } else if i == WINDOWS {
             self.waiter = crate::fullscreen::service_state();
+        } else if i == DISPLAY {
+            self.brightness = crate::brightness::read_pct();
         } else if i == GENERAL {
             self.cfg_exists = config_file_exists();
             self.refresh_apps();
@@ -374,6 +383,7 @@ impl Settings {
             CLIPBOARD => 10,                           // clipboard: history, disk, selections, size, shims, osc52 read, fake display, expiry, max item, clear
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
+            DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
             GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
             _ => 0,                            // About
         }
@@ -732,6 +742,13 @@ impl Settings {
                 self.action = Some(SettingsAction::SetOutput(self.outputs[next].id));
             }
             (SOUND, 3) if dir == 0 => self.action = Some(SettingsAction::OpenMixer),
+            (DISPLAY, 0) if dir != 0 => {
+                if let Some(p) = self.brightness {
+                    let next = crate::brightness::step(p, dir > 0);
+                    self.brightness = Some(next);
+                    self.action = Some(SettingsAction::BrightnessSet(next));
+                }
+            }
             (GENERAL, 0) if dir == 0 => self.action = Some(SettingsAction::OpenConfigFile),
             (GENERAL, 1) if dir == 0 && !self.cfg_exists => self.action = Some(SettingsAction::CreateConfigFile),
             (GENERAL, 1) if dir == 0 && armed => self.action = Some(SettingsAction::ResetConfigFile),
@@ -1079,6 +1096,7 @@ impl Settings {
             }
             TERMINAL => self.render_terminal(&mut buf, cx),
             SOUND => self.render_sound(&mut buf, cx),
+            DISPLAY => self.render_display(&mut buf, cx),
             GENERAL => self.render_general(&mut buf, cx),
             _ => {
                 buf.write_str(cx, 3, "tetron-wm — a desktop environment for the terminal", pal_fg(), pal_bg());
@@ -1119,6 +1137,20 @@ impl Settings {
     }
 
     /// Render the General section: the config file group.
+    fn render_display(&self, buf: &mut CellBuffer, cx: i32) {
+        match self.brightness {
+            Some(p) => {
+                self.row(buf, cx, 3, 0, "Brightness", format!("\u{25C2} {p}% \u{25B8}"));
+                buf.write_str(cx, 5, "Left / Right change it in 5% steps; leader - opens", pal_dim(), pal_bg());
+                buf.write_str(cx, 6, "the same control from anywhere.", pal_dim(), pal_bg());
+            }
+            None => {
+                buf.write_str(cx, 3, "No backlight on this machine (an external monitor", pal_fg(), pal_bg());
+                buf.write_str(cx, 4, "or a virtual machine): use the monitor's own buttons.", pal_fg(), pal_bg());
+            }
+        }
+    }
+
     fn render_general(&self, buf: &mut CellBuffer, cx: i32) {
         let path = crate::config::file_path().map(|p| p.display().to_string()).unwrap_or_else(|_| "(no home directory)".into());
         let state = if self.cfg_exists { "" } else { "  (not created yet, defaults in use)" };
@@ -2007,7 +2039,7 @@ mod tests {
         assert_eq!(SECTIONS[s.section], "Appearance");
         assert_eq!(SECTIONS[GENERAL], "General");
         assert_eq!(SECTIONS.last(), Some(&"About"));
-        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "Assistant"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound")] {
+        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "Assistant"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
             assert_eq!(SECTIONS[i], name);
         }
     }
@@ -2085,6 +2117,24 @@ mod tests {
         s.toggle();
         assert_eq!(s.take_action(), None, "no curl: nothing to run");
         assert!(screen(&s).contains("needs curl"));
+    }
+
+    #[test]
+    fn display_brightness_row_steps_and_asks_to_set_it() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(DISPLAY);
+        s.brightness = Some(50);
+        assert!(screen(&s).contains("50%"));
+        s.right();
+        assert_eq!(s.take_action(), Some(SettingsAction::BrightnessSet(55)));
+        s.left();
+        s.left();
+        assert_eq!(s.take_action(), Some(SettingsAction::BrightnessSet(45)));
+        s.toggle();
+        assert_eq!(s.take_action(), None, "Enter does nothing");
+        s.brightness = None;
+        assert_eq!(s.item_count(), 0);
+        assert!(screen(&s).contains("No backlight"));
     }
 
     #[test]

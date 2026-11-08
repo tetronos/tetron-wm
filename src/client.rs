@@ -336,6 +336,22 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                         if let Some(key) = key {
                             send(&mut out_stream, &ClientMsg::TrayKey(key))?;
                         }
+                    } else if f.tray_brightness {
+                        // Brightness popover (click or leader -): Left / Right
+                        // level, Enter or Esc closes; the leader closes it too.
+                        leader = false;
+                        use crate::tray::TrayKey as T;
+                        let key = match k.code {
+                            KeyCode::Left | KeyCode::Char('-') => Some(T::Left),
+                            KeyCode::Right | KeyCode::Char('=') | KeyCode::Char('+') => Some(T::Right),
+                            KeyCode::Enter => Some(T::Enter),
+                            KeyCode::Esc => Some(T::Esc),
+                            _ if is_leader => Some(T::Esc),
+                            _ => None,
+                        };
+                        if let Some(key) = key {
+                            send(&mut out_stream, &ClientMsg::TrayKey(key))?;
+                        }
                     } else if f.move_mode {
                         // Keyboard move mode is modal: arrows step 1 cell (Shift: 5),
                         // r toggles resize, Enter keeps, Esc undoes. Other keys
@@ -386,6 +402,7 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (Some("windows"), _) => send(&mut out_stream, &ClientMsg::WindowPickerOpen)?,
                             (Some("move"), _) => send(&mut out_stream, &ClientMsg::MoveModeStart)?,
                             (Some("volume"), _) => send(&mut out_stream, &ClientMsg::VolumeOpen)?,
+                            (Some("brightness"), _) => send(&mut out_stream, &ClientMsg::BrightnessOpen)?,
                             (Some("info"), _) => send(&mut out_stream, &ClientMsg::InfoOpen)?,
                             (Some("close"), _) => send(&mut out_stream, &ClientMsg::CloseFocused)?,
                             (Some("snap_left"), _) => send(&mut out_stream, &ClientMsg::SnapFocused(SnapZone::Left))?,

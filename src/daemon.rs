@@ -498,6 +498,7 @@ fn serve_client_inner(
             window_picker: core.window_picker_open(),
             move_mode: core.move_mode_open(),
             tray_volume: core.volume_popover_open(),
+            tray_brightness: core.brightness_popover_open(),
             tray_info: core.info_popover_open(),
             clipmenu_open: core.clipmenu_open(),
             filemanager_focused: core.focused_is_filemanager(),
