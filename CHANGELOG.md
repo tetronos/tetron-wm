@@ -7,7 +7,7 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Changed
-- The log moved to `~/.local/state/tetron-wm/debug.log` (`$XDG_STATE_HOME`; `~/Library/Logs/tetron-wm/` on macOS). At 4 MiB it is rotated into `debug.log.1` .. `.3` and the oldest is dropped, so at most 16 MiB is kept; before, the file was emptied at 4 MiB and its history lost. The first start moves the old `~/tetron-wm-debug.log` there as `debug.log.3`, never deleting it. The Logs viewer reaches into `debug.log.1` right after a rotation.
+- The log moved to `~/.local/state/tetron-wm/debug.log` (`$XDG_STATE_HOME`; `~/Library/Logs/tetron-wm/` on macOS). At 4 MiB it is rotated into `debug.log.1` .. `.3` and the oldest is dropped, so at most 16 MiB is kept; before, the file was emptied at 4 MiB and its history lost. The first start moves the old `~/tetron-wm-debug.log` there as `debug.log.1` (after any rotated files already there), so it lasts three rotations, never deleting it. The Logs viewer reaches into `debug.log.1` right after a rotation.
 - The log records events, not repeats: every message from the client, and each wallpaper load, desktop reload and systems load that changed nothing, are now `debug` lines. Failures are marked `WARN`.
 - Test runs (`cargo test`) no longer write into the user's log.
 - tetron-wm-desktop ships the full screen helper as a template unit, `tetron-wm-fullscreen@.service` (one instance per user, tty9), and the app server as a user unit, `tetron-wm-apphost.service`; it enables neither. Settings > Windows > Full screen helper service switches the instance of the running user, so the helper can be turned on in-app wherever tetron-wm-desktop is installed (it said "not installed" unless the suite installer had written its own unit, which is still used where it exists). The daemon starts the packaged apphost unit when it is enabled for the user. The suite installer uses the packaged template when tetron-wm-desktop is installed and the VT is 9, and replaces the unit it wrote before.
@@ -16,6 +16,10 @@ carry user-visible feature work and the occasional breaking config change.
 ### Added
 - Screen brightness, on a machine with a backlight (a laptop panel): a menubar segment left of the Info menu, leader `-` opens its popover (Left / Right in 5% steps, Esc closes), and Settings > Display has the same control. It is set through logind on the user's session (no root, no extra package), else with brightnessctl, else by writing to sysfs. Desktops with external monitors and virtual machines have no backlight: no segment, and Settings > Display says so.
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.
+
+### Fixed
+- Play full screen on a machine with no working sound device played the whole video and then reported an error (mpv exits 2 when it can not open audio); mpv now falls back to no sound (`--audio-fallback-to-null=yes`).
+- A missing folder (no `~/Desktop` on a fresh user) is no longer logged on every desktop reload; it is a `debug` line, and other listing failures are `WARN`.
 
 ## [0.15.5] — 2026-11-08
 

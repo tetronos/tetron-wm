@@ -217,7 +217,7 @@ pub fn validate(path: &str) -> Result<PathBuf, String> {
 pub fn mpv_args(file: &Path) -> Vec<String> {
     let mut v: Vec<String> = [
         "--no-config", "--load-scripts=no", "--ytdl=no", "--access-references=no",
-        "--vo=drm", "--fs", "--msg-level=all=error", "--",
+        "--vo=drm", "--fs", "--audio-fallback-to-null=yes", "--msg-level=all=error", "--",
     ]
     .iter()
     .map(|s| s.to_string())

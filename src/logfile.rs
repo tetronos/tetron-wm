@@ -200,16 +200,23 @@ pub fn rotate(path: &Path) {
     let _ = std::fs::rename(path, nth(1));
 }
 
-/// Move the pre-0.15.6 `~/tetron-wm-debug.log` into `dir` as the oldest kept
-/// file (`debug.log.3`), unless that slot is taken. Never deletes it: when the
-/// move fails (another filesystem) the old file stays where it is. Returns the
-/// new path when it moved.
+/// Move the pre-0.15.6 `~/tetron-wm-debug.log` into `dir` as the next rotated
+/// file after the existing ones (`debug.log.1` on a first start), so it ages
+/// through `.2` and `.3` like any rotated file and lasts [`KEEP`] rotations.
+/// When every slot is taken it stays where it is. Never deletes it: when the
+/// move fails (another filesystem) the old file stays too. Returns the new path
+/// when it moved.
 pub fn migrate(home: &Path, dir: &Path) -> Option<PathBuf> {
     let old = home.join(LEGACY_FILE);
-    let new = dir.join(format!("{FILE}.{KEEP}"));
-    if !old.is_file() || new.exists() {
+    if !old.is_file() {
         return None;
     }
+    // Older than every rotated file: the slot after the highest one present.
+    let next = (1..=KEEP).rev().find(|i| dir.join(format!("{FILE}.{i}")).exists()).map_or(1, |i| i + 1);
+    if next > KEEP {
+        return None;
+    }
+    let new = dir.join(format!("{FILE}.{next}"));
     std::fs::create_dir_all(dir).ok()?;
     std::fs::rename(&old, &new).ok()?;
     Some(new)
@@ -276,14 +283,34 @@ mod tests {
         assert_eq!(migrate(&home, &logs), None, "nothing to move");
         std::fs::write(home.join(LEGACY_FILE), "old\n").unwrap();
         let moved = migrate(&home, &logs).unwrap();
-        assert_eq!(moved, logs.join("debug.log.3"));
+        assert_eq!(moved, logs.join("debug.log.1"), "first start: the newest rotated slot");
         assert_eq!(std::fs::read_to_string(&moved).unwrap(), "old\n");
         assert!(!home.join(LEGACY_FILE).exists());
-        // A second old file (an older binary ran again) does not replace it.
+        // A second old file (an older binary ran again) goes after it, never over it.
         std::fs::write(home.join(LEGACY_FILE), "again\n").unwrap();
-        assert_eq!(migrate(&home, &logs), None);
-        assert!(home.join(LEGACY_FILE).exists(), "left in place, not deleted");
+        assert_eq!(migrate(&home, &logs), Some(logs.join("debug.log.2")));
         assert_eq!(std::fs::read_to_string(&moved).unwrap(), "old\n");
+        std::fs::write(logs.join("debug.log.3"), "x\n").unwrap();
+        std::fs::write(home.join(LEGACY_FILE), "third\n").unwrap();
+        assert_eq!(migrate(&home, &logs), None, "all slots taken");
+        assert!(home.join(LEGACY_FILE).exists(), "left in place, not deleted");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_migrated_log_survives_the_first_rotation() {
+        let d = tmp("migrate-rotate");
+        let home = d.join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(home.join(LEGACY_FILE), "old\n").unwrap();
+        migrate(&home, &d).unwrap();
+        let p = d.join(FILE);
+        for _ in 0..(KEEP - 1) {
+            std::fs::write(&p, "full\n").unwrap();
+            rotate(&p);
+        }
+        let oldest = d.join(format!("{FILE}.{KEEP}"));
+        assert_eq!(std::fs::read_to_string(&oldest).unwrap(), "old\n", "kept for {KEEP} rotations");
         let _ = std::fs::remove_dir_all(&d);
     }
 

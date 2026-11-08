@@ -49,7 +49,10 @@ impl FsOps for StdFs {
     fn list(&self, dir: &Path, show_hidden: bool) -> io::Result<Vec<Entry>> {
         let mut out = Vec::new();
         let read = std::fs::read_dir(dir).map_err(|e| {
-            crate::dbg_log(&format!("fileops::list ERR {}: {}", dir.display(), e));
+            // A missing folder (no ~/Desktop on a fresh user) is an empty
+            // view, not news: debug only. Anything else is a warning.
+            let msg = format!("fileops::list {}: {}", dir.display(), e);
+            if e.kind() == io::ErrorKind::NotFound { crate::log_debug(&msg) } else { crate::log_warn(&msg) }
             e
         })?;
         for ent in read {
