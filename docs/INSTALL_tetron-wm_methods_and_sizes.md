@@ -17,8 +17,8 @@ Press Enter at each question to take the default: the desktop size, and the setu
 | Size | What you get |
 |---|---|
 | minimal | tetron-wm only. Everything works that needs no other program; features that need one (image wallpaper, video, PDF pages, sound controls, ...) stay off until that program is installed. |
-| desktop (default) | tetron-wm plus the tools its features use: tetron-browser (Debian and Ubuntu amd64, from the [tetronos apt repo](https://tetronos.github.io/apt)), chafa, mpv, poppler-utils, w3m, htop, upower, gpm, xclip and wl-clipboard (with a desktop session), alsa-utils, openssh-client, sshpass, sshfs, 7zip, unzip, gnupg, python3, curl, console fonts, the DejaVu font, mc and vim; also fresh, uv, catt, casttui, the Symbols Nerd Font and opencode (the agent of the ✦ Assistant), which no distribution packages. |
-| extras | desktop plus fbi and git. |
+| desktop (default) | tetron-wm plus the tools its features use: tetron-browser (Debian and Ubuntu amd64, from the [tetronos apt repo](https://tetronos.github.io/apt)), chafa, mpv, fbi, poppler-utils, w3m, htop, upower, gpm, xclip and wl-clipboard (with a desktop session), alsa-utils, openssh-client, sshpass, sshfs, 7zip, unzip, gnupg, python3, curl, console fonts, the DejaVu font, mc and vim; also fresh, uv, catt, casttui, the Symbols Nerd Font and opencode (the agent of the ✦ Assistant), which no distribution packages. |
+| extras | desktop plus git. |
 
 System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a size: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
 

@@ -30,7 +30,7 @@
 #                         desktop  plus the tools its features use (default): chafa,
 #                                  mpv, poppler, w3m, htop, sshfs, mc, vim, ... and
 #                                  fresh, uv, catt, casttui, a Nerd Font, opencode
-#                         extras   plus extra apps (fbi, git)
+#                         extras   plus extra apps (git)
 #                       The list is assets/suite-apps.txt, generated from
 #                       packaging/*.toml (the same sets as the tetron-wm-desktop
 #                       and tetron-wm-extras debs). On Debian and Ubuntu, when
@@ -984,7 +984,7 @@ main() {
       choose "How much do you want installed?" 2 \
         "minimal: tetron-wm only" \
         "desktop: tetron-wm and the tools its features use (recommended)" \
-        "extras: desktop plus extra apps (fbi, git)"
+        "extras: desktop plus extra apps (git)"
       case "$CHOICE" in 1) SIZE=minimal ;; 3) SIZE=extras ;; esac
     fi
   fi

@@ -1139,7 +1139,7 @@ impl Settings {
         buf.write_str(cx, 13, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
         buf.write_str(cx, 14, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
         buf.write_str(cx, 15, "Apps: desktop adds the tools tetron-wm uses; extras", pal_dim(), pal_bg());
-        buf.write_str(cx, 16, "adds fbi and git. Installs in a window (sudo asks).", pal_dim(), pal_bg());
+        buf.write_str(cx, 16, "adds git. Installs in a window (sudo asks).", pal_dim(), pal_bg());
         buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
     }
 

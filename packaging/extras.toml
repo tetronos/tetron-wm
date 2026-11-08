@@ -7,8 +7,7 @@ name = "tetron-wm-extras"
 description = "tetron-wm desktop with extra terminal apps"
 long_description = """
 Installs tetron-wm-desktop (tetron-wm and the tools its features use) and
-adds apps that tetron-wm does not need for its own features: full screen
-images on the framebuffer (fbi) and git.
+adds apps that tetron-wm does not need for its own features: git.
 
 Each is a Recommends, so it can be removed later without removing this
 package."""
@@ -16,5 +15,5 @@ section = "metapackages"
 license = "MIT"
 homepage = "https://github.com/tetronos/tetron-wm"
 depends = ["tetron-wm-desktop (>= {minor})"]
-recommends = ["fbi", "git"]
+recommends = ["git"]
 files = []

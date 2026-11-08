@@ -10,6 +10,7 @@ carry user-visible feature work and the occasional breaking config change.
 - The log moved to `~/.local/state/tetron-wm/debug.log` (`$XDG_STATE_HOME`; `~/Library/Logs/tetron-wm/` on macOS). At 4 MiB it is rotated into `debug.log.1` .. `.3` and the oldest is dropped, so at most 16 MiB is kept; before, the file was emptied at 4 MiB and its history lost. The first start moves the old `~/tetron-wm-debug.log` there as `debug.log.3`, never deleting it. The Logs viewer reaches into `debug.log.1` right after a rotation.
 - The log records events, not repeats: every message from the client, and each wallpaper load, desktop reload and systems load that changed nothing, are now `debug` lines. Failures are marked `WARN`.
 - Test runs (`cargo test`) no longer write into the user's log.
+- fbi (full screen images on the framebuffer, View full screen) moved from tetron-wm-extras to tetron-wm-desktop, so the desktop size and the TetronOS Desktop ISO have it; extras now adds git.
 
 ### Added
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.

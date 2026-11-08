@@ -13,7 +13,8 @@ name = "tetron-wm-desktop"
 description = "tetron-wm with the tools its features use"
 long_description = """
 Installs tetron-wm together with the programs that its features call:
-image wallpapers and previews (chafa), video and audio (mpv), PDF pages
+image wallpapers and previews (chafa), video and audio (mpv), full
+screen images on the framebuffer (fbi), PDF pages
 (poppler-utils), web browsers (tetron-browser from the tetronos apt repo,
 and the text browser w3m), the CPU monitor the tray opens
 (htop), battery status (upower), the console mouse (gpm), clipboard sync
@@ -36,7 +37,7 @@ recommends = [
   "xclip", "wl-clipboard", "alsa-utils", "sshpass", "fonts-dejavu-core",
   "7zip | p7zip-full", "gnupg",
   "python3", "curl", "openssh-client", "unzip", "console-setup-linux",
-  "htop", "sshfs", "mc", "vim", "tetron-browser",
+  "htop", "sshfs", "mc", "vim", "tetron-browser", "fbi",
 ]
 # kmscon (>= 9.1): Debian 12 ships 9.0.0, without truecolor and mouse passthrough.
 # openssh-server is only a Suggests: Debian starts the SSH server

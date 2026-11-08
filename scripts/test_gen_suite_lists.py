@@ -42,7 +42,7 @@ class Generated(unittest.TestCase):
                 self.assertIn(r[1], ("apps", "gui", "services"))
 
     def test_extras_only_add_to_desktop(self):
-        self.assertEqual({r[3] for r in self.rows if r[0] == "extras"}, {"fbi", "git"})
+        self.assertEqual({r[3] for r in self.rows if r[0] == "extras"}, {"git"})
 
 
 class Errors(unittest.TestCase):

@@ -105,7 +105,7 @@ class DesktopMetapackage(Requirement):
     configured or has no build for the architecture, and the suite
     script's one-by-one apt path skips every name apt has no candidate
     for, so a missing one never fails the batch. Services
-    (pipewire, wireplumber, network-manager, bluez), kmscon and fbi are
+    (pipewire, wireplumber, network-manager, bluez) and kmscon are
     Suggests, as are btop, age and openssh-server (an SSH server must never
     start just because the desktop set was installed). Tools Debian does not package (carbonyl, fresh,
     casttui, catt, uv, opencode, a symbols Nerd Font) stay with the
@@ -121,8 +121,8 @@ class ExtrasMetapackage(Requirement):
 
     `tetron-wm-extras` (`packaging/extras.toml`, a metapackage, Architecture
     all) Depends `tetron-wm-desktop (>= {minor})` and Recommends the
-    nice-to-have apps tetron-wm does not need for its own features (fbi,
-    git). Three sizes result: tetron-wm (nothing else),
+    nice-to-have apps tetron-wm does not need for its own features (git).
+    fbi is in tetron-wm-desktop: View full screen uses it for images. Three sizes result: tetron-wm (nothing else),
     tetron-wm-desktop (every feature), tetron-wm-extras (every feature plus
     the extra apps). Release CI builds it once next to tetron-wm-desktop
     and checks its Recommends install together with the other two debs.
