@@ -10458,6 +10458,21 @@
    ]
   },
   {
+   "name": "unattended-upgrades",
+   "bin": "unattended-upgrade",
+   "category": "Miscellaneous",
+   "description": "Installs security updates automatically in the background on Debian and Ubuntu. Installing it turns automatic updates on; sudo dpkg-reconfigure unattended-upgrades turns them off. In no set: many users want to choose when updates happen.",
+   "homepage": "https://wiki.debian.org/UnattendedUpgrades",
+   "cli": true,
+   "pkg": {
+    "apt": "unattended-upgrades"
+   },
+   "tier": "optional",
+   "sources": [
+    "tetron"
+   ]
+  },
+  {
    "name": "vortix",
    "bin": "vortix",
    "category": "Miscellaneous",

@@ -6417,3 +6417,12 @@ pkg = { apt = "w3m", pacman = "w3m" }
 [[app]]
 name = "cava"
 pkg = { apt = "cava" }
+
+[[app]]
+name = "unattended-upgrades"
+bin = "unattended-upgrade"
+category = "Miscellaneous"
+cli = true
+description = "Installs security updates automatically in the background on Debian and Ubuntu. Installing it turns automatic updates on; sudo dpkg-reconfigure unattended-upgrades turns them off. In no set: many users want to choose when updates happen."
+homepage = "https://wiki.debian.org/UnattendedUpgrades"
+pkg = { apt = "unattended-upgrades" }
