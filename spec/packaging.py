@@ -79,7 +79,8 @@ class LeanDeb(Requirement):
 
     `packaging/deb.toml`: the binary, the helpers `tetron-wm-startpage` and
     `tetron-aimode` in usr/bin (WMDEB-004), and the docs in
-    usr/share/doc/tetron-wm; Depends computed from the ELF only; no declared
+    usr/share/doc/tetron-wm (with `packaging/parity.toml`, which the
+    TetronOS build checks its Desktop ISO against); Depends computed from the ELF only; no declared
     Depends or Recommends (python3, curl and the feature tools are
     Suggests, by their Debian names); no maintainer scripts. `apt install`
     of the deb on a fresh Debian 13 adds exactly one package. Release CI

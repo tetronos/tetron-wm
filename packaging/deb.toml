@@ -68,3 +68,10 @@ mode = "0644"
 src = "../THIRD-PARTY-LICENSES.md"
 dst = "usr/share/doc/tetron-wm/THIRD-PARTY-LICENSES.md"
 mode = "0644"
+
+# The parity table (script, deb, ISO, in-app): the TetronOS build reads it
+# from this deb to check its Desktop ISO carries what the table expects.
+[[files]]
+src = "parity.toml"
+dst = "usr/share/doc/tetron-wm/parity.toml"
+mode = "0644"
