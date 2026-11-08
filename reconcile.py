@@ -107,12 +107,32 @@ def check_planning_notes() -> dict:
     return {"count": len(hits), "hits": hits[:20]}
 
 
+def check_parity() -> dict:
+    """CON-WD08: every suite script step has a parity row, every row says each path."""
+    import re
+    problems = []
+    steps = set(re.findall(r"^# ── Step ([0-9a-z]+):", Path("install-tetron-wm-suite.sh").read_text(), re.M))
+    rows = tomllib.loads(Path("packaging/parity.toml").read_text()).get("row", [])
+    shipped = {Path(f["dst"]).name for f in tomllib.loads(Path("packaging/desktop.toml").read_text()).get("files", [])}
+    for i, r in enumerate(rows):
+        where = f"packaging/parity.toml row {i + 1} (step {r.get('step')})"
+        if r.get("step") not in steps:
+            problems.append(f"{where}: no such step in install-tetron-wm-suite.sh")
+        for k in ("what", "deb", "iso", "inapp"):
+            v = str(r.get(k, "")).strip()
+            if not v or v == "none" or (v.startswith("none") and not v.startswith("none: ")) or v == "none:":
+                problems.append(f"{where}: {k} must name the path or say \"none: <why>\"")
+        problems += [f"{where}: unit {u} is not in packaging/desktop.toml files" for u in r.get("iso_units", []) if u not in shipped]
+    problems += [f"install-tetron-wm-suite.sh step {s} has no row in packaging/parity.toml" for s in sorted(steps - {r.get("step") for r in rows})]
+    return {"ok": not problems and bool(steps), "steps": sorted(steps), "problems": problems}
+
+
 def check_example_config() -> dict:
     hits = [str(p) for p in Path("src").rglob("*.rs") if 'include_str!("../config.example.toml")' in p.read_text()]
     return {"compiled_in": bool(hits), "files": hits}
 
 
 if __name__ == "__main__":
-    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "catalog": check_catalog(), "planning_notes": check_planning_notes(), "example_config": check_example_config()}
+    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "catalog": check_catalog(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config()}
     print(json.dumps(ctx, indent=2))
-    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["catalog"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["example_config"]["compiled_in"] else 1)
+    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["catalog"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] else 1)

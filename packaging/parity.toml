@@ -1,0 +1,98 @@
+# Parity between the ways a machine gets tetron-wm: the suite installer
+# (install-tetron-wm-suite.sh, what `curl -fsSL .../install.sh | bash` runs),
+# the debs, the TetronOS Desktop ISO and Settings inside tetron-wm. One row per
+# script step or part of a step; each `# ── Step N: ...` header in the script
+# needs at least one row with that `step` (reconcile.py, CON-WD07).
+#
+# deb, iso, inapp: where the same result comes from on that path, or
+# "none: <why>" for a deliberate difference. The tetron-os reconcile reads the
+# rows with iso_packages / iso_units and checks the Desktop ISO carries them.
+
+[[row]]
+step = "1"
+what = "tetron-wm binary and its helpers (tetron-wm-startpage, tetron-aimode)"
+deb = "tetron-wm"
+iso = "tetron-wm (tetronos-desktop depends on it)"
+inapp = "Settings > Updates"
+iso_packages = ["tetron-wm"]
+
+[[row]]
+step = "2"
+what = "config dir, config.toml seeded with every key at its default"
+deb = "none: tetron-wm runs on its built-in defaults without a file"
+iso = "none: as the deb"
+inapp = "Settings > General > Create from example"
+
+[[row]]
+step = "2a"
+what = "extra theme files"
+deb = "none: themes are fetched in-app"
+iso = "none: as the deb"
+inapp = "Settings > Appearance > Get more themes"
+
+[[row]]
+step = "2b"
+what = "apps of the desktop size that distributions package (mpv, chafa, fbi, ...)"
+deb = "tetron-wm-desktop (Recommends)"
+iso = "tetron-wm-desktop"
+inapp = "Settings > General > Apps"
+iso_packages = ["tetron-wm-desktop", "mpv", "chafa", "fbi"]
+
+[[row]]
+step = "2b"
+what = "apps of the extras size (git)"
+deb = "tetron-wm-extras (Recommends)"
+iso = "none: the Desktop ISO installs the desktop size"
+inapp = "Settings > General > Apps"
+
+[[row]]
+step = "2b"
+what = "apps no distribution packages (fresh, uv, catt, casttui, Nerd Font symbols, opencode)"
+deb = "none: not in Debian; packaging/script-only.toml"
+iso = "none: not yet on the ISO, installed in-app"
+inapp = "Settings > General > Apps (runs the suite installer)"
+
+[[row]]
+step = "2b"
+what = "system services (PipeWire, NetworkManager, BlueZ), asked separately"
+deb = "none: Suggests only, a deb never starts a network service"
+iso = "tetronos-desktop"
+inapp = "none: machine policy, not a tetron-wm setting"
+
+[[row]]
+step = "3"
+what = "kmscon (>= 9.1)"
+deb = "none: a Suggests (Debian 12 has 9.0)"
+iso = "kmscon (TetronOS ships it)"
+inapp = "none: a console, set up before tetron-wm runs"
+iso_packages = ["kmscon"]
+
+[[row]]
+step = "4a"
+what = "kmscon on a VT, optional autologin"
+deb = "none: a deb does not know the user or the VT"
+iso = "tetronos-live-config (live tty1 autologin)"
+inapp = "none: set up before tetron-wm runs"
+
+[[row]]
+step = "4b"
+what = "start tetron-wm on login on that VT"
+deb = "none: a deb does not change login shells"
+iso = "tetronos-live-config (tetron-session)"
+inapp = "none: set up before tetron-wm runs"
+
+[[row]]
+step = "4b"
+what = "apphost as a user service (apps survive UI reloads, restart on a crash)"
+deb = "tetron-wm-desktop ships tetron-wm-apphost.service (user unit), not enabled"
+iso = "enabled for every user (systemctl --global enable)"
+inapp = "none: tetron-wm starts the apphost itself when no service is enabled"
+iso_units = ["tetron-wm-apphost.service"]
+
+[[row]]
+step = "4c"
+what = "full screen video helper on tty9"
+deb = "tetron-wm-desktop ships tetron-wm-fullscreen@.service, not enabled"
+iso = "enabled for the live user and the installed user"
+inapp = "Settings > Windows > Full screen helper service"
+iso_units = ["tetron-wm-fullscreen@.service"]

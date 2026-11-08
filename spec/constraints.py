@@ -90,3 +90,18 @@ class CatalogMerged(Constraint):
     """
     constraint_id = "CON-WD07"
     enforcement_logic = "{{ catalog.current }}"
+
+
+class ParityTable(Constraint):
+    """CONSTRAINT-ID: CON-WD08
+
+    `packaging/parity.toml` has a row for every `# ── Step N:` of
+    `install-tetron-wm-suite.sh`, and each row says where the same result
+    comes from as a deb, on the TetronOS Desktop ISO and in-app, or
+    "none: <why>" for a deliberate difference; a unit a row expects on the
+    ISO is one tetron-wm-desktop ships. A new script step without a row, or
+    a row for a step that is gone, fails the gate.
+    ENFORCEMENT (reconcile.py): parity.ok is true.
+    """
+    constraint_id = "CON-WD08"
+    enforcement_logic = "{{ parity.ok }}"
