@@ -432,6 +432,17 @@ apt_installable() {
   printf '%s' "${out# }"
 }
 
+# apt_first PKG: on an apt host where apt has a candidate for PKG (the tetronos
+# apt repo is configured), install it with apt and succeed; else fail, so the
+# caller uses the app's own method (WMINST-008).
+apt_first() {
+  [ "$(pm_col)" = 2 ] || return 1
+  apt_update_once
+  [ -n "$(apt_installable "$1" 2>/dev/null)" ] || return 1
+  log "installing $1 with apt (tetronos apt repo)"
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$1"
+}
+
 pm_install() {  # $1 = space-separated packages
   local pkgs="$1"
   [ "$(pm_col)" = 2 ] && { apt_update_once; pkgs="$(apt_installable "$pkgs")"; }
@@ -996,10 +1007,11 @@ main() {
       [ "$(pm_col)" = 2 ] && [ -n "$apps" ] && apt_update_once
       pm_install "$apps"
     fi
-    want_script fresh && { fresh_via_script && install_fresh; fresh_via_brew && { brew install fresh-editor || warn "fresh did not install"; }; }
+    want_script fresh && { fresh_via_script && { apt_first fresh-editor || install_fresh; }; fresh_via_brew && { brew install fresh-editor || warn "fresh did not install"; }; }
     uv_via_script && install_uv
+    want_script casttui && ! have_tool casttui && { apt_first casttui || true; }
     { want_script catt || want_script casttui; } && [ -n "$(cast_tools_missing)" ] && install_cast_tools
-    want_script nerd-font && nerd_font_missing && install_nerd_font
+    want_script nerd-font && nerd_font_missing && { apt_first tetronos-nerd-font-symbols || install_nerd_font; }
     # The deb ships the helper scripts; a raw install gets them here.
     want_script helpers && ! { deb_host && wm_packaged; } && [ -n "$(own_apps_missing)" ] && install_own_apps
   fi

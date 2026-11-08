@@ -6652,6 +6652,8 @@ fn update_command(branch: &str, packaged: bool) -> String {
     // update is visible in the log the user pastes — the install runs in a
     // window whose output is otherwise lost.
     let log = "\"$HOME/tetron-wm-debug.log\"";
+    // uv and the uv tools first (WMINST-009); their result never stops the update.
+    let tools = crate::packaging::tool_updates_snippet();
     if packaged && branch != "main" {
         return format!(
             "clear; echo 'tetron-wm was installed by apt. The {branch} channel builds from source, which would add'; \
@@ -6661,7 +6663,7 @@ echo \"update: refused, {branch} channel on an apt-installed tetron-wm\" >> {log
     }
     if packaged {
         return format!(
-            "clear; echo 'Updating tetron-wm with apt (latest release .deb)…'; echo; \
+            "clear; {tools}echo 'Updating tetron-wm with apt (latest release .deb)…'; echo; \
 echo \"update: apt upgrade via install.sh (packaged)\" >> {log}; \
 if sh -c 'curl -fsSL {raw}/main/install.sh | sh'; then \
 echo \"update: install.sh ok; reloading via {reload}\" >> {log}; echo; echo 'Reloading…'; {reload} reload; exit 0; \
@@ -6670,7 +6672,7 @@ else echo \"update: FAILED (install.sh, packaged)\" >> {log}; echo 'Update faile
     }
     if branch == "main" {
         format!(
-            "clear; echo 'Updating tetron-wm (latest release)…'; echo; \
+            "clear; {tools}echo 'Updating tetron-wm (latest release)…'; echo; \
 echo \"update: install -> {dir}\" >> {log}; \
 if TETRON_WM_BIN_DIR={dir} sh -c 'curl -fsSL {raw}/main/install.sh | sh'; then \
 echo \"update: install.sh ok; reloading via {reload}\" >> {log}; echo; echo 'Reloading…'; {reload} reload; exit 0; \
@@ -6682,7 +6684,7 @@ else echo \"update: FAILED (install.sh and cargo both failed)\" >> {log}; echo '
         )
     } else {
         format!(
-            "clear; echo 'Updating tetron-wm (branch {branch})…'; echo; \
+            "clear; {tools}echo 'Updating tetron-wm (branch {branch})…'; echo; \
 echo \"update: cargo install (branch {branch})\" >> {log}; \
 if cargo install --git {repo} --branch {branch}{root_flag} --force; then \
 echo \"update: cargo ok; reloading via {reload}\" >> {log}; echo; echo 'Reloading…'; {reload} reload; exit 0; \
@@ -7170,6 +7172,16 @@ mod tests {
         let dev = update_command("dev", true);
         assert!(!dev.contains("cargo") && !dev.contains("install.sh"), "dev refuses on a packaged install: {dev}");
         assert!(dev.contains("installed by apt"), "and says why: {dev}");
+    }
+
+    #[test]
+    fn updates_also_update_uv_and_its_tools_but_a_refusal_does_not() {
+        for (branch, packaged) in [("main", false), ("main", true), ("dev", false)] {
+            let cmd = update_command(branch, packaged);
+            assert!(cmd.contains("uv tool upgrade --all"), "({branch}, {packaged}): {cmd}");
+            assert!(cmd.find("uv tool upgrade").unwrap() < cmd.find("Updating tetron-wm").unwrap(), "before tetron-wm");
+        }
+        assert!(!update_command("dev", true).contains("uv tool"), "the refused dev channel installs nothing");
     }
 
     #[test]

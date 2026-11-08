@@ -6,7 +6,12 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- Settings > General > **Apps** says how many apps of the installed size are missing ("desktop, 3 missing"), by the same checks the suite installer uses. A size installed with apt alone, which brings none of the apps no distribution packages, now shows what the installer would still add.
+- Settings > **Updates** also updates uv (`uv self update`, only when no package owns it) and the apps it installed (`uv tool upgrade --all`: catt, casttui) before updating tetron-wm. Their result never stops the tetron-wm update.
+
 ### Changed
+- The suite installer installs fresh (`fresh-editor`), the Symbols Nerd Font (`tetronos-nerd-font-symbols`) and casttui with apt when the tetronos apt repo has them, so apt keeps them up to date; elsewhere it uses their own installers as before.
 - `tetron-wm-desktop` recommends tetron-browser, so the desktop size brings the web browser tetron-wm opens pages in. It comes from the tetronos apt repo (https://tetronos.github.io/apt, amd64); where that repo is not configured apt skips it and the rest installs as before. The suite installer's one-by-one apt path now leaves out any package apt has no candidate for, so one missing name no longer fails the whole batch.
 
 ## [0.15.3] — 2026-11-07

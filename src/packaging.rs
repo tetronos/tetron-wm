@@ -165,9 +165,194 @@ echo; printf 'Press Enter to close. '; read _"
     )
 }
 
+/// The suite script's app list (WMINST-001), compiled in so Settings can tell
+/// which apps of the installed size are missing (WMINST-007).
+const SUITE_APPS: &str = include_str!("../assets/suite-apps.txt");
+
+/// What decides which rows of the app list apply to this machine.
+#[derive(Clone, Copy, Debug)]
+pub struct Host {
+    pub linux: bool,
+    /// A desktop session (X11 or Wayland): the gui rows apply.
+    pub graphical: bool,
+    /// A mouse device: gpm applies.
+    pub mouse: bool,
+    /// tetron-wm is the deb, which ships the helper scripts.
+    pub packaged: bool,
+}
+
+impl Host {
+    pub fn probe() -> Host {
+        let set = |k: &str| std::env::var_os(k).is_some_and(|v| !v.is_empty());
+        Host {
+            linux: cfg!(target_os = "linux"),
+            graphical: set("DISPLAY") || set("WAYLAND_DISPLAY"),
+            mouse: Path::new("/dev/input/mice").exists(),
+            packaged: running_is_packaged(),
+        }
+    }
+}
+
+fn size_rank(s: &str) -> u8 {
+    match s {
+        "desktop" => 1,
+        "extras" => 2,
+        _ => u8::MAX,
+    }
+}
+
+fn size_level(s: Size) -> u8 {
+    match s {
+        Size::Minimal => 0,
+        Size::Desktop => 1,
+        Size::Extras => 2,
+    }
+}
+
+/// The apps of `size` and the smaller sizes in `list` (the suite-apps.txt
+/// format) that `present` says are missing on `host`, by display name.
+/// Services never count: they are a separate, default-no choice.
+pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) -> bool) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in list.lines().filter(|l| !l.is_empty() && !l.starts_with('#')) {
+        let f: Vec<&str> = line.split(':').collect();
+        if f.len() < 3 || size_rank(f[0]) > size_level(size) {
+            continue;
+        }
+        if f[1] == "script" {
+            let (name, check) = match f[2] {
+                "helpers" if host.packaged => continue,
+                "helpers" => ("helpers", "tetron-wm-startpage"),
+                n => (n, n),
+            };
+            if !present(check) {
+                out.push(name.to_string());
+            }
+            continue;
+        }
+        if f.len() < 7 || f[1] == "services" || (f[1] == "gui" && !host.graphical) || (f[2] == "gpm" && !host.mouse) {
+            continue;
+        }
+        let names = if host.linux { &f[3..6] } else { &f[6..7] };
+        let Some(name) = names.iter().find(|n| !n.is_empty()) else { continue };
+        if !present(f[2]) {
+            out.push(name.to_string());
+        }
+    }
+    out
+}
+
+/// Whether a check of the app list holds here: a command on PATH or in
+/// ~/.local/bin, alternatives with `|`, `font=NAME`, `consolefonts`, or
+/// `nerd-font`.
+fn check_present(check: &str) -> bool {
+    if check.contains('|') {
+        return check.split('|').any(check_present);
+    }
+    let fonts = |pattern: &str| {
+        std::process::Command::new("fc-list")
+            .output()
+            .ok()
+            .map(|o| String::from_utf8_lossy(&o.stdout).to_lowercase().contains(&pattern.to_lowercase()))
+    };
+    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
+    let any_file = |dirs: &[PathBuf], prefix: &str| {
+        dirs.iter().any(|d| {
+            std::fs::read_dir(d).is_ok_and(|rd| rd.flatten().any(|e| e.file_name().to_string_lossy().starts_with(prefix)))
+        })
+    };
+    match check {
+        "consolefonts" => any_file(&[PathBuf::from("/usr/share/consolefonts"), PathBuf::from("/usr/lib/kbd/consolefonts")], ""),
+        "nerd-font" => fonts("nerd font").unwrap_or_else(|| {
+            any_file(&[home.join(".local/share/fonts"), PathBuf::from("/usr/share/fonts/truetype/nerd-font-symbols")], "SymbolsNerdFont")
+        }),
+        c if c.starts_with("font=") => fonts(&c[5..]).unwrap_or_else(|| {
+            any_file(&[PathBuf::from("/usr/share/fonts/truetype/dejavu"), PathBuf::from("/usr/share/fonts/dejavu")], "DejaVuSansMono")
+        }),
+        c => crate::catalog::is_installed(c) || home.join(".local/bin").join(c).is_file(),
+    }
+}
+
+/// The apps of `size` missing on this machine (WMINST-007). Runs fc-list once
+/// per font check, so call it on entering Settings, not per frame.
+pub fn missing_apps(size: Size) -> Vec<String> {
+    missing_in(SUITE_APPS, size, &Host::probe(), &check_present)
+}
+
+/// The step of every update command that updates the apps with their own
+/// updater (WMINST-009): uv itself when no package owns it, then the uv tools.
+/// Errors never stop the tetron-wm update that follows.
+pub fn tool_updates_snippet() -> &'static str {
+    "u=\"$(command -v uv 2>/dev/null || { [ -x \"$HOME/.local/bin/uv\" ] && echo \"$HOME/.local/bin/uv\"; } || true)\"; \
+if [ -n \"$u\" ]; then echo 'Updating uv and the apps it installed (catt, casttui)…'; \
+if ! dpkg -S \"$(readlink -f \"$u\")\" >/dev/null 2>&1; then \"$u\" self update 2>/dev/null || true; fi; \
+\"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> \"$HOME/tetron-wm-debug.log\"; echo; fi; "
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn host(linux: bool, graphical: bool, mouse: bool, packaged: bool) -> Host {
+        Host { linux, graphical, mouse, packaged }
+    }
+
+    const LIST: &str = "# header\n\
+desktop:apps:mpv:mpv:mpv:mpv:mpv\n\
+desktop:apps:gpm:gpm:gpm:gpm:\n\
+desktop:gui:xclip:xclip:xclip:xclip:\n\
+desktop:apps:tetron-browser:tetron-browser:::\n\
+desktop:services:nmcli:network-manager:NetworkManager:networkmanager:\n\
+extras:apps:git:git:git:git:git\n\
+desktop:apps:uv::uv:uv:uv\n\
+desktop:apps:blueutil::::blueutil\n\
+desktop:script:fresh\n\
+desktop:script:nerd-font\n\
+desktop:script:helpers\n";
+
+    #[test]
+    fn missing_counts_the_size_and_smaller_never_services() {
+        let none = |_: &str| false;
+        let h = host(true, false, true, false);
+        assert!(missing_in(LIST, Size::Minimal, &h, &none).is_empty(), "minimal has no apps");
+        let d = missing_in(LIST, Size::Desktop, &h, &none);
+        assert_eq!(d, ["mpv", "gpm", "tetron-browser", "uv", "fresh", "nerd-font", "helpers"]);
+        let e = missing_in(LIST, Size::Extras, &h, &none);
+        assert!(e.contains(&"git".to_string()) && e.len() == d.len() + 1, "extras adds its own rows: {e:?}");
+        assert!(!e.iter().any(|n| n == "network-manager"), "services never count");
+    }
+
+    #[test]
+    fn missing_follows_the_host() {
+        let none = |_: &str| false;
+        let d = missing_in(LIST, Size::Desktop, &host(true, true, false, true), &none);
+        assert!(d.contains(&"xclip".to_string()), "gui rows with a desktop session: {d:?}");
+        assert!(!d.contains(&"gpm".to_string()), "no mouse device: no gpm");
+        assert!(!d.contains(&"helpers".to_string()), "the deb ships the helpers");
+        let mac = missing_in(LIST, Size::Desktop, &host(false, false, true, false), &none);
+        assert!(mac.contains(&"blueutil".to_string()) && !mac.contains(&"gpm".to_string()), "brew names on macOS: {mac:?}");
+        assert!(!mac.contains(&"tetron-browser".to_string()), "no brew name: not counted");
+    }
+
+    #[test]
+    fn present_apps_are_not_missing() {
+        let have = |c: &str| matches!(c, "mpv" | "gpm" | "tetron-browser" | "uv" | "fresh" | "nerd-font" | "tetron-wm-startpage");
+        assert!(missing_in(LIST, Size::Desktop, &host(true, false, true, false), &have).is_empty());
+    }
+
+    #[test]
+    fn the_compiled_list_parses_and_every_row_applies_somewhere() {
+        let none = |_: &str| false;
+        let linux = missing_in(SUITE_APPS, Size::Extras, &host(true, true, true, false), &none);
+        assert!(linux.len() > 20, "{linux:?}");
+        assert!(linux.contains(&"fresh".to_string()) && linux.contains(&"git".to_string()));
+    }
+
+    #[test]
+    fn tool_updates_snippet_is_valid_sh() {
+        let ok = std::process::Command::new("sh").args(["-n", "-c", tool_updates_snippet()]).status().unwrap().success();
+        assert!(ok, "{}", tool_updates_snippet());
+    }
 
     fn tmp(name: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("tetron-wm-packaging-{name}-{}", std::process::id()));

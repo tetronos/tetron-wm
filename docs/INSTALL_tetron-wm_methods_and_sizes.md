@@ -76,14 +76,14 @@ Asked by the suite installer as "What are you setting up?", or given with `--pro
 
 ## Growing the size later
 
-- Inside tetron-wm: **Settings > General > Apps** shows the installed size. Left and Right choose a larger one and Enter installs it in a terminal window, where sudo can ask for your password. At extras it checks for apps a newer release added.
+- Inside tetron-wm: **Settings > General > Apps** shows the installed size and how many of its apps are missing. Left and Right choose a larger one and Enter installs it in a terminal window, where sudo can ask for your password. At extras it checks for apps a newer release added.
 - From a shell: run the suite installer again with `--size desktop` or `--size extras`.
 
 Going down a size on Debian and Ubuntu: `sudo apt remove tetron-wm-extras` (or `tetron-wm-desktop`); the apps it brought stay until `sudo apt autoremove`.
 
 ## Updating
 
-Settings > Updates, or `install.sh` again. On Debian and Ubuntu with the package installed, the update installs the new release `.deb` with apt, and also moves `tetron-wm-desktop` and `tetron-wm-extras` to the release when they are installed, so tools added to a size arrive with the update. A tetron-wm installed without the package is updated in place; the suite installer offers to convert it to the package (`--convert`).
+Settings > Updates, or `install.sh` again. Settings > Updates first runs `uv self update` and `uv tool upgrade --all` when uv is installed, so uv, catt and casttui (from uv) stay current. On Debian and Ubuntu with the package installed, the update installs the new release `.deb` with apt, and also moves `tetron-wm-desktop` and `tetron-wm-extras` to the release when they are installed, so tools added to a size arrive with the update. A tetron-wm installed without the package is updated in place; the suite installer offers to convert it to the package (`--convert`).
 
 ## Removing
 

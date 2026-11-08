@@ -196,6 +196,8 @@ pub struct Settings {
     /// General > Apps: the installed size and the chosen target, read on
     /// open and on entering General.
     apps_size: crate::packaging::Size,
+    /// Apps of the installed size this machine lacks (WMINST-007).
+    apps_missing: Vec<String>,
     apps_pick: usize,
     have_curl: bool,
 }
@@ -220,7 +222,7 @@ impl Settings {
             sound: None, outputs: Vec::new(), in_sidebar: false, wallpaper_note: None,
             waiter: crate::fullscreen::service_state(), cfg_exists: config_file_exists(), reset_armed: false,
             themes_status: String::new(), themes_busy: false, install_info: install_info(),
-            apps_size: crate::packaging::installed_size(), apps_pick: 0, have_curl: crate::catalog::is_installed("curl"),
+            apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_pick: 0, have_curl: crate::catalog::is_installed("curl"),
         }.with_wallpaper_note()
     }
 
@@ -325,6 +327,7 @@ impl Settings {
     /// Re-read the installed size and curl (after an install window closed).
     pub fn refresh_apps(&mut self) {
         self.apps_size = crate::packaging::installed_size();
+        self.apps_missing = crate::packaging::missing_apps(self.apps_size);
         self.apps_pick = 0;
         self.have_curl = crate::catalog::is_installed("curl");
         self.install_info = install_info();
@@ -1096,7 +1099,10 @@ impl Settings {
     /// General > Apps value: the installed size and the chosen action.
     fn apps_value(&self) -> String {
         use crate::packaging::Size;
-        let have = self.apps_size.name();
+        let have = match self.apps_missing.len() {
+            0 => self.apps_size.name().to_string(),
+            n => format!("{}, {n} missing", self.apps_size.name()),
+        };
         if !self.have_curl {
             return format!("{have} (needs curl)");
         }
@@ -2070,5 +2076,18 @@ mod tests {
         s.toggle();
         assert_eq!(s.take_action(), None, "no curl: nothing to run");
         assert!(screen(&s).contains("needs curl"));
+    }
+
+    #[test]
+    fn general_apps_row_says_how_many_apps_are_missing() {
+        use crate::packaging::Size;
+        let mut s = Settings::new(Config::default());
+        s.enter_section(GENERAL);
+        s.apps_size = Size::Desktop;
+        s.have_curl = true;
+        s.apps_missing = vec!["fresh".into(), "uv".into()];
+        assert!(s.apps_value().starts_with("desktop, 2 missing"), "{}", s.apps_value());
+        s.apps_missing.clear();
+        assert!(s.apps_value().starts_with("desktop:"), "{}", s.apps_value());
     }
 }

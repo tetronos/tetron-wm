@@ -247,6 +247,41 @@ class SettingsAppsRow(Requirement):
     steps), so the sudo prompt and the output are visible; the window waits
     for Enter. The row re-reads the size when General is entered. Without
     curl the row says it is needed and Enter does nothing.
+
+    The row also says how many apps of the installed size are missing
+    ("desktop, 3 missing"), by the checks of `assets/suite-apps.txt`
+    (compiled into the binary): the rows of that size and the smaller
+    ones, package rows only where this OS has a name for them, gui rows
+    only with a desktop session, gpm only with a mouse device, never the
+    services, and the helper scripts only when tetron-wm is not the deb.
+    So a size installed through apt alone, which brings no script-only
+    app, shows what the suite script would still add.
+    """
+
+
+class ScriptAppsFromAptFirst(Requirement):
+    """REQUIREMENT-ID: WMINST-008
+
+    On an apt host, the suite script installs a script-only app with apt
+    when apt has a candidate for its package (the tetronos apt repo is
+    configured): fresh as fresh-editor (upstream's own .deb, mirrored
+    unchanged), the Nerd Font as tetronos-nerd-font-symbols, casttui as
+    casttui. Only where apt has none does it use the app's own method
+    (fresh's installer, the Nerd Font download into ~/.local/share/fonts,
+    `uv tool install`). uv and catt keep their own methods everywhere:
+    each has its own updater (WMINST-009).
+    """
+
+
+class ToolSelfUpdates(Requirement):
+    """REQUIREMENT-ID: WMINST-009
+
+    Settings > Updates (every update command that installs something) first
+    updates the apps that keep their own updater: when uv is on PATH or in
+    ~/.local/bin it runs `uv self update` (only for a uv no package owns;
+    errors ignored) and `uv tool upgrade --all` (catt, and casttui where it
+    came from uv), logs the step to ~/tetron-wm-debug.log, and goes on to
+    the tetron-wm update whatever their result.
     """
 
 
