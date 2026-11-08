@@ -57,6 +57,7 @@ out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"
 ok "essentials size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
 ok "fedora essentials: fbida (View full screen images)" "echo \"\$out\" | grep -q fbida"
 ok "fedora essentials: git, bind-utils; no recommended app" "echo \"\$out\" | grep -q \" git \" && echo \"\$out\" | grep -q bind-utils && ! echo \"\$out\" | grep -q ShellCheck"
+out="$(plan --no-scripts)"; ok "--no-scripts: packages only, no opencode, no fresh" "echo \"\$out\" | grep -q fbida && ! echo \"\$out\" | grep -q \" opencode\" && ! echo \"\$out\" | grep -q \" fresh\""
 out="$(plan --size recommended)"; ok "fedora recommended: dnf names of the recommended set" "echo \"\$out\" | grep -q ShellCheck && echo \"\$out\" | grep -q ffmpeg-free && ! echo \"\$out\" | grep -q lazygit"
 printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
 out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"

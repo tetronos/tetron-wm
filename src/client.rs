@@ -511,12 +511,16 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             _ => {}
                         }
                     } else if f.settings_focused && f.settings_editing {
-                        // Apps add form: forward typed characters into the field.
+                        // A text field, the Apps add form or the Apps dialog: forward
+                        // typed characters; Left / Right switch the dialog's
+                        // buttons (the text fields ignore them).
                         match k.code {
                             KeyCode::Esc => send(&mut out_stream, &ClientMsg::SettingsCancelEdit)?,
                             KeyCode::Enter => send(&mut out_stream, &ClientMsg::SettingsToggle)?,
                             KeyCode::Up => send(&mut out_stream, &ClientMsg::SettingsUp)?,
                             KeyCode::Down => send(&mut out_stream, &ClientMsg::SettingsDown)?,
+                            KeyCode::Left => send(&mut out_stream, &ClientMsg::SettingsLeft)?,
+                            KeyCode::Right => send(&mut out_stream, &ClientMsg::SettingsRight)?,
                             KeyCode::Backspace => send(&mut out_stream, &ClientMsg::SettingsBackspace)?,
                             KeyCode::Char(c) if !ctrl => send(&mut out_stream, &ClientMsg::SettingsChar(c))?,
                             _ => {}

@@ -24,6 +24,7 @@ pub mod chrome;
 pub mod catalog;
 pub mod store;
 pub mod settings;
+pub mod appsdlg;
 pub mod activity;
 pub mod launcher;
 pub mod powermenu;

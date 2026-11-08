@@ -236,8 +236,8 @@ class SuiteScriptSizes(Requirement):
       yes): removes the raw copy, then installs the package.
     - Installs the script-only apps of the size (fresh, uv where not
       packaged, catt, casttui, the symbols Nerd Font, and the helper scripts
-      when tetron-wm is not the deb), and calls install.sh with its own
-      dependency step skipped.
+      when tetron-wm is not the deb), unless `--no-scripts` is given, and
+      calls install.sh with its own dependency step skipped.
     - Downloads the themes listed in `themes/` on the branch (GitHub
       contents API) into `~/.local/share/tetron-wm/themes`, falling back to
       the built-in list when the listing fails; never overwrites a file.
@@ -292,24 +292,48 @@ class SettingsAppsRow(Requirement):
     """REQUIREMENT-ID: WMINST-007
 
     Depends on WMINST-002 and WMINST-005. Settings > General has an Apps
-    row showing the installed size. Left and Right pick a larger size
-    (from minimal: essentials, recommended or extras; and so on); at extras the
-    only choice is a check that reruns the suite script for extras, adding
-    anything a release added. Enter opens a terminal window running
-    `install-tetron-wm-suite.sh --size <size>` fetched from the branch,
-    limited to apps (no tetron-wm, config, theme, conversion or console
-    steps), so the sudo prompt and the output are visible; the window waits
-    for Enter. The row re-reads the size when General is entered. Without
-    curl the row says it is needed and Enter does nothing.
-
-    The row also says how many apps of the installed size are missing
+    row showing the installed size and how many apps of it are missing
     ("essentials, 3 missing"), by the checks of `assets/suite-apps.txt`
     (compiled into the binary): the rows of that size and the smaller
     ones, package rows only where this OS has a name for them, gui rows
     only with a desktop session, gpm only with a mouse device, never the
     services, and the helper scripts only when tetron-wm is not the deb.
     So a size installed through apt alone, which brings no script-only
-    app, shows what the suite script would still add.
+    app, shows what the suite script would still add. The row re-reads the
+    size when General is entered. Enter opens the Apps dialog (WMINST-011).
+    """
+
+
+class SettingsAppsDialog(Requirement):
+    """REQUIREMENT-ID: WMINST-011
+
+    Depends on WMINST-007. The Apps dialog, inside Settings, lists
+    Essentials, Recommended and Extras (Extras only when the app list has
+    extras apps), each with what it adds and how many of its apps are
+    missing here; a checkbox "also the apps no distribution packages"
+    (opencode, fresh, uv, catt, casttui, the Nerd Font), ticked by default;
+    and, on a Debian or Ubuntu host where tetron-wm-essentials is installed,
+    "Remove set: <installed size>". Up and Down move, Enter or Space
+    chooses, Left / Right or Space flip the checkbox, Esc closes; section
+    changes wait until it is closed.
+
+    Every choice opens a confirmation first, with focus on Cancel (Left /
+    Right switch the buttons, Esc goes back). Installing a size shows the
+    missing apps it adds (a script app marked "its own installer"), their
+    count, on an apt host the download size of the packages among them
+    (`apt-cache policy` keeps the names this release has, `apt-get
+    install --print-uris` sums the sizes, run as the user off the main
+    loop), that it needs the network and the sudo password, and how to
+    undo it. Install runs `install-tetron-wm-suite.sh --size <size>` in a
+    terminal window as before, with `--no-scripts` when the box is not
+    ticked, which leaves out the script apps. Without curl a size does
+    nothing and says it needs curl. Remove set lists the size debs it
+    removes: the installed size's and the larger ones dpkg has, never
+    tetron-wm-desktop; then runs `sudo apt-get remove <debs> && sudo
+    apt-get autoremove` in a terminal window without -y, so apt lists the
+    apps and asks. Apps the user installed by hand stay (apt marks them
+    manual), and so do the script apps. On Fedora, Arch and macOS there is
+    no Remove set: nothing records which apps a set added.
     """
 
 

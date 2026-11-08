@@ -71,6 +71,18 @@ pub enum Size {
 }
 
 impl Size {
+    pub const ALL: [Size; 4] = [Size::Minimal, Size::Essentials, Size::Recommended, Size::Extras];
+
+    /// The size's name with a capital, for the Apps dialog.
+    pub fn title(self) -> &'static str {
+        match self {
+            Size::Minimal => "Minimal",
+            Size::Essentials => "Essentials",
+            Size::Recommended => "Recommended",
+            Size::Extras => "Extras",
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Size::Minimal => "minimal",
@@ -150,30 +162,21 @@ pub fn install_method() -> &'static str {
     method_name(running_is_packaged(), &exe)
 }
 
-/// The sizes Settings > General > Apps offers from `current`: the larger
-/// ones, or at extras only extras itself (a check that adds anything a
-/// release added).
-pub fn size_choices(current: Size) -> Vec<Size> {
-    match current {
-        Size::Minimal => vec![Size::Essentials, Size::Recommended, Size::Extras],
-        Size::Essentials => vec![Size::Recommended, Size::Extras],
-        Size::Recommended => vec![Size::Extras],
-        Size::Extras => vec![Size::Extras],
-    }
-}
-
 /// The terminal command that installs the apps of `size` with the suite
 /// script from `raw` (the branch's raw URL): apps only, no tetron-wm,
 /// config, themes, conversion or console steps; waits for Enter at the end.
 /// `list` is the app list Settings counted from ([`write_apps_list`]), handed
 /// to the script so it installs the same list (WMCAT-004).
-pub fn apps_install_command(raw: &str, size: Size, list: Option<&Path>) -> String {
+/// `scripts` false adds `--no-scripts`: the apps no distribution packages
+/// (opencode, fresh, uv, catt, casttui, the Nerd Font) are left out.
+pub fn apps_install_command(raw: &str, size: Size, list: Option<&Path>, scripts: bool) -> String {
     let s = size.name();
+    let no_scripts = if scripts { "" } else { " --no-scripts" };
     let list = list.map(|p| format!(" --apps-list '{}'", p.to_string_lossy().replace('\'', "'\\''"))).unwrap_or_default();
     format!(
         "clear; echo 'Installing the {s} apps for tetron-wm (the suite installer)…'; echo; \
 curl -fsSL {raw}/main/install-tetron-wm-suite.sh | bash -s -- --size {s} --no-wm --no-config --no-themes \
---no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen{list}; \
+--no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen{no_scripts}{list}; \
 echo \"apps: suite installer for {s} exited with status $?\" >> {log}; \
 echo; printf 'Press Enter to close. '; read _",
         log = crate::logfile::shell_path(),
@@ -228,16 +231,33 @@ fn size_level(s: Size) -> u8 {
     s as u8
 }
 
+/// A missing app of the list: its display name, the package to install
+/// with this host's manager ("" for a script app) and the size that brings it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Missing {
+    pub name: String,
+    pub pkg: String,
+    pub size: Size,
+}
+
+impl Missing {
+    pub fn is_script(&self) -> bool {
+        self.pkg.is_empty()
+    }
+}
+
 /// The apps of `size` and the smaller sizes in `list` (the suite-apps.txt
-/// format) that `present` says are missing on `host`, by display name.
-/// Services never count: they are a separate, default-no choice.
-pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) -> bool) -> Vec<String> {
+/// format) that `present` says are missing on `host`. Services never count:
+/// they are a separate, default-no choice.
+pub fn missing_rows(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) -> bool) -> Vec<Missing> {
     let mut out = Vec::new();
     for line in list.lines().filter(|l| !l.is_empty() && !l.starts_with('#')) {
         let f: Vec<&str> = line.split(':').collect();
-        if f.len() < 3 || size_rank(f[0]) > size_level(size) {
+        let rank = size_rank(f[0]);
+        if f.len() < 3 || rank > size_level(size) {
             continue;
         }
+        let at = Size::ALL[rank as usize];
         if f[1] == "script" {
             let (name, check) = match f[2] {
                 "helpers" if host.packaged => continue,
@@ -245,7 +265,7 @@ pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) ->
                 n => (n, n),
             };
             if !present(check) {
-                out.push(name.to_string());
+                out.push(Missing { name: name.to_string(), pkg: String::new(), size: at });
             }
             continue;
         }
@@ -255,10 +275,107 @@ pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) ->
         let names = if host.linux { &f[3..6] } else { &f[6..7] };
         let Some(name) = names.iter().find(|n| !n.is_empty()) else { continue };
         if !present(f[2]) {
-            out.push(name.to_string());
+            out.push(Missing { name: name.to_string(), pkg: name.to_string(), size: at });
         }
     }
     out
+}
+
+/// [`missing_rows`] by display name.
+pub fn missing_in(list: &str, size: Size, host: &Host, present: &dyn Fn(&str) -> bool) -> Vec<String> {
+    missing_rows(list, size, host, present).into_iter().map(|m| m.name).collect()
+}
+
+/// Whether `list` has any line of `size` (extras is offered only then).
+pub fn list_has_size(list: &str, size: Size) -> bool {
+    list.lines().filter(|l| !l.starts_with('#')).any(|l| l.split(':').next().is_some_and(|s| size_rank(s) == size as u8))
+}
+
+/// The size debs that make up `size`, smallest first.
+pub fn size_debs(size: Size) -> &'static [&'static str] {
+    const ALL: [&str; 4] = ["tetron-wm-desktop", "tetron-wm-essentials", "tetron-wm-recommended", "tetron-wm-extras"];
+    &ALL[..(size as usize + usize::from(size != Size::Minimal)).min(4)]
+}
+
+/// Settings > General > Apps > Remove set (WMINST-011): the size debs dpkg
+/// has for `size` and the larger sizes, so the next smaller size stays. Empty
+/// when tetron-wm-essentials is not installed (nothing the set added is
+/// recorded); tetron-wm-desktop, the tools tetron-wm uses, is never removed.
+pub fn remove_debs(info_dir: &Path, size: Size) -> Vec<&'static str> {
+    if size == Size::Minimal || !dpkg_has(info_dir, "tetron-wm-essentials") {
+        return Vec::new();
+    }
+    size_debs(Size::Extras)[size as usize..].iter().copied().filter(|p| dpkg_has(info_dir, p)).collect()
+}
+
+/// The size debs to remove for the installed size on this machine.
+pub fn remove_debs_here(size: Size) -> Vec<&'static str> {
+    if !Path::new("/usr/bin/apt-get").exists() {
+        return Vec::new();
+    }
+    remove_debs(Path::new(DPKG_INFO), size)
+}
+
+/// The terminal command that removes `pkgs` and then lets apt list the apps
+/// they brought and ask before removing them (`apt-get autoremove`).
+pub fn apps_remove_command(pkgs: &[&str]) -> String {
+    let list = pkgs.join(" ");
+    format!(
+        "clear; echo 'Removing {list}. apt then lists the apps no other package needs and asks before removing them.'; echo; \
+sudo apt-get remove {list} && sudo apt-get autoremove; \
+echo \"apps: removed {list} (status $?)\" >> {log}; \
+echo; printf 'Press Enter to close. '; read _",
+        log = crate::logfile::shell_path(),
+    )
+}
+
+/// The packages of `apt-cache policy` output that have a candidate.
+fn with_candidate(policy: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur: Option<&str> = None;
+    for l in policy.lines() {
+        if !l.starts_with(' ') && l.ends_with(':') {
+            cur = Some(l.trim_end_matches(':'));
+        } else if let (Some(n), Some(c)) = (cur, l.trim().strip_prefix("Candidate:")) {
+            if c.trim() != "(none)" {
+                out.push(n.to_string());
+            }
+            cur = None;
+        }
+    }
+    out
+}
+
+/// The sum of the sizes in `apt-get --print-uris` output ('url' file size hash).
+fn sum_uri_sizes(out: &str) -> u64 {
+    out.lines().filter(|l| l.starts_with('\'')).filter_map(|l| l.split_whitespace().nth(2)?.parse::<u64>().ok()).sum()
+}
+
+/// The download size of installing `pkgs` with apt (with their Recommends,
+/// as the size debs bring them), or None without apt or when apt can not
+/// say. Names this release lacks are left out, as apt skips them. Needs no
+/// root; runs apt-cache and apt-get, so call it off the main loop.
+pub fn apt_download_size(pkgs: &[String]) -> Option<u64> {
+    if pkgs.is_empty() {
+        return Some(0);
+    }
+    let run = |cmd: &str, args: &[&str]| {
+        std::process::Command::new(cmd).args(args).env("LC_ALL", "C").output().ok().filter(|o| o.status.success())
+    };
+    let mut args = vec!["policy"];
+    args.extend(pkgs.iter().map(String::as_str));
+    let have = with_candidate(&String::from_utf8_lossy(&run("apt-cache", &args)?.stdout));
+    if have.is_empty() {
+        return Some(0);
+    }
+    let mut args = vec!["install", "--print-uris", "-qq", "-y"];
+    args.extend(have.iter().map(String::as_str));
+    Some(sum_uri_sizes(&String::from_utf8_lossy(&run("apt-get", &args)?.stdout)))
+}
+
+/// "about 120 MB" for a byte count (at least 1 MB).
+pub fn fmt_download(bytes: u64) -> String {
+    format!("about {} MB", (bytes / 1_000_000).max(1))
 }
 
 /// Whether a check of the app list holds here: a command on PATH or in
@@ -295,7 +412,12 @@ fn check_present(check: &str) -> bool {
 /// The apps of `size` missing on this machine (WMINST-007). Runs fc-list once
 /// per font check, so call it on entering Settings, not per frame.
 pub fn missing_apps(size: Size) -> Vec<String> {
-    missing_in(crate::catalog::suite_apps(), size, &Host::probe(), &check_present)
+    missing_rows_here(size).into_iter().map(|m| m.name).collect()
+}
+
+/// [`missing_rows`] for this machine (runs the checks, so not per frame).
+pub fn missing_rows_here(size: Size) -> Vec<Missing> {
+    missing_rows(crate::catalog::suite_apps(), size, &Host::probe(), &check_present)
 }
 
 /// The step of every update command that updates the apps with their own
@@ -377,6 +499,57 @@ essentials:script:opencode\n";
         let old = "desktop:apps:mpv:mpv:mpv:mpv:mpv\nextras:apps:git:git:git:git:git\n";
         let h = host(true, false, true, false);
         assert_eq!(missing_in(old, Size::Essentials, &h, &none), ["mpv"]);
+    }
+
+    #[test]
+    fn missing_rows_carry_the_package_and_size() {
+        let none = |_: &str| false;
+        let r = missing_rows(LIST, Size::Recommended, &host(true, false, true, false), &none);
+        let lazygit = r.iter().find(|m| m.name == "lazygit").unwrap();
+        assert_eq!((lazygit.pkg.as_str(), lazygit.size), ("lazygit", Size::Recommended));
+        let fresh = r.iter().find(|m| m.name == "fresh").unwrap();
+        assert!(fresh.is_script() && fresh.size == Size::Essentials);
+    }
+
+    #[test]
+    fn extras_is_offered_only_with_extras_lines() {
+        assert!(list_has_size(LIST, Size::Extras));
+        assert!(!list_has_size(crate::catalog::suite_apps(), Size::Extras), "no extras apps yet");
+        assert!(list_has_size(crate::catalog::suite_apps(), Size::Recommended));
+    }
+
+    #[test]
+    fn size_debs_add_up() {
+        assert!(size_debs(Size::Minimal).is_empty());
+        assert_eq!(size_debs(Size::Essentials), ["tetron-wm-desktop", "tetron-wm-essentials"]);
+        assert_eq!(size_debs(Size::Extras).len(), 4);
+    }
+
+    #[test]
+    fn remove_set_removes_the_size_and_larger_never_the_tools() {
+        let d = tmp("remove");
+        std::fs::write(d.join("tetron-wm-desktop.list"), "/.\n").unwrap();
+        assert!(remove_debs(&d, Size::Essentials).is_empty(), "only the tools: nothing recorded");
+        std::fs::write(d.join("tetron-wm-essentials.list"), "/.\n").unwrap();
+        std::fs::write(d.join("tetron-wm-recommended.list"), "/.\n").unwrap();
+        assert_eq!(remove_debs(&d, Size::Recommended), ["tetron-wm-recommended"]);
+        assert_eq!(remove_debs(&d, Size::Essentials), ["tetron-wm-essentials", "tetron-wm-recommended"]);
+        assert!(remove_debs(&d, Size::Minimal).is_empty());
+        std::fs::remove_dir_all(&d).ok();
+        let cmd = apps_remove_command(&["tetron-wm-recommended"]);
+        assert!(std::process::Command::new("sh").args(["-n", "-c", &cmd]).status().unwrap().success(), "{cmd}");
+        assert!(cmd.contains("sudo apt-get remove tetron-wm-recommended && sudo apt-get autoremove"), "{cmd}");
+        assert!(!cmd.contains(" -y"), "apt asks before removing: {cmd}");
+    }
+
+    #[test]
+    fn download_size_parsers() {
+        let policy = "glow:\n  Installed: (none)\n  Candidate: (none)\n  Version table:\ntmux:\n  Installed: (none)\n  Candidate: 3.5a-3\n  Version table:\n     3.5a-3 500\n";
+        assert_eq!(with_candidate(policy), ["tmux"]);
+        let uris = "'http://deb.debian.org/debian/pool/main/t/tmux/tmux_3.5a-3_amd64.deb' tmux_3.5a-3_amd64.deb 476020 SHA256:ab\n'http://x/y.deb' y.deb 1000 SHA256:cd\n";
+        assert_eq!(sum_uri_sizes(uris), 477_020);
+        assert_eq!(fmt_download(477_020), "about 1 MB");
+        assert_eq!(fmt_download(123_400_000), "about 123 MB");
     }
 
     #[test]
@@ -494,14 +667,6 @@ essentials:script:opencode\n";
         assert_eq!(method_name(false, Path::new("tetron-wm")), "binary");
     }
 
-    #[test]
-    fn apps_row_offers_only_larger_sizes() {
-        assert_eq!(size_choices(Size::Minimal), [Size::Essentials, Size::Recommended, Size::Extras]);
-        assert_eq!(size_choices(Size::Essentials), [Size::Recommended, Size::Extras]);
-        assert_eq!(size_choices(Size::Recommended), [Size::Extras]);
-        assert_eq!(size_choices(Size::Extras), [Size::Extras], "a check, not a downgrade");
-    }
-
     /// The suite script fetches the list published for its core minor; that
     /// minor follows this build's version (WMCAT-004).
     #[test]
@@ -513,13 +678,14 @@ essentials:script:opencode\n";
 
     #[test]
     fn apps_command_is_valid_sh_and_installs_apps_only() {
-        let cmd = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Extras, None);
+        let cmd = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Extras, None, true);
         assert!(std::process::Command::new("sh").args(["-n", "-c", &cmd]).status().unwrap().success(), "{cmd}");
         assert!(!cmd.contains("--apps-list"), "{cmd}");
         let odd = Path::new("/home/a b/it's/suite-apps.txt");
-        let with = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Essentials, Some(odd));
+        let with = apps_install_command("https://raw.githubusercontent.com/o/r", Size::Essentials, Some(odd), false);
         assert!(std::process::Command::new("sh").args(["-n", "-c", &with]).status().unwrap().success(), "{with}");
         assert!(with.contains("--apps-list '/home/a b/it'\\''s/suite-apps.txt'"), "{with}");
+        assert!(with.contains("--no-scripts") && !cmd.contains("--no-scripts"), "{with}");
         assert!(cmd.contains("--size extras") && cmd.contains("--no-wm") && cmd.contains("--no-console"), "{cmd}");
         assert!(cmd.contains("install-tetron-wm-suite.sh"), "{cmd}");
         assert!(cmd.contains("read _"), "the window stays until Enter: {cmd}");

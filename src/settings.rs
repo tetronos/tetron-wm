@@ -98,8 +98,15 @@ pub enum SettingsAction {
     /// Appearance > Get more themes: download missing theme files on a worker.
     GetThemes,
     /// General > Apps: install the apps of this size with the suite script in
-    /// a terminal window (WMINST-007).
-    InstallApps(crate::packaging::Size),
+    /// a terminal window (WMINST-007, WMINST-011); `bool`: with the apps no
+    /// distribution packages.
+    InstallApps(crate::packaging::Size, bool),
+    /// General > Apps > Remove set: remove the size debs of this size and
+    /// larger with apt in a terminal window (WMINST-011).
+    RemoveApps(crate::packaging::Size),
+    /// General > Apps: compute the confirmation's download size off the loop
+    /// (the packages come from [`Settings::apps_download_pkgs`]).
+    AppsDownloadSize,
 }
 
 /// Terminal color presets: (name, background, foreground). `None` = follow the
@@ -205,8 +212,9 @@ pub struct Settings {
     apps_size: crate::packaging::Size,
     /// Apps of the installed size this machine lacks (WMINST-007).
     apps_missing: Vec<String>,
-    apps_pick: usize,
     have_curl: bool,
+    /// The Apps dialog, while open (WMINST-011).
+    apps_dlg: Option<crate::appsdlg::AppsDlg>,
 }
 
 /// "apt package, size essentials" for Settings > About.
@@ -229,7 +237,7 @@ impl Settings {
             sound: None, outputs: Vec::new(), in_sidebar: false, wallpaper_note: None,
             waiter: crate::fullscreen::service_state(), brightness: crate::brightness::read_pct(), cfg_exists: config_file_exists(), reset_armed: false,
             themes_status: String::new(), themes_busy: false, install_info: install_info(),
-            apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_pick: 0, have_curl: crate::catalog::is_installed("curl"),
+            apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_dlg: None, have_curl: crate::catalog::is_installed("curl"),
         }.with_wallpaper_note()
     }
 
@@ -287,6 +295,7 @@ impl Settings {
     /// Switch to section `i`, asking the session to refresh the outputs when
     /// it is Sound.
     fn enter_section(&mut self, i: usize) {
+        self.apps_dlg = None;
         self.section = i;
         self.sel = 0;
         self.reset_armed = false;
@@ -337,7 +346,6 @@ impl Settings {
     pub fn refresh_apps(&mut self) {
         self.apps_size = crate::packaging::installed_size();
         self.apps_missing = crate::packaging::missing_apps(self.apps_size);
-        self.apps_pick = 0;
         self.have_curl = crate::catalog::is_installed("curl");
         self.install_info = install_info();
     }
@@ -368,7 +376,51 @@ impl Settings {
     /// Whether the Apps section's text-entry form is currently open (the client
     /// forwards typed characters only in this state).
     pub fn is_editing(&self) -> bool {
-        self.edit.is_some() || self.text.is_some()
+        self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some()
+    }
+
+    /// Open the Apps dialog: reads the missing apps (font checks run fc-list)
+    /// and the size debs Remove set would remove.
+    fn open_apps_dlg(&mut self) {
+        use crate::packaging::{self as pk, Size};
+        let size = pk::installed_size();
+        self.apps_dlg = Some(crate::appsdlg::AppsDlg::new(
+            size,
+            self.have_curl,
+            std::path::Path::new("/usr/bin/apt-get").exists(),
+            pk::missing_rows_here(Size::Extras),
+            pk::list_has_size(crate::catalog::suite_apps(), Size::Extras),
+            pk::remove_debs_here(size),
+        ));
+    }
+
+    fn apps_outcome(&mut self, o: crate::appsdlg::Outcome) {
+        use crate::appsdlg::Outcome;
+        match o {
+            Outcome::None => {}
+            Outcome::Close => self.apps_dlg = None,
+            Outcome::Install(s, scripts) => {
+                self.apps_dlg = None;
+                self.action = Some(SettingsAction::InstallApps(s, scripts));
+            }
+            Outcome::Remove(s) => {
+                self.apps_dlg = None;
+                self.action = Some(SettingsAction::RemoveApps(s));
+            }
+            Outcome::Download => self.action = Some(SettingsAction::AppsDownloadSize),
+        }
+    }
+
+    /// The packages whose download size the Apps confirmation shows.
+    pub fn apps_download_pkgs(&self) -> Vec<String> {
+        self.apps_dlg.as_ref().map(|d| d.download_pkgs()).unwrap_or_default()
+    }
+
+    /// The download size computed for the Apps confirmation.
+    pub fn set_apps_download(&mut self, bytes: Option<u64>) {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.set_download(bytes);
+        }
     }
 
     /// Number of interactive rows in the current section.
@@ -392,7 +444,7 @@ impl Settings {
     /// Tab / Shift+Tab: move keyboard focus between the section list and the
     /// rows. Ignored while a text box or the add form is open.
     pub fn toggle_pane(&mut self) {
-        if self.edit.is_none() && self.text.is_none() {
+        if self.edit.is_none() && self.text.is_none() && self.apps_dlg.is_none() {
             self.in_sidebar = !self.in_sidebar;
         }
     }
@@ -404,6 +456,10 @@ impl Settings {
 
     pub fn move_up(&mut self) {
         self.reset_armed = false;
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.up();
+            return;
+        }
         if self.in_sidebar {
             if self.section > 0 {
                 self.enter_section(self.section - 1);
@@ -421,6 +477,10 @@ impl Settings {
     }
     pub fn move_down(&mut self) {
         self.reset_armed = false;
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.down();
+            return;
+        }
         if self.in_sidebar {
             if self.section + 1 < SECTIONS.len() {
                 self.enter_section(self.section + 1);
@@ -439,13 +499,13 @@ impl Settings {
         }
     }
     pub fn prev_section(&mut self) {
-        if self.edit.is_some() || self.text.is_some() {
+        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() {
             return; // don't leave a half-typed form via arrow keys
         }
         self.enter_section((self.section + SECTIONS.len() - 1) % SECTIONS.len());
     }
     pub fn next_section(&mut self) {
-        if self.edit.is_some() || self.text.is_some() {
+        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() {
             return;
         }
         self.enter_section((self.section + 1) % SECTIONS.len());
@@ -454,6 +514,14 @@ impl Settings {
     /// Append a character to the active text field (Apps add form, or the
     /// Appearance → Wallpaper filename box).
     pub fn type_char(&mut self, c: char) {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            // Space ticks the box or chooses, like Enter, on the choice list.
+            if c == ' ' {
+                let o = d.enter();
+                self.apps_outcome(o);
+            }
+            return;
+        }
         if let Some(e) = self.edit.as_mut() {
             match e.field {
                 0 => e.name.push(c),
@@ -509,6 +577,11 @@ impl Settings {
     /// Abandon the active text field without saving (Apps add form or the
     /// wallpaper filename box).
     pub fn cancel_edit(&mut self) {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            let o = d.esc();
+            self.apps_outcome(o);
+            return;
+        }
         self.edit = None;
         self.text = None;
     }
@@ -534,6 +607,16 @@ impl Settings {
             if dir >= 0 {
                 self.in_sidebar = false;
             }
+            return;
+        }
+        if let Some(d) = self.apps_dlg.as_mut() {
+            let o = if dir == 0 {
+                d.enter()
+            } else {
+                d.side();
+                crate::appsdlg::Outcome::None
+            };
+            self.apps_outcome(o);
             return;
         }
         // While a text box is open, Enter (dir 0) commits it and every other
@@ -754,16 +837,7 @@ impl Settings {
             (GENERAL, 1) if dir == 0 && armed => self.action = Some(SettingsAction::ResetConfigFile),
             (GENERAL, 1) if dir == 0 => self.reset_armed = true,
             (GENERAL, 2) if dir == 0 => self.action = Some(SettingsAction::ReloadConfig),
-            (GENERAL, 3) => {
-                let choices = crate::packaging::size_choices(self.apps_size);
-                let n = choices.len();
-                match dir {
-                    -1 => self.apps_pick = (self.apps_pick + n - 1) % n,
-                    1 => self.apps_pick = (self.apps_pick + 1) % n,
-                    _ if self.have_curl => self.action = Some(SettingsAction::InstallApps(choices[self.apps_pick % n])),
-                    _ => {}
-                }
-            }
+            (GENERAL, 3) if dir == 0 => self.open_apps_dlg(),
             (GENERAL, 4) => {
                 use crate::logfile::Level;
                 let n = Level::ALL.len();
@@ -891,7 +965,12 @@ impl Settings {
     }
 
     /// Handle a content-local click; returns `true` if a setting changed.
-    pub fn handle_click(&mut self, p: Point, _w: i32, _h: i32) -> bool {
+    pub fn handle_click(&mut self, p: Point, _w: i32, h: i32) -> bool {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            let o = d.click(p.x - SIDEBAR_W - 2, p.y, h);
+            self.apps_outcome(o);
+            return self.action.is_some();
+        }
         // A click while a text box is open dismisses it. Mouse-driven users
         // otherwise had no way out — the click was swallowed and every row went
         // dead, so the panel looked frozen (most visibly the Wallpaper filename
@@ -1097,7 +1176,16 @@ impl Settings {
             TERMINAL => self.render_terminal(&mut buf, cx),
             SOUND => self.render_sound(&mut buf, cx),
             DISPLAY => self.render_display(&mut buf, cx),
-            GENERAL => self.render_general(&mut buf, cx),
+            GENERAL => match self.apps_dlg.as_ref() {
+                Some(d) => {
+                    // The dialog draws its own title over the section's.
+                    for x in cx..w {
+                        buf.set(x, 1, Cell { ch: ' ', fg: pal_fg(), bg: pal_bg(), attrs: Default::default() });
+                    }
+                    d.render(&mut buf, cx, w, h);
+                }
+                None => self.render_general(&mut buf, cx),
+            },
             _ => {
                 buf.write_str(cx, 3, "tetron-wm — a desktop environment for the terminal", pal_fg(), pal_bg());
                 let sha = &crate::GIT_SHA[..crate::GIT_SHA.len().min(7)];
@@ -1122,18 +1210,11 @@ impl Settings {
 
     /// General > Apps value: the installed size and the chosen action.
     fn apps_value(&self) -> String {
-        use crate::packaging::Size;
         let have = match self.apps_missing.len() {
             0 => self.apps_size.name().to_string(),
             n => format!("{}, {n} missing", self.apps_size.name()),
         };
-        if !self.have_curl {
-            return format!("{have} (needs curl)");
-        }
-        let choices = crate::packaging::size_choices(self.apps_size);
-        let pick = choices[self.apps_pick % choices.len()];
-        let what = if self.apps_size == Size::Extras { "check for new".to_string() } else { format!("install {}", pick.name()) };
-        if choices.len() > 1 { format!("{have}: \u{25C2} {what} \u{25B8}") } else { format!("{have}: Enter to {what}") }
+        format!("{have}: Enter for the choices")
     }
 
     /// Render the General section: the config file group.
@@ -1170,8 +1251,8 @@ impl Settings {
         buf.write_str(cx, 12, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
         buf.write_str(cx, 13, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
         buf.write_str(cx, 14, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
-        buf.write_str(cx, 15, "Apps: essentials, recommended, extras, each adding to", pal_dim(), pal_bg());
-        buf.write_str(cx, 16, "the one before. Installs in a window (sudo asks).", pal_dim(), pal_bg());
+        buf.write_str(cx, 15, "Apps: install Essentials or Recommended, or remove a set;", pal_dim(), pal_bg());
+        buf.write_str(cx, 16, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
         buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
     }
 
@@ -2098,27 +2179,32 @@ mod tests {
     }
 
     #[test]
-    fn general_apps_row_picks_a_larger_size_and_asks_to_install_it() {
-        use crate::packaging::Size;
+    fn general_apps_row_opens_the_dialog_and_esc_closes_it() {
         let mut s = Settings::new(Config::default());
         s.enter_section(GENERAL);
-        s.apps_size = Size::Minimal;
         s.have_curl = true;
         s.sel = 3;
-        assert!(screen(&s).contains("install essentials"));
-        s.right();
-        assert!(screen(&s).contains("install recommended"));
-        s.right();
-        assert!(screen(&s).contains("install extras"));
+        assert!(screen(&s).contains("Enter for the choices"));
         s.toggle();
-        assert_eq!(s.take_action(), Some(SettingsAction::InstallApps(Size::Extras)));
-        s.apps_size = Size::Extras;
-        s.apps_pick = 0;
-        assert!(screen(&s).contains("check for new"));
-        s.have_curl = false;
+        assert!(s.is_editing(), "the dialog takes the keys");
+        let sc = screen(&s);
+        assert!(sc.contains("General \u{203A} Apps") && sc.contains("Essentials") && sc.contains("Recommended"), "{sc}");
+        s.next_section();
+        assert_eq!(s.section, GENERAL, "no section change while the dialog is open");
+        s.move_down();
         s.toggle();
-        assert_eq!(s.take_action(), None, "no curl: nothing to run");
-        assert!(screen(&s).contains("needs curl"));
+        assert!(screen(&s).contains("[ Cancel ]"), "a size opens its confirmation");
+        s.right();
+        s.toggle();
+        let a = s.take_action();
+        assert!(matches!(a, Some(SettingsAction::InstallApps(crate::packaging::Size::Recommended, true))), "{a:?}");
+        assert!(!s.is_editing(), "installing closes the dialog");
+        s.toggle();
+        s.toggle();
+        s.cancel_edit();
+        assert!(s.is_editing(), "Esc leaves the confirmation for the choices");
+        s.cancel_edit();
+        assert!(!s.is_editing());
     }
 
     #[test]

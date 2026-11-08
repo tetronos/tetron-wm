@@ -81,8 +81,8 @@ Asked by the suite installer as "What are you setting up?", or given with `--pro
 
 ## Growing the size later
 
-- Inside tetron-wm: **Settings > General > Apps** shows the installed size and how many of its apps are missing. Left and Right choose a larger one and Enter installs it in a terminal window, where sudo can ask for your password. At extras it checks for apps a newer release added.
-- From a shell: run the suite installer again with `--size essentials`, `--size recommended` or `--size extras`.
+- Inside tetron-wm: **Settings > General > Apps** shows the installed size and how many of its apps are missing. Enter opens the choices: Essentials, Recommended (and Extras once it has apps), a box for the apps no distribution packages (opencode, fresh, uv, catt, casttui, the Nerd Font; ticked by default) and, on Debian and Ubuntu, Remove set. Each choice shows a confirmation first: the apps it adds, the download size on Debian and Ubuntu, and how to undo it. Install runs the suite installer in a terminal window, where sudo can ask for your password; choosing the installed size again adds what a newer release added. Remove set removes the size package, then apt lists the apps no other package needs and asks before removing them.
+- From a shell: run the suite installer again with `--size essentials`, `--size recommended` or `--size extras` (`--no-scripts` leaves out the apps no distribution packages).
 
 Going down a size on Debian and Ubuntu: `sudo apt remove tetron-wm-extras` (or `tetron-wm-recommended`, `tetron-wm-essentials`); the apps it brought stay until `sudo apt autoremove`.
 

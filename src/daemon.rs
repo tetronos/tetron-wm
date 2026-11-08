@@ -446,6 +446,7 @@ fn serve_client_inner(
         core.pump_images();
         core.poll_power();
         core.poll_themes();
+        core.poll_apps_download();
         core.poll_lists();
         core.poll_update_check();
         core.tick_screensaver();

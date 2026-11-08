@@ -67,6 +67,8 @@
 #                              over the list it counted from); default: the list published
 #                              for this core minor, then the repository's
 #   --no-extras                same as --size minimal (older flag)
+#   --no-scripts               leave out the apps no distribution packages (opencode, fresh,
+#                              uv, catt, casttui, the Nerd Font, the helper scripts)
 #   --convert / --no-convert   Debian and Ubuntu: replace a tetron-wm that is not from a
 #                              package with the apt package (asked, default no)
 #   --services / --no-services force the system-services step on/off
@@ -131,7 +133,7 @@ fetch() {
 
 # ── Args ─────────────────────────────────────────────────────────────────────
 ASSUME_YES=0
-SIZE=""; CONVERT=""; APPS_LIST=""
+SIZE=""; CONVERT=""; APPS_LIST=""; NO_SCRIPTS=0
 WANT_WM=""; WANT_CONFIG=""; WANT_THEMES=""; WANT_EXTRAS=""; WANT_SERVICES=""; WANT_KMSCON=""; WANT_CONSOLE=""; WANT_AUTOLOGIN=""; WANT_AUTOSTART=""; WANT_FULLSCREEN=""
 FSVT=9; VT=""; PROFILE=""; UNINSTALL=0; PURGE=0; DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -145,6 +147,7 @@ while [ $# -gt 0 ]; do
     --extras)     WANT_EXTRAS=y ;; --no-extras) WANT_EXTRAS=n; SIZE=minimal ;;
     --size)       shift; SIZE="${1:-}" ;;
     --apps-list)  shift; APPS_LIST="${1:-}" ;;
+    --no-scripts) NO_SCRIPTS=1 ;;
     --convert)    CONVERT=y ;; --no-convert) CONVERT=n ;;
     --services)   WANT_SERVICES=y ;; --no-services) WANT_SERVICES=n ;;
     --kmscon)     WANT_KMSCON=y ;; --no-kmscon) WANT_KMSCON=n ;;
@@ -415,7 +418,7 @@ EOF_APPS
 }
 # Not `| grep -q`: it stops reading at the first match and, under pipefail,
 # the writer's SIGPIPE would turn a match into a failure.
-want_script() { local l; l="$(apps_for "$SIZE" script)"; printf '%s\n' "$l" | grep -x "$1" >/dev/null; }
+want_script() { [ "$NO_SCRIPTS" = 0 ] || return 1; local l; l="$(apps_for "$SIZE" script)"; printf '%s\n' "$l" | grep -x "$1" >/dev/null; }
 
 # The package manager column to read: 2 apt, 3 dnf, 4 pacman, 5 brew.
 pm_col() {
@@ -531,7 +534,7 @@ UV_INSTALLER="https://astral.sh/uv/install.sh"
 uv_bin() {
   if have uv; then echo uv; elif [ -x "$HOME/.local/bin/uv" ]; then echo "$HOME/.local/bin/uv"; fi
 }
-uv_via_script() { [ -z "$(uv_bin)" ] && { [ "$(pm_col)" = 2 ] || [ "$(pm_col)" = 0 ]; }; }
+uv_via_script() { [ "$NO_SCRIPTS" = 0 ] && [ -z "$(uv_bin)" ] && { [ "$(pm_col)" = 2 ] || [ "$(pm_col)" = 0 ]; }; }
 
 install_uv() {
   log "installing uv with its official installer ($UV_INSTALLER)"

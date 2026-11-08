@@ -696,6 +696,8 @@ pub struct SessionCore {
     update_check: Option<std::sync::mpsc::Receiver<String>>,
     /// Settings > Get more themes worker, read by [`Self::poll_themes`].
     theme_job: Option<std::sync::mpsc::Receiver<crate::themefetch::Msg>>,
+    /// Settings > General > Apps download size worker, read by [`Self::poll_apps_download`].
+    apps_download_job: Option<std::sync::mpsc::Receiver<Option<u64>>>,
     /// A running Store Update list fetch (WMCAT-004).
     list_job: Option<std::sync::mpsc::Receiver<String>>,
     /// Modal "are you sure?" shown when closing an app window (which kills it).
@@ -821,6 +823,7 @@ impl SessionCore {
             power_menu: PowerMenu::new(),
             power_job: None,
             theme_job: None,
+            apps_download_job: None,
             list_job: None,
             update_check: None,
             confirm_close: ConfirmClose::new(),
@@ -1400,16 +1403,33 @@ impl SessionCore {
                     self.theme_job = Some(crate::themefetch::spawn());
                 }
             }
-            Some(crate::settings::SettingsAction::InstallApps(size)) => {
-                // Settings > General > Apps (WMINST-007): the suite installer for
-                // that size in a window, so sudo asks where the user can answer.
-                crate::dbg_log(&format!("apps: install the {} size with the suite installer", size.name()));
+            Some(crate::settings::SettingsAction::InstallApps(size, scripts)) => {
+                // Settings > General > Apps (WMINST-007, WMINST-011): the suite
+                // installer for that size in a window, so sudo asks where the
+                // user can answer.
+                crate::dbg_log(&format!("apps: install the {} size with the suite installer (script apps: {scripts})", size.name()));
                 let raw = "https://raw.githubusercontent.com/tetronos/tetron-wm";
                 // The list Settings counted from, so the script installs the same one.
                 let list = crate::packaging::write_apps_list();
-                let cmd = crate::packaging::apps_install_command(raw, size, list.as_deref());
+                let cmd = crate::packaging::apps_install_command(raw, size, list.as_deref(), scripts);
                 // "install:" titles rescan $PATH when the window closes (reap_dead).
                 self.launch(format!("install: {} apps", size.name()), "sh".into(), vec!["-lc".into(), cmd]);
+            }
+            Some(crate::settings::SettingsAction::RemoveApps(size)) => {
+                let pkgs = crate::packaging::remove_debs_here(size);
+                if !pkgs.is_empty() {
+                    crate::dbg_log(&format!("apps: remove set {} ({})", size.name(), pkgs.join(" ")));
+                    let cmd = crate::packaging::apps_remove_command(&pkgs);
+                    self.launch(format!("install: remove {} set", size.name()), "sh".into(), vec!["-lc".into(), cmd]);
+                }
+            }
+            Some(crate::settings::SettingsAction::AppsDownloadSize) => {
+                let pkgs = self.focused_settings_mut().map(|s| s.apps_download_pkgs()).unwrap_or_default();
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let _ = tx.send(crate::packaging::apt_download_size(&pkgs));
+                });
+                self.apps_download_job = Some(rx);
             }
             Some(crate::settings::SettingsAction::OpenConfigFile) => self.open_config_file(),
             Some(crate::settings::SettingsAction::CreateConfigFile) => {
@@ -1522,6 +1542,23 @@ impl SessionCore {
             }
         }
         self.refresh_installed_apps();
+    }
+
+    /// Hand the Apps confirmation's download size to the open Settings panels
+    /// (call once per daemon tick).
+    pub fn poll_apps_download(&mut self) {
+        let Some(rx) = self.apps_download_job.as_ref() else { return };
+        let bytes = match rx.try_recv() {
+            Ok(b) => b,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => None,
+        };
+        self.apps_download_job = None;
+        for c in self.contents.values_mut() {
+            if let WinContent::Settings(s) = c {
+                s.set_apps_download(bytes);
+            }
+        }
     }
 
     /// Hand theme download progress to every open Settings panel (call once
