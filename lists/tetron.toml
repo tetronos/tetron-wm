@@ -5473,3 +5473,16 @@ install = "mkdir -p ~/.local/bin && curl -fsSL -o ~/.local/bin/torrenttui https:
 method = "binary"
 verified = true
 os = ["linux"]
+
+[[app]]
+name = "kptui"
+bin = "kptui"
+category = "Productivity"
+description = "A password manager for KeePass KDBX vaults (shared with KeePassXC, KeePassDX, KeeWeb): search, TOTP codes, keyfiles, import and export. First run: for a password-only vault, clear Keyfile in Config (Ctrl+C on the login screen) before creating it."
+homepage = "https://github.com/pepa65/kptui"
+tier = "recommended"
+[app.recipe]
+install = "[ \"$(uname -m)\" = x86_64 ] || { echo 'kptui: release binary is x86_64 only; elsewhere: cargo install kptui'; exit 1; }; mkdir -p ~/.local/bin && curl -fsSL -o ~/.local/bin/kptui https://github.com/pepa65/kptui/releases/latest/download/kptui && chmod 755 ~/.local/bin/kptui"
+method = "binary"
+verified = true
+os = ["linux"]
