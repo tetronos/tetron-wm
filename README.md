@@ -159,7 +159,7 @@ On Debian and Ubuntu, tetron-wm installed by apt (the `.deb`) is updated through
 - **Nothing happens on `attach`.** Run `tetron-wm ls`. A `detached` session is waiting for you. `recoverable` means the daemon is gone but the apps are alive, so run `tetron-wm` to restore the windows.
 - **Copying text out of an app that grabs the mouse** (vim, w3m): press `Ctrl+Space` then `x`, drag over the text, then `Ctrl+Space` then `C`.
 - **No wallpaper.** Install `chafa`, or set `wallpaper_enabled = false` for a solid desktop.
-- **Something else.** The in-app **Logs** viewer shows `~/tetron-wm-debug.log`, which is what to paste into a bug report.
+- **Something else.** The in-app **Logs** viewer shows `~/.local/state/tetron-wm/debug.log`, which is what to paste into a bug report.
 
 ## Files
 
@@ -168,7 +168,7 @@ On Debian and Ubuntu, tetron-wm installed by apt (the `.deb`) is updated through
 | `~/.config/tetron-wm/config.toml`            | your settings                                                           |
 | `~/.config/tetron-wm/themes/`                | your themes and their pictures                                          |
 | `~/.local/share/tetron-wm/`                  | app-managed data: clipboard history, icon positions, recent directories |
-| `~/tetron-wm-debug.log`                      | log                                                                     |
+| `~/.local/state/tetron-wm/debug.log` (`.1` .. `.3`)    | log, rotated at 4 MiB, level from `log_level`                           |
 | `$XDG_RUNTIME_DIR/tetron-wm-$USER/`          | sockets                                                                 |
 
 ## More

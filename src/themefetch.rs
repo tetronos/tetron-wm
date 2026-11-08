@@ -142,7 +142,7 @@ pub fn run(repo: &str, dir: &Path, tx: &mpsc::Sender<Msg>) -> String {
             got += 1;
         } else {
             let _ = std::fs::remove_file(&part);
-            crate::dbg_log(&format!("themes: {} failed from {}", e.name, e.url));
+            crate::log_warn(&format!("themes: {} failed from {}", e.name, e.url));
             failed.push(e.name.clone());
         }
     }

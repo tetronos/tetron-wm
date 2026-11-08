@@ -181,7 +181,7 @@ pub fn run_with_cap(kind: Kind, cfg: &TrayTools, installed: &dyn Fn(&str) -> boo
                 return report;
             }
             Capped::Failed(why) | Capped::Missing(why) => {
-                crate::dbg_log(&format!("power: {} — `{line}` failed: {why}", kind.key()));
+                crate::log_warn(&format!("power: {} — `{line}` failed: {why}", kind.key()));
                 report.tried.push((line, why));
             }
         }

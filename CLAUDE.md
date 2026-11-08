@@ -60,7 +60,7 @@ by `config.update_branch`:
 
 The updater reloads via the freshly-installed binary's **absolute path** (a
 bare `tetron-wm reload` can miss `$PATH` in the non-interactive `sh -lc` it runs
-in) and logs each step (`update: …`) to `~/tetron-wm-debug.log`. The debug log now
+in) and logs each step (`update: …`) to the log (`~/.local/state/tetron-wm/debug.log`). The debug log now
 **appends across reloads** — `dbg_init` used to truncate on every daemon start,
 wiping the very update trace needed to debug it. The long-standing "update
 from Settings gets stuck" report (investigation log:
@@ -117,7 +117,7 @@ real terminal              composites frames, routes input    survives UI reload
 - **Shelling out**: only via `crate::system::run_capped` (hard timeout).
   Never block the render loop on the network — see the poller's separate
   thread for slow probes.
-- **Logging**: `crate::dbg_log` (always on, `~/tetron-wm-debug.log`, 4MB cap).
+- **Logging**: `crate::dbg_log` (`info`), `log_debug`, `log_warn`, `log_error` (src/logfile.rs: `~/.local/state/tetron-wm/debug.log`, 4 x 4 MiB rotation, `log_level` config). Test binaries never write to it unless `TETRON_WM_LOG_DIR` is set.
   Log every external effect (ssh, scp, installs, spawns) with enough detail
   to debug from the log alone; users paste it via the in-app Logs viewer.
 - **Geometry/hit-testing**: render and hit-test must share the same rect

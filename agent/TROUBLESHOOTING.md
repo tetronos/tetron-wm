@@ -2,7 +2,7 @@
 
 ## First stop: the log
 
-`~/tetron-wm-debug.log` — always on, timestamped (ms since epoch), capped at 4MB.
+`~/.local/state/tetron-wm/debug.log` — always on, timestamped (ms since epoch), rotated at 4 MiB into `debug.log.1` .. `.3` (16 MiB kept). `log_level` in config.toml (`error`, `warn`, `info`, `debug`) sets how much; `TETRON_WM_DEBUG=1` forces `debug` for one run.
 Every subsystem traces here: app launches, installs, ssh/scp transfers,
 system switches, notifications, theme changes. `tail -100` it before
 theorising. The user can also open it in-app (launcher → tetron-wm → Logs) and

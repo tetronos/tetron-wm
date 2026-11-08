@@ -163,8 +163,9 @@ pub fn apps_install_command(raw: &str, size: Size, list: Option<&Path>) -> Strin
         "clear; echo 'Installing the {s} apps for tetron-wm (the suite installer)…'; echo; \
 curl -fsSL {raw}/main/install-tetron-wm-suite.sh | bash -s -- --size {s} --no-wm --no-config --no-themes \
 --no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen{list}; \
-echo \"apps: suite installer for {s} exited with status $?\" >> \"$HOME/tetron-wm-debug.log\"; \
-echo; printf 'Press Enter to close. '; read _"
+echo \"apps: suite installer for {s} exited with status $?\" >> {log}; \
+echo; printf 'Press Enter to close. '; read _",
+        log = crate::logfile::shell_path(),
     )
 }
 
@@ -293,11 +294,11 @@ pub fn missing_apps(size: Size) -> Vec<String> {
 /// differs, its tarball checked against GitHub's sha256 digest (WMINST-010;
 /// `opencode upgrade` would install a second copy in ~/.opencode/bin). Errors never stop the tetron-wm
 /// update that follows.
-pub fn tool_updates_snippet() -> &'static str {
+pub fn tool_updates_snippet() -> String {
     "u=\"$(command -v uv 2>/dev/null || { [ -x \"$HOME/.local/bin/uv\" ] && echo \"$HOME/.local/bin/uv\"; } || true)\"; \
 if [ -n \"$u\" ]; then echo 'Updating uv and the apps it installed (catt, casttui)…'; \
 if ! dpkg -S \"$(readlink -f \"$u\")\" >/dev/null 2>&1; then \"$u\" self update 2>/dev/null || true; fi; \
-\"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> \"$HOME/tetron-wm-debug.log\"; echo; fi; \
+\"$u\" tool upgrade --all || true; echo \"update: uv self update and uv tool upgrade --all\" >> @LOG@; echo; fi; \
 o=\"$HOME/.local/bin/opencode\"; if [ -x \"$o\" ] && [ \"$(uname -s)\" = Linux ] && command -v python3 >/dev/null; then \
 case \"$(uname -m)\" in x86_64|amd64) a=x64; grep avx2 /proc/cpuinfo >/dev/null 2>&1 || a=x64-baseline;; aarch64|arm64) a=arm64;; *) a=;; esac; \
 [ -n \"$a\" ] && ldd --version 2>&1 | grep -i musl >/dev/null && a=\"$a-musl\"; f=\"opencode-linux-$a.tar.gz\"; \
@@ -306,8 +307,9 @@ t=\"${rel%% *}\"; t=\"${t#v}\"; v=\"$(\"$o\" --version 2>/dev/null | sed 's/.*v/
 if [ -n \"$a\" ] && [ -n \"$t\" ] && [ \"$t\" != \"$v\" ]; then echo \"Updating opencode $v to $t (checked against GitHub's sha256 digest)…\"; \
 url=\"$(echo \"$rel\" | cut -d' ' -f2)\"; sum=\"$(echo \"$rel\" | cut -d' ' -f3)\"; d=\"$(mktemp -d)\"; \
 if curl -fsSL -o \"$d/$f\" \"$url\" && echo \"$sum  $d/$f\" | sha256sum -c - >/dev/null && tar xzf \"$d/$f\" -C \"$d\" opencode && install -m 755 \"$d/opencode\" \"$o\"; \
-then echo \"update: opencode $t\" >> \"$HOME/tetron-wm-debug.log\"; else echo 'opencode was not updated (download or checksum failed)'; fi; \
+then echo \"update: opencode $t\" >> @LOG@; else echo 'opencode was not updated (download or checksum failed)'; fi; \
 rm -rf \"$d\"; echo; fi; fi; "
+        .replace("@LOG@", &crate::logfile::shell_path())
 }
 
 #[cfg(test)]
@@ -372,7 +374,7 @@ desktop:script:opencode\n";
 
     #[test]
     fn tool_updates_snippet_is_valid_sh() {
-        let ok = std::process::Command::new("sh").args(["-n", "-c", tool_updates_snippet()]).status().unwrap().success();
+        let ok = std::process::Command::new("sh").args(["-n", "-c", &tool_updates_snippet()]).status().unwrap().success();
         assert!(ok, "{}", tool_updates_snippet());
     }
 

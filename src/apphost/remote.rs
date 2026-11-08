@@ -161,7 +161,7 @@ fn apply_evt(evt: HostEvt, cache: &Arc<Mutex<Cache>>, pending: &Pending, infligh
             if let Some(p) = packed {
                 match crate::apphost::proto::unpack_grid(&p, entry.grid.take()) {
                     Some(g) => entry.grid = Some(g),
-                    None => crate::dbg_log(&format!("apphost: bad packed grid for app {app}")),
+                    None => crate::log_warn(&format!("apphost: bad packed grid for app {app}")),
                 }
             } else if grid.width() > 0 || grid.height() > 0 {
                 // A v5 apphost sends an empty grid with no `packed` when only

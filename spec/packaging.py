@@ -280,7 +280,7 @@ class ToolSelfUpdates(Requirement):
     updates the apps that keep their own updater: when uv is on PATH or in
     ~/.local/bin it runs `uv self update` (only for a uv no package owns;
     errors ignored) and `uv tool upgrade --all` (catt, and casttui where it
-    came from uv), logs the step to ~/tetron-wm-debug.log, and goes on to
+    came from uv), logs the step to the tetron-wm log, and goes on to
     the tetron-wm update whatever their result.
     """
 

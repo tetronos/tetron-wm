@@ -232,7 +232,7 @@ fn screensaver_starts_over_the_control_socket_and_a_key_wakes_it() {
 
     let out = env.cmd("sv").args(["screensaver", "on", "clock"]).output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
-    let log_path = env.root.join("tetron-wm-debug.log");
+    let log_path = env.root.join(".local/state/tetron-wm/debug.log");
     let wait_for = |needle: &str| {
         let t = Instant::now();
         loop {

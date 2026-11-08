@@ -65,6 +65,7 @@ pub mod toolchain;
 pub mod systems;
 pub mod calendar;
 pub mod logsview;
+pub mod logfile;
 pub mod assistant;
 
 /// The crate version (from Cargo.toml).
@@ -75,43 +76,60 @@ pub const GIT_SHA: &str = env!("TETRON_WM_GIT_SHA");
 /// repo). The updater must only ever point here.
 pub const REPO_URL: &str = "https://github.com/tetronos/tetron-wm";
 
-/// Max size of `~/tetron-wm-debug.log` before it's reset, so a long-running session
-/// can't grow it without bound.
-const DBG_LOG_MAX_BYTES: u64 = 4 * 1024 * 1024;
-
-/// Append a timestamped line to `~/tetron-wm-debug.log`. Always on — events are
-/// low-frequency and the in-app Logs viewer (launcher → tetron-wm → Logs) reads
-/// this file, so there must be something to show without re-running with an
-/// env var. The log is capped at [`DBG_LOG_MAX_BYTES`]: once exceeded it's
-/// reset (keeping the most recent activity), so it never grows out of hand.
+/// Log an event (level `info`) to the tetron-wm log (see [`logfile`]). Always
+/// on at the default level: the in-app Logs viewer (launcher → tetron-wm →
+/// Logs) and the Assistant read this file, so there must be something to show
+/// without re-running with an env var. The file is rotated at 4 MiB, four
+/// files kept (16 MiB), oldest dropped.
 pub fn dbg_log(msg: &str) {
-    let Some(home) = dirs::home_dir() else { return };
-    let path = home.join("tetron-wm-debug.log");
-    use std::io::Write;
-    // Reset the log if it has grown past the cap (events are low-frequency, so the
-    // per-call stat is negligible).
-    if std::fs::metadata(&path).map(|m| m.len() > DBG_LOG_MAX_BYTES).unwrap_or(false) {
-        if let Ok(mut f) = std::fs::OpenOptions::new().write(true).truncate(true).open(&path) {
-            let _ = writeln!(f, "=== log reset (exceeded {DBG_LOG_MAX_BYTES} bytes) ===");
-        }
-    }
-    let ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
-        let _ = writeln!(f, "{ms} {msg}");
-    }
+    logfile::write(logfile::Level::Info, msg);
 }
 
-/// Append a session-start banner to `~/tetron-wm-debug.log` (running version, git
-/// sha, and binary path). Called once at daemon startup.
+/// Log a verbose line (level `debug`: repeats, every message, every reload).
+pub fn log_debug(msg: &str) {
+    logfile::write(logfile::Level::Debug, msg);
+}
+
+/// Log something that went wrong but tetron-wm carries on (level `warn`).
+pub fn log_warn(msg: &str) {
+    logfile::write(logfile::Level::Warn, msg);
+}
+
+/// Log `msg` at `info` the first time and whenever `value` differs from the
+/// last one seen for `kind` in this process, at `debug` otherwise. For lines
+/// that repeat on every refresh (wallpaper loads, desktop reloads, systems
+/// loads): the log keeps the change, not the repeats.
+pub fn log_changed(kind: &'static str, value: &str, msg: &str) {
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    static LAST: Mutex<Option<HashMap<&'static str, String>>> = Mutex::new(None);
+    let changed = {
+        let mut g = LAST.lock().unwrap_or_else(|e| e.into_inner());
+        let m = g.get_or_insert_with(HashMap::new);
+        if m.get(kind).map(String::as_str) == Some(value) {
+            false
+        } else {
+            m.insert(kind, value.to_string());
+            true
+        }
+    };
+    logfile::write(if changed { logfile::Level::Info } else { logfile::Level::Debug }, msg);
+}
+
+/// Log a failure (level `error`).
+pub fn log_error(msg: &str) {
+    logfile::write(logfile::Level::Error, msg);
+}
+
+/// Append a session-start banner to the log (running version, git sha, and
+/// binary path). Called once at daemon startup. Moves the pre-0.15.6
+/// `~/tetron-wm-debug.log` into the log directory first (see [`logfile::migrate`]).
 ///
 /// Deliberately APPENDS rather than truncates: when an in-app update reloads
 /// the daemon, the previous session's trace (the `update:` steps, the reload)
 /// must survive alongside the new banner so the *whole* update is visible in
 /// one log — truncating here is what made update failures invisible (the new
-/// daemon wiped the evidence). `dbg_log`'s size cap keeps the file bounded.
+/// daemon wiped the evidence). Rotation keeps the files bounded.
 pub fn dbg_init() {
     // Route every panic into the debug log before the default handler runs. The
     // daemon/apphost stderr is not captured (the console is torn down on exit),
@@ -120,9 +138,14 @@ pub fn dbg_init() {
     // is otherwise unchanged.
     let default = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        dbg_log(&format!("PANIC: {info}"));
+        log_error(&format!("PANIC: {info}"));
         default(info);
     }));
+    if let (Some(home), Some(dir)) = (dirs::home_dir(), logfile::dir()) {
+        if let Some(to) = logfile::migrate(&home, &dir) {
+            dbg_log(&format!("log: moved ~/{} to {}", logfile::LEGACY_FILE, to.display()));
+        }
+    }
     let exe = std::env::current_exe()
         .map(|p| p.display().to_string())
         .unwrap_or_else(|_| "?".into());

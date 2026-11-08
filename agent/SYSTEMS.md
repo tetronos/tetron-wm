@@ -32,7 +32,7 @@ Each saved system may run its own tetron-wm. Useful checks:
 
 - Is it reachable?       the Systems menu shows ●/○; or `ssh <target> true`
 - Is tetron-wm running?      `ssh <target> 'ls "$XDG_RUNTIME_DIR/tetron-wm-$USER" 2>/dev/null || ls /tmp/tetron-wm-*/ 2>/dev/null'`
-- Read its logs:         `ssh <target> 'tail -100 ~/tetron-wm-debug.log'`
+- Read its logs:         `ssh <target> 'tail -100 ~/.local/state/tetron-wm/debug.log'`
 - Drive its desktop:     `ssh <target> 'PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH" tetron-wm launch btop'`
 
 If BatchMode ssh fails with "Permission denied", the key isn't installed on

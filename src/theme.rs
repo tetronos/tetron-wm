@@ -444,7 +444,7 @@ fn mono(t: Theme) -> Theme {
 /// Replace the current desktop theme (applied on the next rendered frame).
 pub fn set(name: &str) {
     if !known(name) {
-        crate::dbg_log(&format!("theme: '{name}' not found, using midnight (extra themes: install-tetron-wm-suite.sh --themes)"));
+        crate::log_warn(&format!("theme: '{name}' not found, using midnight (extra themes: install-tetron-wm-suite.sh --themes)"));
     }
     *slot().write().unwrap() = Theme::named(name);
 }
@@ -540,7 +540,7 @@ fn field(name: &str, dst: Rgba, src: &Option<String>) -> Rgba {
         Some(s) => match crate::badge::parse_color(s) {
             Some(c) => c,
             None => {
-                crate::dbg_log(&format!("theme: field '{name}' invalid color {s:?}; keeping default"));
+                crate::log_warn(&format!("theme: field '{name}' invalid color {s:?}; keeping default"));
                 dst
             }
         },
@@ -600,7 +600,7 @@ impl ThemeFile {
                 t.ansi[i] = field(&format!("ansi.{name}"), t.ansi[i], &tbl.get(*name).cloned());
             }
             for k in tbl.keys().filter(|k| !ANSI_NAMES.contains(&k.as_str())) {
-                crate::dbg_log(&format!("theme: [ansi] key '{k}' is not a colour name; ignored"));
+                crate::log_warn(&format!("theme: [ansi] key '{k}' is not a colour name; ignored"));
             }
         }
         (self.name, t)
@@ -854,13 +854,13 @@ fn load_dir(dir: &Path) -> Vec<(String, Theme)> {
                 Ok((name, theme)) => {
                     let name = name.unwrap_or(stem);
                     for w in validate(&theme) {
-                        crate::dbg_log(&format!("theme: '{name}': {w}"));
+                        crate::log_warn(&format!("theme: '{name}': {w}"));
                     }
                     out.push((name, theme));
                 }
-                Err(e) => crate::dbg_log(&format!("theme: skip {} — {e}", path.display())),
+                Err(e) => crate::log_warn(&format!("theme: skip {} — {e}", path.display())),
             },
-            Err(e) => crate::dbg_log(&format!("theme: cannot read {} — {e}", path.display())),
+            Err(e) => crate::log_warn(&format!("theme: cannot read {} — {e}", path.display())),
         }
     }
     out

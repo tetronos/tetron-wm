@@ -255,7 +255,7 @@ title_fg = "#ffb88a"</pre></div></figure>
 
   <section>
     <h2><span class="num">03</span>Keep text readable</h2>
-    <p>Most unreadable themes come from a handful of pairs. tetron-wm checks them when it loads your file and writes a line to <span class="mono-inline">~/tetron-wm-debug.log</span> (also in the in-app Logs viewer) for each that is too close. The number is a contrast ratio, where 1 means identical colors and 21 means black on white. See <a href="https://www.w3.org/TR/WCAG21/#contrast-minimum">WCAG contrast</a> for the idea behind it.</p>
+    <p>Most unreadable themes come from a handful of pairs. tetron-wm checks them when it loads your file and writes a line to <span class="mono-inline">~/.local/state/tetron-wm/debug.log</span> (also in the in-app Logs viewer) for each that is too close. The number is a contrast ratio, where 1 means identical colors and 21 means black on white. See <a href="https://www.w3.org/TR/WCAG21/#contrast-minimum">WCAG contrast</a> for the idea behind it.</p>
     <div class="table-scroll">
       <table class="trouble">
         <thead><tr><th>Pair</th><th>Minimum</th><th>Why</th></tr></thead>
@@ -322,7 +322,7 @@ active_bg = 7     <span class="c"># light grey selection (a console has no dark 
         <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
         <tbody>
           <tr><td>My edit does nothing</td><td>Run <span class="mono-inline">tetron-wm theme NAME</span> again. The theme in use keeps its loaded colors until it is selected.</td></tr>
-          <tr><td>The theme is not in the list</td><td>The file must end in <span class="mono-inline">.toml</span> and sit in <span class="mono-inline">~/.config/tetron-wm/themes/</span> (or the folder set by <span class="mono-inline">theme_dir</span>). A file that fails to parse is skipped; the reason is in <span class="mono-inline">~/tetron-wm-debug.log</span>.</td></tr>
+          <tr><td>The theme is not in the list</td><td>The file must end in <span class="mono-inline">.toml</span> and sit in <span class="mono-inline">~/.config/tetron-wm/themes/</span> (or the folder set by <span class="mono-inline">theme_dir</span>). A file that fails to parse is skipped; the reason is in <span class="mono-inline">~/.local/state/tetron-wm/debug.log</span>.</td></tr>
           <tr><td>One color did not change</td><td>An invalid value keeps the inherited color. Check the log for <span class="mono-inline">invalid color</span>. Quote the value: <span class="mono-inline">"#ff9e64"</span>.</td></tr>
           <tr><td>My new file replaced a built-in</td><td>A file named like a built-in (midnight, gruvbox, pastoral, windows) overrides it. Rename the file.</td></tr>
           <tr><td>Selection is invisible</td><td><span class="mono-inline">active_bg</span> is too close to <span class="mono-inline">window_bg</span>. Move it further, or give it a different hue.</td></tr>

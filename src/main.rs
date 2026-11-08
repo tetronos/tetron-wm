@@ -309,7 +309,7 @@ fn run_fullscreen(argv: &[String]) {
     match std::process::Command::new(program).args(args).status() {
         Ok(status) => tetron_wm::dbg_log(&format!("fullscreen: {program} ended with {status}")),
         Err(e) => {
-            tetron_wm::dbg_log(&format!("fullscreen: could not run {program}: {e}"));
+            tetron_wm::log_warn(&format!("fullscreen: could not run {program}: {e}"));
             eprintln!("tetron-wm: could not run {program}: {e}");
         }
     }
@@ -329,7 +329,7 @@ fn run_switch(spec: &tetron_wm::systems::SwitchSpec) {
     );
     let script = tetron_wm::systems::switch_script(spec);
     // With TETRON_WM_DEBUG set, show exactly what will run (the password is never
-    // embedded in the script) and mirror it to ~/tetron-wm-debug.log.
+    // embedded in the script) and mirror it to the log.
     if std::env::var_os("TETRON_WM_DEBUG").is_some() {
         eprintln!("tetron-wm: switch script:\n{script}");
     }
@@ -351,10 +351,10 @@ fn run_switch(spec: &tetron_wm::systems::SwitchSpec) {
         Ok(status) => {
             tetron_wm::dbg_log(&format!("switch: ended with {status}"));
             eprintln!("tetron-wm: switch to {} ended with {status} — back to this machine.", spec.name);
-            eprintln!("tetron-wm: (re-run with TETRON_WM_DEBUG=1 to see the exact script; log: ~/tetron-wm-debug.log)");
+            eprintln!("tetron-wm: (re-run with TETRON_WM_DEBUG=1 to see the exact script; log: {})", tetron_wm::logfile::display_path());
         }
         Err(e) => {
-            tetron_wm::dbg_log(&format!("switch: could not run sh/ssh: {e}"));
+            tetron_wm::log_warn(&format!("switch: could not run sh/ssh: {e}"));
             eprintln!("tetron-wm: could not run ssh: {e}");
         }
     }

@@ -24,6 +24,7 @@ pub fn run() -> std::io::Result<()> {
     // as `HostReq::SetColors` (protocol v4+), no restart needed.
     {
         let cfg = crate::config::Config::load();
+        crate::logfile::set_level(cfg.log_level);
         let name = std::env::var("TETRON_WM_THEME")
             .ok()
             .filter(|s| !s.is_empty())

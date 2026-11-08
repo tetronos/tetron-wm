@@ -160,7 +160,7 @@ enum WinContent {
     ImageView(Box<crate::imageview::ImageView>),
     /// The native file manager (local disk or a remote system over ssh).
     FileManager(crate::filemanager::DynFileManager),
-    /// The native log viewer (tail of ~/tetron-wm-debug.log + clipboard copy).
+    /// The native log viewer (tail of the log + clipboard copy).
     Logs(crate::logsview::LogsView),
     /// The activity monitor — a live table of hosted apps with kill-app controls.
     Activity(Activity),
@@ -773,6 +773,7 @@ impl SessionCore {
         let desktop_dir = dirs::home_dir().map(|h| h.join("Desktop")).unwrap_or_default();
         let wallpaper = Self::build_wallpaper(w, h, &cfg);
         crate::fullscreen::set_enabled(cfg.fullscreen);
+        crate::logfile::set_level(cfg.log_level);
         let mut core = Self {
             wm: WindowManager::new(work),
             contents: HashMap::new(),
@@ -880,7 +881,8 @@ impl SessionCore {
         // needs the real column/row count (else everything piles onto cell (0,0)).
         self.desktop.layout(self.w, self.h);
         self.desktop.reload(&self.cfg.desktop_pins, &self.state.desktop_positions);
-        crate::dbg_log(&format!("desktop reload: {} icons", self.desktop.icons().len()));
+        let n = self.desktop.icons().len();
+        crate::log_changed("desktop reload", &n.to_string(), &format!("desktop reload: {n} icons"));
         self.refresh_desktop_thumbnails();
     }
 
@@ -1409,14 +1411,14 @@ impl SessionCore {
             Some(crate::settings::SettingsAction::CreateConfigFile) => {
                 match crate::config::init() {
                     Ok(o) => crate::dbg_log(&format!("config: create from example -> {o:?}")),
-                    Err(e) => crate::dbg_log(&format!("config: create from example failed: {e}")),
+                    Err(e) => crate::log_warn(&format!("config: create from example failed: {e}")),
                 }
                 self.reload_to_general();
             }
             Some(crate::settings::SettingsAction::ResetConfigFile) => {
                 match crate::config::file_path().and_then(|p| crate::config::reset_at(&p)) {
                     Ok(bak) => crate::dbg_log(&format!("config: reset to the example, old file kept as {bak:?}")),
-                    Err(e) => crate::dbg_log(&format!("config: reset failed: {e}")),
+                    Err(e) => crate::log_warn(&format!("config: reset failed: {e}")),
                 }
                 self.reload_to_general();
             }
@@ -1785,7 +1787,7 @@ impl SessionCore {
     fn save_state(&self) {
         if let Some(p) = &self.state_path {
             if let Err(e) = self.state.save(p) {
-                crate::dbg_log(&format!("state: save failed: {e}"));
+                crate::log_warn(&format!("state: save failed: {e}"));
             }
         }
     }
@@ -2418,7 +2420,7 @@ impl SessionCore {
         self.cfg.wallpaper = Some(path.to_string_lossy().into_owned());
         self.cfg.wallpaper_enabled = true;
         if let Err(e) = self.cfg.save() {
-            crate::dbg_log(&format!("config: save failed: {e}"));
+            crate::log_warn(&format!("config: save failed: {e}"));
         }
         self.wallpaper = Self::build_wallpaper(self.w, self.h, &self.cfg);
     }
@@ -2541,7 +2543,7 @@ impl SessionCore {
                 self.systems.retain(|s| s.name != system.name);
                 self.systems.push(system);
                 if let Err(e) = crate::systems::save(&self.systems) {
-                    crate::dbg_log(&format!("systems: save failed: {e}"));
+                    crate::log_warn(&format!("systems: save failed: {e}"));
                 }
                 self.switch_to = Some(spec);
                 self.quit = true;
@@ -2550,7 +2552,7 @@ impl SessionCore {
                 crate::dbg_log(&format!("systems: forget '{name}' (revoke={})", revoke.is_some()));
                 self.systems.retain(|s| s.name != name);
                 if let Err(e) = crate::systems::save(&self.systems) {
-                    crate::dbg_log(&format!("systems: save failed: {e}"));
+                    crate::log_warn(&format!("systems: save failed: {e}"));
                 }
                 // Optionally strip our key from the remote — best-effort, on a
                 // background thread so an unreachable host can't stall the UI.
@@ -3058,7 +3060,9 @@ or a remote-side error — its authorized_keys was left untouched)",
                 | ClientMsg::RenameChar(_)
                 | ClientMsg::RenameBackspace
         ) {
-            crate::dbg_log(&format!("apply {:?}", msg));
+            // Every message is `debug`: the events they cause log themselves
+            // at `info` (launch_in, close window, settings changes).
+            crate::log_debug(&format!("apply {:?}", msg));
         }
         match msg {
             ClientMsg::Launch { name, command, args } => {
@@ -3913,7 +3917,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 self.push_terminal_colors();
                 if changed {
                     if let Err(e) = self.cfg.save() {
-                        crate::dbg_log(&format!("theme: config save failed: {e}"));
+                        crate::log_warn(&format!("theme: config save failed: {e}"));
                     }
                 }
             }
@@ -4061,13 +4065,14 @@ or a remote-side error — its authorized_keys was left untouched)",
             let changed = cfg != self.cfg;
             self.cfg = cfg;
             crate::fullscreen::set_enabled(self.cfg.fullscreen);
+            crate::logfile::set_level(self.cfg.log_level);
             self.tray.set_tools(self.cfg.tray_tools.clone());
             crate::theme::set(&self.cfg.theme);
             crate::iconset::set(self.cfg.icon_style);
             crate::openwith::set_extra(&self.cfg.open_with);
             if changed {
                 if let Err(e) = self.cfg.save() {
-                    crate::dbg_log(&format!("config: save failed: {e}"));
+                    crate::log_warn(&format!("config: save failed: {e}"));
                 }
             }
             if launcher_changed {
@@ -4223,7 +4228,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         let Some(dir) = crate::assistant::workdir() else { return };
         let host = self.host_label.clone();
         if let Err(e) = crate::assistant::write_briefing(&dir, &host, &self.systems) {
-            crate::dbg_log(&format!("assistant: briefing write failed: {e}"));
+            crate::log_warn(&format!("assistant: briefing write failed: {e}"));
         }
         crate::dbg_log(&format!(
             "assistant: starting '{command}' ({}) in {}",
@@ -4253,7 +4258,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             Err(e) => {
-                crate::dbg_log(&format!("assistant: spawn '{command}' failed: {e}"));
+                crate::log_warn(&format!("assistant: spawn '{command}' failed: {e}"));
                 self.wm.close(id);
             }
         }
@@ -4629,7 +4634,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 {
                     Ok(st) if st.success() => crate::dbg_log("scp: ok"),
                     Ok(st) => crate::dbg_log(&format!("scp: FAILED ({st}) — args: {}", args.join(" "))),
-                    Err(e) => crate::dbg_log(&format!("scp: could not run: {e}")),
+                    Err(e) => crate::log_warn(&format!("scp: could not run: {e}")),
                 }
             }
         });
@@ -5038,7 +5043,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                     self.focus_window(id);
                     return true;
                 }
-                other => crate::dbg_log(&format!("open with fresh: open-file into {name} failed: {other:?}")),
+                other => crate::log_warn(&format!("open with fresh: open-file into {name} failed: {other:?}")),
             }
         }
         false
@@ -6019,20 +6024,20 @@ or a remote-side error — its authorized_keys was left untouched)",
         // the wallpaper is switched off (or chafa is missing).
         let choice = crate::wallpaper::choose(spec, &cfg.theme);
         if let Some(m) = &choice.missing {
-            crate::dbg_log(&format!("wallpaper: file not found: {}, using the built-in image", m.display()));
+            crate::log_warn(&format!("wallpaper: file not found: {}, using the built-in image", m.display()));
         }
         let Some(path) = choice.path else {
-            crate::dbg_log("wallpaper: could not write the built-in image to the data dir");
+            crate::log_warn("wallpaper: could not write the built-in image to the data dir");
             return None;
         };
         let s = path.to_string_lossy();
         match crate::wallpaper::from_image(&s, w, h) {
             Some(buf) => {
-                crate::dbg_log(&format!("wallpaper: loaded {} ({w}x{h})", path.display()));
+                crate::log_changed("wallpaper", &format!("{} {w}x{h}", path.display()), &format!("wallpaper: loaded {} ({w}x{h})", path.display()));
                 Some(buf)
             }
             None => {
-                crate::dbg_log(&format!("wallpaper: chafa failed/missing for {} — solid fallback (install chafa)", path.display()));
+                crate::log_warn(&format!("wallpaper: chafa failed/missing for {} — solid fallback (install chafa)", path.display()));
                 None
             }
         }
@@ -6690,10 +6695,10 @@ fn update_command(branch: &str, packaged: bool) -> String {
     // the cargo `--root` fallback targets the same dir, so `{exe_dir}/tetron-wm` is
     // the new binary in both paths.
     let reload = crate::systems::sh_quote(&format!("{exe_dir}/tetron-wm"));
-    // Append each step to ~/tetron-wm-debug.log (same file as dbg_log) so a failed
+    // Append each step to the log (same file as dbg_log) so a failed
     // update is visible in the log the user pastes — the install runs in a
     // window whose output is otherwise lost.
-    let log = "\"$HOME/tetron-wm-debug.log\"";
+    let log = crate::logfile::shell_path();
     // uv and the uv tools first (WMINST-009); their result never stops the update.
     let tools = crate::packaging::tool_updates_snippet();
     if packaged && branch != "main" {
@@ -6958,6 +6963,28 @@ mod tests {
         }
     }
 
+    /// An hour of ordinary use (a refresh a second: menus, focus, resizes,
+    /// desktop and wallpaper reloads) logs a handful of lines at `info`, not
+    /// one per message. The level is the default `info` for every test thread.
+    #[test]
+    fn an_hour_of_use_logs_events_not_repeats() {
+        let mut core = SessionCore::new(120, 30, Config { apps: vec![], ..Config::default() });
+        let before = crate::logfile::lines_passed();
+        for i in 0..3600 {
+            core.apply(ClientMsg::ToggleSpotlight);
+            core.apply(ClientMsg::ToggleSpotlight);
+            core.apply(ClientMsg::FocusNext);
+            core.apply(ClientMsg::InfoOpen);
+            core.apply(ClientMsg::InfoOpen);
+            if i % 60 == 0 {
+                core.apply(ClientMsg::Resize { w: 120, h: 30, takeover: false });
+            }
+            core.reload_desktop();
+        }
+        let lines = crate::logfile::lines_passed() - before;
+        assert!(lines < 40, "{lines} lines logged at info for an hour of use");
+    }
+
     #[test]
     fn leader_i_opens_info_and_enter_follows_the_selected_row() {
         let mut core = SessionCore::new(120, 30, Config { apps: vec![], desktop_enabled: false, ..Config::default() });
@@ -7199,7 +7226,7 @@ mod tests {
         assert!(cmd.contains("cargo install --git"), "with a source fallback");
         assert!(cmd.contains("/tetron-wm' reload"), "reloads via the installed binary's absolute path: {cmd}");
         assert!(!cmd.contains("; tetron-wm reload"), "must not rely on PATH-resolving a bare `tetron-wm`: {cmd}");
-        assert!(cmd.contains("tetron-wm-debug.log"), "logs each step to the debug log");
+        assert!(cmd.contains(&format!(">> {}", crate::logfile::shell_path())), "logs each step to the debug log");
         assert!(cmd.contains("exit 0"), "exits so the updater window auto-closes");
         assert!(!cmd.contains("--branch"), "main needs no branch flag");
     }

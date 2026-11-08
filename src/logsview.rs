@@ -1,5 +1,5 @@
 //! The built-in Logs viewer (launcher → tetron-wm → Logs): a scrollable window over
-//! `~/tetron-wm-debug.log` with one-key copy of the log to the host terminal's
+//! the log (`~/.local/state/tetron-wm/debug.log`, see [`crate::logfile`]) with one-key copy of the log to the host terminal's
 //! clipboard (OSC 52 — works in Ghostty/Kitty/WezTerm and over ssh).
 //!
 //! Logging is always on (see [`crate::dbg_log`]), so this window has content
@@ -8,7 +8,7 @@
 use crate::buffer::CellBuffer;
 use crate::cell::Cell;
 
-/// Keep at most this many lines in memory (the file itself is capped at 4MB).
+/// Keep at most this many lines in memory (each file is capped at 4 MiB).
 const MAX_LINES: usize = 5000;
 
 /// Cap the clipboard payload: terminals reject huge OSC 52 writes, and a bug
@@ -34,7 +34,22 @@ impl Default for LogsView {
 
 /// The log file path shown and read by the viewer.
 pub fn log_path() -> Option<std::path::PathBuf> {
-    dirs::home_dir().map(|h| h.join("tetron-wm-debug.log"))
+    crate::logfile::path()
+}
+
+/// The last `max` lines of `current`, reaching back into `previous` (the
+/// rotated `.1` file) when the current file is short, as after a rotation.
+fn tail_lines(previous: Option<&str>, current: &str, max: usize) -> Vec<String> {
+    let mut all: Vec<&str> = current.lines().collect();
+    if all.len() < max {
+        if let Some(prev) = previous {
+            let mut p: Vec<&str> = prev.lines().collect();
+            p.extend(all);
+            all = p;
+        }
+    }
+    let skip = all.len().saturating_sub(max);
+    all[skip..].iter().map(|s| s.to_string()).collect()
 }
 
 impl LogsView {
@@ -53,14 +68,15 @@ impl LogsView {
     /// Re-read the log file, keeping the tail and the follow position.
     pub fn reload(&mut self) {
         let Some(path) = log_path() else {
-            self.status = "no home directory".into();
+            self.status = "no log directory".into();
             return;
         };
         match std::fs::read_to_string(&path) {
             Ok(text) => {
-                let all: Vec<&str> = text.lines().collect();
-                let skip = all.len().saturating_sub(MAX_LINES);
-                self.lines = all[skip..].iter().map(|s| s.to_string()).collect();
+                let mut prev = path.clone().into_os_string();
+                prev.push(".1");
+                let prev = std::fs::read_to_string(prev).ok();
+                self.lines = tail_lines(prev.as_deref(), &text, MAX_LINES);
                 self.status = format!("{} lines", self.lines.len());
             }
             Err(_) => {
@@ -152,6 +168,13 @@ impl LogsView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tail_reaches_into_the_rotated_file_only_when_short() {
+        assert_eq!(tail_lines(Some("a\nb"), "c", 2), ["b", "c"]);
+        assert_eq!(tail_lines(Some("a\nb"), "c\nd\ne", 2), ["d", "e"]);
+        assert_eq!(tail_lines(None, "c", 5), ["c"]);
+    }
 
     fn with_lines(n: usize) -> LogsView {
         let mut v = LogsView {

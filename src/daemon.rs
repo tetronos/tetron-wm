@@ -399,7 +399,7 @@ fn serve_client_inner(
                 let _ = writer.shutdown(std::net::Shutdown::Both);
                 return Some(other);
             }
-            crate::dbg_log("daemon: attach refused — a client is already attached");
+            crate::log_warn("daemon: attach refused — a client is already attached");
             let _ = other.writer.write_all(&notice_frame(
                 "session already attached from another terminal; use `tetron-wm attach -d` to take it over",
             ));

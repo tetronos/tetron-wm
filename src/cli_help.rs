@@ -55,6 +55,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("web_home", "https://lite.duckduckgo.com/lite/", "start page for w3m and other text browsers launched without a URL"),
     ("screensaver", "black", "effect for the on-demand screensaver: black | clock (tetron-wm screensaver list)"),
     ("power_commands", "{}", "[power_commands] suspend/reboot/poweroff -> command line or list tried in order (replaces the built-in chain)"),
+    ("log_level", "info", "how much goes into the log: error | warn | info | debug (TETRON_WM_DEBUG=1 forces debug)"),
     ("power_menu", "true", "show launcher > Power (Suspend/Reboot/Power off); false disables them everywhere (remote servers)"),
     ("launcher_label", "tetron", "menubar launcher button text: up to 6 characters (centred), or @session for the session name"),
     ("screenshot_dir", "", "where screenshots are saved (empty = ~/Pictures if present, else $HOME)"),
@@ -184,7 +185,7 @@ LAUNCHER SYSTEM SECTION (click the top-left button):\n\
 \x20          opens a window saying what was tried; set [power_commands] to change how;\n\
 \x20          power_menu = false removes it, for servers that must stay up)\n\n\
 FILES:\n  config:  $XDG_CONFIG_HOME/tetron-wm/config.toml (default ~/.config/tetron-wm/)\n\
-\x20 themes:  <config dir>/themes/*.toml\n  log:     ~/tetron-wm-debug.log\n\
+\x20 themes:  <config dir>/themes/*.toml\n  log:     ~/.local/state/tetron-wm/debug.log (rotated .1 .. .3)\n\
 \x20 sockets: $XDG_RUNTIME_DIR/tetron-wm-$USER/ (named sessions in sessions/NAME/)\n\n\
 CONFIG KEYS (config.toml):\n",
         env!("CARGO_PKG_VERSION")

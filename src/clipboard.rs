@@ -276,7 +276,7 @@ impl ClipShared {
         }
         match self.history.save(&path) {
             Ok(()) => crate::dbg_log(&format!("clipboard: saved {} entries", self.history.len())),
-            Err(e) => crate::dbg_log(&format!("clipboard: save failed: {e}")),
+            Err(e) => crate::log_warn(&format!("clipboard: save failed: {e}")),
         }
         self.saved_rev = self.history.revision();
         self.saved_at = Some(std::time::Instant::now());

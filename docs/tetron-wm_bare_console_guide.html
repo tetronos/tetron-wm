@@ -538,7 +538,7 @@ fi</pre></div>
           <tr><td>Boxes/tofu with <span class="mono-inline">icon_style = "nerd"</span></td><td>Install a Symbols Nerd Font and run <span class="mono-inline">fc-cache -f</span>, or stay on <span class="mono-inline">ascii</span>.</td></tr>
           <tr><td>Wallpaper shows glyph tofu on kmscon</td><td>The console font lacks the sextant glyphs chafa uses — a font-coverage gap, not a bug. The DejaVu/Terminus fonts from step 03 help.</td></tr>
           <tr><td>tty1 login is broken</td><td>From another VT or SSH: <span class="mono-inline">systemctl disable --now kmsconvt@tty1 &amp;&amp; systemctl enable --now getty@tty1</span>.</td></tr>
-          <tr><td>Debug the desktop itself</td><td>Read <span class="mono-inline">~/tetron-wm-debug.log</span>, or open the in-app Logs viewer.</td></tr>
+          <tr><td>Debug the desktop itself</td><td>Read <span class="mono-inline">~/.local/state/tetron-wm/debug.log</span>, or open the in-app Logs viewer.</td></tr>
         </tbody>
       </table>
     </div>

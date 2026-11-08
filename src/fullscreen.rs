@@ -427,7 +427,7 @@ fn serve_on(sock: &Path, vt: u32) -> std::io::Result<()> {
     for conn in listener.incoming() {
         let Ok(mut conn) = conn else { continue };
         if peer_uid(&conn) != Some(me) {
-            crate::dbg_log("fullscreen waiter: refused a connection from another user");
+            crate::log_warn("fullscreen waiter: refused a connection from another user");
             continue;
         }
         let mut line = String::new();

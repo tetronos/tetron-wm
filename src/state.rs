@@ -45,7 +45,7 @@ impl State {
             Ok(text) => match toml::from_str::<State>(&text) {
                 Ok(s) => return s,
                 Err(e) => {
-                    crate::dbg_log(&format!("state: {} failed to parse ({e}); set aside as .bad", path.display()));
+                    crate::log_warn(&format!("state: {} failed to parse ({e}); set aside as .bad", path.display()));
                     let mut bad = path.as_os_str().to_owned();
                     bad.push(".bad");
                     let _ = std::fs::rename(path, PathBuf::from(bad));
@@ -70,7 +70,7 @@ impl State {
                         let _ = crate::configfile::remove_keys(cf, &["recent_dirs", "desktop_positions"]);
                     }
                 }
-                Err(e) => crate::dbg_log(&format!("state: migration write failed: {e}")),
+                Err(e) => crate::log_warn(&format!("state: migration write failed: {e}")),
             }
         }
         migrated

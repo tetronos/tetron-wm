@@ -137,13 +137,13 @@ pub fn start(
     let mut sock = match UnixStream::connect("/dev/gpmctl") {
         Ok(s) => s,
         Err(e) => {
-            crate::dbg_log(&format!("gpm: /dev/gpmctl connect failed: {e}"));
+            crate::log_warn(&format!("gpm: /dev/gpmctl connect failed: {e}"));
             return;
         }
     };
     let pid = unsafe { libc::getpid() };
     if sock.write_all(&encode_connect(pid, vc)).is_err() {
-        crate::dbg_log("gpm: connect write failed");
+        crate::log_warn("gpm: connect write failed");
         return;
     }
     crate::dbg_log(&format!("gpm: connected (vc={vc}, pid={pid})"));

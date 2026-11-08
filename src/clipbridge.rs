@@ -119,7 +119,7 @@ pub fn spawn(shared: SharedClip, b: Backend) {
             } else if !ok_once {
                 fails += 1;
                 if fails == 20 {
-                    crate::dbg_log("clipboard: GUI bridge cannot read the clipboard (compositor without data-control?)");
+                    crate::log_warn("clipboard: GUI bridge cannot read the clipboard (compositor without data-control?)");
                 }
             }
             sync_step(&shared, g, |t| write(b, t));

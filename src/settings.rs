@@ -374,7 +374,7 @@ impl Settings {
             CLIPBOARD => 10,                           // clipboard: history, disk, selections, size, shims, osc52 read, fake display, expiry, max item, clear
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
-            GENERAL => 4,                      // config file: open, create or reset, reload; apps
+            GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
             _ => 0,                            // About
         }
     }
@@ -747,6 +747,12 @@ impl Settings {
                     _ => {}
                 }
             }
+            (GENERAL, 4) => {
+                use crate::logfile::Level;
+                let n = Level::ALL.len();
+                let cur = self.cfg.log_level as usize;
+                self.cfg.log_level = Level::ALL[if dir == -1 { (cur + n - 1) % n } else { (cur + 1) % n }];
+            }
             (DEFAULT_APPS, i) => {
                 if let Some((key, _)) = DEFAULT_APP_ROLES.get(i) {
                     let role = role_from_key(key);
@@ -1083,7 +1089,7 @@ impl Settings {
                     ("App server", format!("protocol v{}", crate::apphost::proto::PROTO_VERSION)),
                     ("Installed", self.install_info.clone()),
                     ("Config", "~/.config/tetron-wm/config.toml".to_string()),
-                    ("Log", "~/tetron-wm-debug.log".to_string()),
+                    ("Log", crate::logfile::display_path()),
                     ("Clipboard", "~/.local/share/tetron-wm/clipboard-history.jsonl".to_string()),
                 ];
                 for (i, (k, v)) in facts.iter().enumerate() {
@@ -1126,12 +1132,15 @@ impl Settings {
         }
         self.row(buf, cx, 5, 2, "Reload", "Enter (applies hand edits)".into());
         self.row(buf, cx, 6, 3, "Apps", self.apps_value());
-        buf.write_str(cx, 8, &format!("Config file: {path}{state}"), pal_fg(), pal_bg());
-        buf.write_str(cx, 10, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
-        buf.write_str(cx, 11, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
-        buf.write_str(cx, 12, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
-        buf.write_str(cx, 13, "Apps: desktop adds the tools tetron-wm uses; extras", pal_dim(), pal_bg());
-        buf.write_str(cx, 14, "adds fbi and git. Installs in a window (sudo asks).", pal_dim(), pal_bg());
+        self.row(buf, cx, 7, 4, "Log level", format!("\u{25C2} {} \u{25B8}", self.cfg.log_level.name()));
+        buf.write_str(cx, 9, &format!("Config file: {path}{state}"), pal_fg(), pal_bg());
+        buf.write_str(cx, 10, &format!("Log: {}", crate::logfile::display_path()), pal_fg(), pal_bg());
+        buf.write_str(cx, 12, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
+        buf.write_str(cx, 13, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
+        buf.write_str(cx, 14, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
+        buf.write_str(cx, 15, "Apps: desktop adds the tools tetron-wm uses; extras", pal_dim(), pal_bg());
+        buf.write_str(cx, 16, "adds fbi and git. Installs in a window (sudo asks).", pal_dim(), pal_bg());
+        buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
     }
 
     /// Render the Terminal section: staged colors with swatches, the
@@ -1402,7 +1411,7 @@ mod tests {
         let buf = s.render(100, 30);
         let text: String = (0..30).flat_map(|y| (0..100).map(move |x| (x, y))).map(|(x, y)| buf.get(x, y).unwrap().ch).collect();
         assert!(text.contains(&format!("Version     {}", crate::VERSION)), "About lists the version");
-        assert!(text.contains("tetron-wm-debug.log"));
+        assert!(text.contains(&format!("Log         {}", crate::logfile::display_path())));
     }
 
     #[test]
@@ -2076,6 +2085,25 @@ mod tests {
         s.toggle();
         assert_eq!(s.take_action(), None, "no curl: nothing to run");
         assert!(screen(&s).contains("needs curl"));
+    }
+
+    #[test]
+    fn general_log_level_row_cycles_all_levels_and_shows_the_path() {
+        use crate::logfile::Level;
+        let mut s = Settings::new(Config::default());
+        s.enter_section(GENERAL);
+        s.sel = 4;
+        assert!(screen(&s).contains("info"), "default info");
+        assert!(screen(&s).contains(&format!("Log: {}", crate::logfile::display_path())));
+        s.right();
+        assert_eq!(s.config().log_level, Level::Debug);
+        s.right();
+        assert_eq!(s.config().log_level, Level::Error, "wraps");
+        s.left();
+        assert_eq!(s.config().log_level, Level::Debug);
+        s.toggle();
+        assert_eq!(s.config().log_level, Level::Error);
+        assert_eq!(s.take_action(), None, "applied by the config, no action");
     }
 
     #[test]

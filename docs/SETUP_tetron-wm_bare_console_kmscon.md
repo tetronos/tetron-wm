@@ -313,14 +313,14 @@ wallpaper.
 | Symptom | Fix |
 |---|---|
 | Solid-color desktop, no wallpaper | chafa missing (A1 opt-in / B2). |
-| On tty1: no truecolor + no/laggy mouse, debug log shows `term=linux` | The autologin `TERM` is wrong. Set the override's last agetty arg to `xterm-256color`, not `$TERM` (see step 2). Confirm with `grep 'caps:' ~/tetron-wm-debug.log` → want `truecolor=true term=xterm-256color`. |
+| On tty1: no truecolor + no/laggy mouse, debug log shows `term=linux` | The autologin `TERM` is wrong. Set the override's last agetty arg to `xterm-256color`, not `$TERM` (see step 2). Confirm with `grep 'caps:' ~/.local/state/tetron-wm/debug.log` → want `truecolor=true term=xterm-256color`. |
 | Colors look 256-ish on kmscon | `truecolor = true` in config.toml (and check `TERM` per the row above). |
 | No mouse on a raw VT (no kmscon) | `sudo apt-get install -y gpm && sudo systemctl enable --now gpm`. Not needed under kmscon (disable it there: `sudo systemctl disable --now gpm`). |
 | Boxes/tofu with `icon_style = "nerd"` | redo B4 / `fc-cache -f`, or use `ascii`. |
 | Wallpaper glyph tofu on kmscon | console font lacks the sextant glyphs chafa uses — font coverage, not a bug; the DejaVu/Terminus fonts help. |
 | tty1 login broken | from another VT/SSH: `sudo systemctl disable --now kmsconvt@tty1 && sudo systemctl enable --now getty@tty1`. |
 | Desktop appears on tty1 but with no truecolor/mouse (debug log `term=linux`) | kmscon crashed and systemd fell back to `getty@tty1`. Check `journalctl -u kmsconvt@tty1 -b`. A `mod-*.so: undefined symbol` + `SEGV` means a **stale kmscon module** from an older build: `sudo rm -f /usr/local/lib/*/kmscon/mod-*.so` then re-run `install-kmscon.sh --source` (it now wipes old modules before reinstalling). |
-| Debug the desktop | `~/tetron-wm-debug.log`, or the in-app Logs viewer. |
+| Debug the desktop | `~/.local/state/tetron-wm/debug.log`, or the in-app Logs viewer. |
 
 ---
 

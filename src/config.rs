@@ -277,6 +277,12 @@ pub struct Config {
     /// substring of the app name/command) → color (named or `#rrggbb`).
     #[serde(default = "default_dock_badges", skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub dock_badges: std::collections::BTreeMap<String, String>,
+    /// How much goes into the log (`~/.local/state/tetron-wm/debug.log`):
+    /// `error`, `warn`, `info` (default: events such as launches, closes,
+    /// settings changes, updates) or `debug` (also every apphost message and
+    /// every wallpaper load). `TETRON_WM_DEBUG=1` forces `debug` for one run.
+    #[serde(default)]
+    pub log_level: crate::logfile::Level,
 }
 
 impl Config {
@@ -374,6 +380,7 @@ impl Default for Config {
             tray_tools: std::collections::BTreeMap::new(),
             tray_placement: std::collections::BTreeMap::new(),
             dock_badges: default_dock_badges(),
+            log_level: crate::logfile::Level::Info,
         }
     }
 }

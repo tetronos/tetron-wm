@@ -885,7 +885,7 @@ fn pdf_preview(path: &std::path::Path, max: usize) -> Vec<String> {
                     return lines;
                 }
             }
-            None => crate::dbg_log(&format!("preview: {tool} failed or timed out on {file}")),
+            None => crate::log_warn(&format!("preview: {tool} failed or timed out on {file}")),
         }
     }
     vec!["PDF (install pdftotext or mutool for a text preview)".into()]

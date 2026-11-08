@@ -177,6 +177,9 @@ clipboard_osc52_read = "focused"    # who may read the clipboard via OSC 52: foc
 ## clipboard_ignore_apps = ["keepassxc", "pass", "bitwarden"]
 clipboard_ignore_apps = []
 
+## The log is ~/.local/state/tetron-wm/debug.log, rotated at 4 MiB into .1 .. .3.
+log_level = "info"                  # error | warn | info (events) | debug (also every message and reload)
+
 
 ## ══ Tables and lists. Everything below must stay at the end of the file. ═════
 

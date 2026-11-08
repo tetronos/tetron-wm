@@ -90,7 +90,7 @@ pub fn load() -> Vec<RemoteSystem> {
         .and_then(|text| toml::from_str::<SystemsFile>(&text).ok())
         .map(|f| f.systems)
         .unwrap_or_default();
-    crate::dbg_log(&format!("systems: loaded {} from {}", systems.len(), p.display()));
+    crate::log_changed("systems", &format!("{} {}", systems.len(), p.display()), &format!("systems: loaded {} from {}", systems.len(), p.display()));
     systems
 }
 
