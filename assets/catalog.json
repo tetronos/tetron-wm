@@ -10617,15 +10617,16 @@
    "description": "TUI web radio player with thousands of stations from around the world",
    "homepage": "https://github.com/coderholic/pyradio",
    "recipe": {
-    "install": "curl -L https://raw.githubusercontent.com/coderholic/pyradio/master/pyradio/install.py -o install.py && python3 install.py",
-    "method": "script",
+    "install": "uv tool install git+https://github.com/coderholic/pyradio --with rich --with requests --with dnspython --with psutil --with netifaces-plus --with python-dateutil --with charset-normalizer",
+    "method": "uv",
     "verified": true,
     "os": [
-     "macos",
-     "linux"
-    ]
+     "linux",
+     "macos"
+    ],
+    "tip": "Needs uv, git and mpv. Settings > Updates upgrades it (uv tool upgrade --all); use that rather than pyradio -U, which expects pipx."
    },
-   "tier": "optional",
+   "tier": "recommended",
    "sources": [
     "awesome-tuis",
     "tetron"

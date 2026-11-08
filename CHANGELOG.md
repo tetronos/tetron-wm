@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- Store: pyradio (internet radio) installs with `uv tool install` from its repository with its dependencies, instead of its own installer, which needs pipx; Settings > Updates keeps it current.
+
 ### Removed
 - Store: carbonyl (Chromium in the terminal); tetron-browser covers the web.
 
