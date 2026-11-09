@@ -24,6 +24,21 @@ pub enum Download {
     Unknown,
 }
 
+/// The live-session sentence of an install confirmation: the RAM-backed
+/// room left and, when the need is known, whether the set fits.
+fn live_note(free: u64, need: Option<u64>) -> String {
+    let mb = |b: u64| b / 1_000_000;
+    match need {
+        Some(n) if n > free => format!(
+            " NOT ENOUGH ROOM: this live session keeps changes in RAM; about {} MB free, this needs about {} MB. Install TetronOS to a disk first, or use more RAM.",
+            mb(free),
+            mb(n)
+        ),
+        Some(n) => format!(" Live session: changes are kept in RAM; about {} MB free, this needs about {} MB.", mb(free), mb(n)),
+        None => format!(" Live session: changes are kept in RAM; about {} MB free, which a set can exceed.", mb(free)),
+    }
+}
+
 /// What a key or click asks of Settings.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
@@ -50,10 +65,14 @@ struct Confirm {
     /// Focus on the Install (or Remove) button; Cancel otherwise.
     ok: bool,
     download: Download,
+    /// How much the installed system grows (apt), when known.
+    grow: Option<u64>,
 }
 
 #[derive(Debug)]
 pub struct AppsDlg {
+    /// Free bytes on `/` in a live session (changes kept in RAM), else None.
+    live_free: Option<u64>,
     installed: Size,
     have_curl: bool,
     apt: bool,
@@ -117,7 +136,7 @@ impl AppsDlg {
         if extras_listed {
             sizes.push(Size::Extras);
         }
-        AppsDlg { installed, have_curl, apt, missing, sizes, remove, kept, sel: 0, scripts: true, confirm: None }
+        AppsDlg { installed, have_curl, apt, missing, sizes, remove, kept, sel: 0, scripts: true, confirm: None, live_free: None }
     }
 
     fn rows(&self) -> usize {
@@ -141,10 +160,28 @@ impl AppsDlg {
         }
     }
 
-    pub fn set_download(&mut self, bytes: Option<u64>) {
+    pub fn set_download(&mut self, est: Option<crate::packaging::AptEstimate>) {
         if let Some(c) = self.confirm.as_mut() {
-            c.download = bytes.map_or(Download::Unknown, Download::Known);
+            c.download = est.map_or(Download::Unknown, |e| Download::Known(e.download));
+            c.grow = est.map(|e| e.grow);
         }
+    }
+
+    /// Free bytes on `/` in a live session (changes kept in RAM), else None.
+    pub fn set_live_free(&mut self, free: Option<u64>) {
+        self.live_free = free;
+    }
+
+    /// What installing `size` needs on disk: apt's download and growth plus
+    /// a share per app with its own installer; None while apt has not said.
+    fn need_bytes(&self, size: Size, c: &Confirm) -> Option<u64> {
+        let scripts = self.adding(size).iter().filter(|m| m.is_script()).count() as u64;
+        let apt = match (c.download, c.grow) {
+            (Download::Known(d), Some(g)) => d + g,
+            (Download::NotApt, _) => 0,
+            _ => return None,
+        };
+        Some(apt + scripts * crate::packaging::SCRIPT_APP_BYTES)
     }
 
     pub fn up(&mut self) {
@@ -201,7 +238,7 @@ impl AppsDlg {
             Some(&s) => What::Install(s),
             None => What::Remove,
         };
-        let mut c = Confirm { what, scroll: 0, ok: false, download: Download::NotApt };
+        let mut c = Confirm { what, scroll: 0, ok: false, download: Download::NotApt, grow: None };
         let fetch = self.apt && matches!(what, What::Install(_));
         if fetch {
             c.download = Download::Computing;
@@ -212,6 +249,7 @@ impl AppsDlg {
         } else {
             if let Some(c) = self.confirm.as_mut().filter(|_| fetch) {
                 c.download = Download::Known(0);
+                c.grow = Some(0);
             }
             Outcome::None
         }
@@ -322,10 +360,16 @@ Installs in a terminal window, where sudo asks for your password. Esc closes."
             y += 1;
         }
         let info = match c.what {
-            What::Install(_) => format!(
-                "Needs the network and your sudo password. Apps already here are kept. {}",
-                if self.apt { "Undo: Remove set here, then apt lists what it removes and asks." } else { "Undo: remove the apps one by one with your package manager." },
-            ),
+            What::Install(s) => {
+                let mut t = format!(
+                    "Needs the network and your sudo password. Apps already here are kept. {}",
+                    if self.apt { "Undo: Remove set here, then apt lists what it removes and asks." } else { "Undo: remove the apps one by one with your package manager." },
+                );
+                if let Some(free) = self.live_free {
+                    t.push_str(&live_note(free, self.need_bytes(s, c)));
+                }
+                t
+            }
             What::Remove => {
                 let mut t = "Removes these packages. apt then lists the apps no other package needs and asks before removing them. \
 Apps you installed yourself stay."
@@ -413,7 +457,7 @@ mod tests {
         assert_eq!(d.enter(), Outcome::Download);
         assert_eq!(d.download_pkgs(), ["tmux"]);
         assert_eq!(d.confirm.as_ref().unwrap().download, Download::Computing);
-        d.set_download(Some(5_000_000));
+        d.set_download(Some(crate::packaging::AptEstimate { download: 5_000_000, grow: 0 }));
         assert_eq!(d.confirm.as_ref().unwrap().download, Download::Known(5_000_000));
         assert_eq!(d.esc(), Outcome::None, "Esc goes back to the choices");
         assert_eq!(d.esc(), Outcome::Close);
@@ -439,6 +483,33 @@ mod tests {
     }
 
     #[test]
+    fn live_session_says_the_room_and_warns_when_the_set_does_not_fit() {
+        let text = |d: &AppsDlg| {
+            let mut b = CellBuffer::new(120, 30);
+            d.render(&mut b, 16, 120, 30);
+            (0..30).map(|y| (0..120).filter_map(|x| b.get(x, y).map(|c| c.ch)).collect::<String>()).collect::<Vec<_>>().join(" ")
+        };
+        let squash = |s: String| s.split_whitespace().collect::<Vec<_>>().join(" ");
+        // Essentials adds tmux (apt) and opencode (its own installer).
+        let mut d = dlg(true, vec![]);
+        d.set_live_free(Some(2_000_000_000));
+        d.enter();
+        assert!(squash(text(&d)).contains("which a set can exceed"), "size not known yet");
+        d.set_download(Some(crate::packaging::AptEstimate { download: 300_000_000, grow: 1_500_000_000 }));
+        let s = squash(text(&d));
+        assert!(s.contains("about 2000 MB free, this needs about 1950 MB") && !s.contains("NOT ENOUGH"), "fits: {s}");
+        d.set_live_free(Some(1_500_000_000));
+        let s = squash(text(&d));
+        assert!(s.contains("NOT ENOUGH ROOM") && s.contains("about 1500 MB free, this needs about 1950 MB"), "{s}");
+        d.set_live_free(Some(4_000_000_000));
+        let s = squash(text(&d));
+        assert!(s.contains("Live session: changes are kept in RAM; about 4000 MB free, this needs about 1950 MB") && !s.contains("NOT ENOUGH"), "{s}");
+        // Not a live session: no sentence.
+        d.set_live_free(None);
+        assert!(!squash(text(&d)).contains("Live session"));
+    }
+
+    #[test]
     fn renders_choices_and_confirmation() {
         let text = |d: &AppsDlg| {
             let mut b = CellBuffer::new(120, 30);
@@ -451,7 +522,7 @@ mod tests {
         assert!(s.contains("3 to add"), "{s}");
         d.down();
         d.enter();
-        d.set_download(Some(42_000_000));
+        d.set_download(Some(crate::packaging::AptEstimate { download: 42_000_000, grow: 0 }));
         let s = text(&d);
         assert!(s.contains("Install Recommended: 3 apps to add, download about 42 MB"), "{s}");
         d.esc();

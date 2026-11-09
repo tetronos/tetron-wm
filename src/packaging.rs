@@ -388,13 +388,61 @@ fn sum_uri_sizes(out: &str) -> u64 {
     out.lines().filter(|l| l.starts_with('\'')).filter_map(|l| l.split_whitespace().nth(2)?.parse::<u64>().ok()).sum()
 }
 
-/// The download size of installing `pkgs` with apt (with their Recommends,
-/// as the size debs bring them), or None without apt or when apt can not
-/// say. Names this release lacks are left out, as apt skips them. Needs no
-/// root; runs apt-cache and apt-get, so call it off the main loop.
-pub fn apt_download_size(pkgs: &[String]) -> Option<u64> {
+/// What installing a set of packages costs, from apt.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AptEstimate {
+    /// Bytes to download.
+    pub download: u64,
+    /// Bytes the installed system grows by ("After this operation, ...").
+    pub grow: u64,
+}
+
+/// Room an app with its own installer takes, for the live-session check: a
+/// rough mean (opencode 205 MB, freebuff 138 MB, a uv tool 20 to 120 MB).
+pub const SCRIPT_APP_BYTES: u64 = 150_000_000;
+
+/// The bytes in apt's "After this operation, 137 MB of additional disk space
+/// will be used." line; 0 without one or when space is freed.
+fn parse_grow(out: &str) -> u64 {
+    let Some(l) = out.lines().find(|l| l.starts_with("After this operation,") && l.contains("additional disk space")) else { return 0 };
+    let mut w = l.trim_start_matches("After this operation,").split_whitespace();
+    let (Some(n), Some(unit)) = (w.next(), w.next()) else { return 0 };
+    let Ok(n) = n.replace(',', "").parse::<f64>() else { return 0 };
+    let mult = match unit {
+        "B" => 1.0,
+        "kB" => 1e3,
+        "MB" => 1e6,
+        "GB" => 1e9,
+        _ => return 0,
+    };
+    (n * mult) as u64
+}
+
+/// Free bytes on `/` when this is a live session (a live medium with its
+/// changes in RAM: Debian live-boot, casper, dracut), else None.
+pub fn live_free_bytes() -> Option<u64> {
+    let live = ["/run/live/medium", "/run/initramfs/live", "/cdrom/casper", "/rofs"].iter().any(|d| Path::new(d).exists());
+    let overlay = std::fs::read_to_string("/proc/mounts")
+        .ok()?
+        .lines()
+        .any(|l| matches!(l.split_whitespace().collect::<Vec<_>>()[..], [_, "/", "overlay" | "tmpfs", ..]));
+    if !(live && overlay) {
+        return None;
+    }
+    let mut st: libc::statvfs = unsafe { std::mem::zeroed() };
+    // SAFETY: the path is a valid NUL-terminated string and `st` a valid out-pointer.
+    let rc = unsafe { libc::statvfs(c"/".as_ptr(), &mut st) };
+    (rc == 0).then(|| st.f_bavail as u64 * st.f_frsize as u64)
+}
+
+/// The download size and disk growth of installing `pkgs` with apt (with
+/// their Recommends, as the size debs bring them), or None without apt or
+/// when apt can not say. Names this release lacks are left out, as apt skips
+/// them. Needs no root; runs apt-cache and apt-get, so call it off the main
+/// loop.
+pub fn apt_estimate(pkgs: &[String]) -> Option<AptEstimate> {
     if pkgs.is_empty() {
-        return Some(0);
+        return Some(AptEstimate::default());
     }
     let run = |cmd: &str, args: &[&str]| {
         std::process::Command::new(cmd).args(args).env("LC_ALL", "C").output().ok().filter(|o| o.status.success())
@@ -406,11 +454,12 @@ pub fn apt_download_size(pkgs: &[String]) -> Option<u64> {
     if have.is_empty() {
         // No name with a candidate at all: apt has no package lists yet (a
         // live image built without them), so the size is unknown, not zero.
-        return if no_candidates(&policy) { None } else { Some(0) };
+        return if no_candidates(&policy) { None } else { Some(AptEstimate::default()) };
     }
-    let mut args = vec!["install", "--print-uris", "-qq", "-y"];
+    let mut args = vec!["install", "--print-uris", "-q", "-y"];
     args.extend(have.iter().map(String::as_str));
-    Some(sum_uri_sizes(&String::from_utf8_lossy(&run("apt-get", &args)?.stdout)))
+    let out = String::from_utf8_lossy(&run("apt-get", &args)?.stdout).into_owned();
+    Some(AptEstimate { download: sum_uri_sizes(&out), grow: parse_grow(&out) })
 }
 
 /// "about 120 MB" for a byte count (at least 1 MB).
@@ -615,6 +664,15 @@ essentials:script:opencode\n";
         let here = |c: &str| matches!(c, "fresh" | "nerd-font" | "helpers" | "croft");
         assert_eq!(kept_scripts(&list, Size::Essentials, &here), ["fresh", "croft"], "no helpers, no font, only what is here");
         assert_eq!(kept_scripts(&list, Size::Recommended, &here), ["croft"], "essentials stays, so its apps are not named");
+    }
+
+    #[test]
+    fn apt_growth_line_is_parsed() {
+        assert_eq!(parse_grow("Need to get 32.7 MB of archives.\nAfter this operation, 137 MB of additional disk space will be used.\n"), 137_000_000);
+        assert_eq!(parse_grow("After this operation, 1,234 kB of additional disk space will be used.\n"), 1_234_000);
+        assert_eq!(parse_grow("After this operation, 1.2 GB of additional disk space will be used.\n"), 1_200_000_000);
+        assert_eq!(parse_grow("After this operation, 5 MB disk space will be freed.\n"), 0);
+        assert_eq!(parse_grow(""), 0);
     }
 
     #[test]

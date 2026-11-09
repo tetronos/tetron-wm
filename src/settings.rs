@@ -399,6 +399,9 @@ impl Settings {
             pk::remove_debs_here(size),
             pk::kept_scripts_here(size),
         ));
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.set_live_free(pk::live_free_bytes());
+        }
     }
 
     fn apps_outcome(&mut self, o: crate::appsdlg::Outcome) {
@@ -424,9 +427,9 @@ impl Settings {
     }
 
     /// The download size computed for the Apps confirmation.
-    pub fn set_apps_download(&mut self, bytes: Option<u64>) {
+    pub fn set_apps_download(&mut self, est: Option<crate::packaging::AptEstimate>) {
         if let Some(d) = self.apps_dlg.as_mut() {
-            d.set_download(bytes);
+            d.set_download(est);
         }
     }
 

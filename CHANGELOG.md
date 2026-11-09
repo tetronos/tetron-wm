@@ -18,6 +18,7 @@ carry user-visible feature work and the occasional breaking config change.
 - tetron-wm-extras now depends on tetron-wm-recommended, so installing or updating it brings the recommended apps too. `install.sh` updates the size packages up to the largest one installed.
 
 ### Added
+- Settings > General > Apps in a live session says how much room is left (changes are kept in RAM there, half the RAM on Debian live) and warns NOT ENOUGH ROOM when the set's download, disk growth and own-installer apps would not fit.
 - Leader + `*` opens, shows or hides the ✦ AI Assistant, as the menubar ✦ button does.
 - The mouse wheel over the brightness tray segment steps the screen brightness, as it does the volume.
 - Settings > General > Apps opens a dialog: Essentials, Recommended (Extras once it has apps), a box for the apps no distribution packages (ticked by default; the suite installer's new `--no-scripts` leaves them out) and, on Debian and Ubuntu, Remove set. Every choice is confirmed first, focus on Cancel: the apps it adds, the download size on apt hosts, and how to undo it. Remove set removes the size package and lets apt list and ask before removing the apps it brought.

@@ -332,7 +332,11 @@ class SettingsAppsDialog(Requirement):
     install --print-uris` sums the sizes, run as the user off the main
     loop), that it needs the network and the sudo password, and how to
     undo it. With no package lists (apt has no candidate for any name) the
-    size reads "unknown". Install runs `install-tetron-wm-suite.sh --size
+    size reads "unknown". In a live session (a live medium and an overlay
+    or tmpfs root, so changes are kept in RAM) it also gives the free room
+    on / and, when apt has said, what the set needs (download plus apt's
+    disk growth plus 150 MB per app with its own installer), with a NOT
+    ENOUGH ROOM warning when it does not fit; Install stays possible. Install runs `install-tetron-wm-suite.sh --size
     <size>` of this binary's release tag (main only when that tag does not
     exist, a local build), so the installer knows the sizes this Settings
     offers, in a terminal window as before, with `--no-scripts` when the box is not

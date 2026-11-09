@@ -699,7 +699,7 @@ pub struct SessionCore {
     /// Settings > Get more themes worker, read by [`Self::poll_themes`].
     theme_job: Option<std::sync::mpsc::Receiver<crate::themefetch::Msg>>,
     /// Settings > General > Apps download size worker, read by [`Self::poll_apps_download`].
-    apps_download_job: Option<std::sync::mpsc::Receiver<Option<u64>>>,
+    apps_download_job: Option<std::sync::mpsc::Receiver<Option<crate::packaging::AptEstimate>>>,
     /// A running Store Update list fetch (WMCAT-004).
     list_job: Option<std::sync::mpsc::Receiver<String>>,
     /// Modal "are you sure?" shown when closing an app window (which kills it).
@@ -1429,7 +1429,7 @@ impl SessionCore {
                 let pkgs = self.focused_settings_mut().map(|s| s.apps_download_pkgs()).unwrap_or_default();
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let _ = tx.send(crate::packaging::apt_download_size(&pkgs));
+                    let _ = tx.send(crate::packaging::apt_estimate(&pkgs));
                 });
                 self.apps_download_job = Some(rx);
             }
