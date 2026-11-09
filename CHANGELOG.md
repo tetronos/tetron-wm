@@ -18,6 +18,8 @@ carry user-visible feature work and the occasional breaking config change.
 - tetron-wm-extras now depends on tetron-wm-recommended, so installing or updating it brings the recommended apps too. `install.sh` updates the size packages up to the largest one installed.
 
 ### Added
+- Leader + `*` opens, shows or hides the ✦ AI Assistant, as the menubar ✦ button does.
+- The mouse wheel over the brightness tray segment steps the screen brightness, as it does the volume.
 - Settings > General > Apps opens a dialog: Essentials, Recommended (Extras once it has apps), a box for the apps no distribution packages (ticked by default; the suite installer's new `--no-scripts` leaves them out) and, on Debian and Ubuntu, Remove set. Every choice is confirmed first, focus on Cancel: the apps it adds, the download size on apt hosts, and how to undo it. Remove set removes the size package and lets apt list and ask before removing the apps it brought.
 - The recommended size brings five apps no distribution packages: croft (its release checked against SHA256SUMS), pyradio, llm with llm-ollama and yt-dlp (`uv tool install`), and freebuff (the native binary its npm launcher fetches, checked against the sha256 its npm package lists, so no node is needed). Settings > Updates upgrades the uv ones and replaces freebuff when npm lists a newer version; croft updates itself.
 - tetron-wm-essentials and tetron-wm-recommended, metapackages for the essentials and recommended sizes (each app a Recommends, so it can be removed alone and a name a release lacks is skipped). The suite installer installs them on Debian and Ubuntu when tetron-wm is the apt package; elsewhere it installs the same apps with dnf, pacman or Homebrew.

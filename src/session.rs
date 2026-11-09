@@ -1771,22 +1771,23 @@ impl SessionCore {
 
     /// Scroll the scrollback of the PTY app window under `p`. No-op when the
     /// pointer isn't over an app window (native widgets handle their own scroll).
-    /// The volume intent for a wheel event over the Volume tray segment (menubar
-    /// row) — up = louder, ignoring `natural_scroll`. `None` when the pointer is
-    /// not on that segment, so the caller falls through to PTY scrollback.
+    /// The intent for a wheel event over the Volume or Brightness tray segment
+    /// (menubar row): up = louder or brighter, ignoring `natural_scroll`.
+    /// `None` when the pointer is not on one of them, so the caller falls
+    /// through to PTY scrollback.
     fn volume_scroll_intent(&self, p: Point, lines: i32) -> Option<crate::system::ControlIntent> {
         use crate::system::ControlIntent;
+        use crate::tray::SegmentKind;
         if p.y != 0 {
             return None;
         }
-        let on_volume = self
-            .tray_segments_now()
-            .iter()
-            .any(|s| s.kind == crate::tray::SegmentKind::Volume && s.rect.contains(p));
-        if !on_volume {
-            return None;
+        let kind = self.tray_segments_now().into_iter().find(|s| s.rect.contains(p)).map(|s| s.kind)?;
+        let up = lines > 0;
+        match kind {
+            SegmentKind::Volume => Some(if up { ControlIntent::VolumeUp } else { ControlIntent::VolumeDown }),
+            SegmentKind::Brightness => Some(if up { ControlIntent::BrightnessUp } else { ControlIntent::BrightnessDown }),
+            _ => None,
         }
-        Some(if lines > 0 { ControlIntent::VolumeUp } else { ControlIntent::VolumeDown })
     }
 
     fn scroll_app_at(&mut self, p: Point, lines: i32) {
@@ -3876,8 +3877,8 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             ClientMsg::ScrollAt { p, lines } => {
-                // Wheel over the Volume tray segment, or over the volume row of
-                // Settings → Sound, adjusts the system volume; otherwise it
+                // Wheel over the Volume or Brightness tray segment, or over the
+                // volume row of Settings → Sound, adjusts that level; otherwise it
                 // scrolls the window under the pointer.
                 if let Some(intent) = self.volume_scroll_intent(p, lines) {
                     self.apply_intent(intent);
@@ -7252,6 +7253,22 @@ mod tests {
         // Off the segment (wrong row, or a different column) is not consumed.
         assert_eq!(core.volume_scroll_intent(Point::new(seg.rect.x, 1), 3), None);
         assert_eq!(core.volume_scroll_intent(Point::new(0, 0), 3), None);
+    }
+
+    #[test]
+    fn wheel_over_brightness_segment_steps_brightness() {
+        use crate::system::ControlIntent;
+        let core = SessionCore::new(120, 30, crate::config::Config::default());
+        core.tray_state.write().unwrap().brightness = Some(50);
+        let seg = core
+            .tray_segments_now()
+            .into_iter()
+            .find(|s| s.kind == crate::tray::SegmentKind::Brightness)
+            .expect("a brightness segment with a backlight");
+        let on = Point::new(seg.rect.x, 0);
+        assert_eq!(core.volume_scroll_intent(on, 1), Some(ControlIntent::BrightnessUp));
+        assert_eq!(core.volume_scroll_intent(on, -1), Some(ControlIntent::BrightnessDown));
+        assert_eq!(core.volume_scroll_intent(Point::new(seg.rect.x, 1), 1), None);
     }
 
     #[test]
