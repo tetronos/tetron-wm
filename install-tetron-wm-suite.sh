@@ -264,6 +264,7 @@ release_has_size_debs() {
   for p in $(size_debs); do [ -n "$(asset_for "$p" all)" ] || return 1; done
 }
 APT_UPDATED=0
+FAILED=""
 apt_update_once() { [ "$APT_UPDATED" = 1 ] || { $SUDO apt-get update -qq || true; APT_UPDATED=1; }; }
 # Download the size's metapackages, check each against its .sha256, install them
 # with apt (Recommends included, so apt tracks the whole set). One already
@@ -292,8 +293,42 @@ install_size_debs() {
   local skip=""; no_mouse && ! dpkg -s gpm >/dev/null 2>&1 && skip="gpm-"
   log "installing$files with apt${skip:+ (without gpm: no mouse device)}"
   # shellcheck disable=SC2086
-  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y $files $skip || { rm -rf "$tmp"; warn "apt could not install the $SIZE packages"; return 1; }
+  # Recommends forced on: the set debs are only Recommends, and a system may turn
+  # them off (TetronOS images ship APT::Install-Recommends "false").
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -o APT::Install-Recommends=true $files $skip \
+    || { rm -rf "$tmp"; warn "apt could not install the $SIZE packages"; return 1; }
   rm -rf "$tmp"
+}
+# One name per Recommends group of the installed size debs that apt has not
+# installed: the first alternative with a candidate here. gpm is left out
+# without a mouse device. apt never adds a Recommends of a package that is
+# already installed, so a rerun after an install without Recommends needs this.
+size_recommends_missing() {
+  local p rel grp alt pick
+  for p in $(size_debs); do
+    rel="$(dpkg-query -W -f='${Recommends}' "$p" 2>/dev/null)" || continue
+    printf '%s\n' "$rel" | tr ',' '\n'
+  done | while IFS= read -r grp; do
+    [ -n "$(echo "$grp" | tr -d ' ')" ] || continue
+    pick=""
+    for alt in $(echo "$grp" | sed 's/([^)]*)//g; s/|/ /g'); do
+      dpkg-query -W -f='${Status}' "$alt" 2>/dev/null | grep -q "ok installed" && { pick=""; break; }
+      [ -z "$pick" ] && [ -n "$(apt-cache policy "$alt" 2>/dev/null | sed -n 's/^ *Candidate: //p' | grep -v '(none)')" ] && pick="$alt"
+    done
+    [ "$pick" = gpm ] && no_mouse && pick=""
+    [ -n "$pick" ] && echo "$pick"
+  done | sort -u
+}
+# Install what size_recommends_missing names, marked automatic as apt would
+# have done, so Remove set takes them away again. Fails when any stays missing.
+install_size_recommends() {
+  local miss; miss="$(size_recommends_missing | tr '\n' ' ')"
+  [ -n "${miss% }" ] || return 0
+  log "installing the $SIZE apps apt left out: $miss"
+  # shellcheck disable=SC2086
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y $miss && $SUDO apt-mark auto $miss >/dev/null
+  miss="$(size_recommends_missing | tr '\n' ' ')"
+  [ -z "${miss% }" ] || { warn "these $SIZE apps did not install: $miss"; return 1; }
 }
 # Remove a raw tetron-wm so install.sh installs the package in its place.
 remove_raw_copy() {
@@ -1190,7 +1225,8 @@ main() {
   [ "$WANT_CONFIG" = y ]    && seed_config
   [ "$WANT_THEMES" = y ]    && install_themes
   if [ "$SIZE" != minimal ]; then
-    if [ "$use_debs" = 1 ] && wm_packaged && install_size_debs; then :
+    if [ "$use_debs" = 1 ] && wm_packaged && install_size_debs; then
+      install_size_recommends || FAILED="$FAILED $SIZE-apps"
     else
       [ "$(pm_col)" = 2 ] && [ -n "$apps" ] && apt_update_once
       pm_install "$apps"
@@ -1216,6 +1252,10 @@ main() {
   state_set size "$SIZE"; state_set method "$method"
 
   echo
+  if [ -n "$FAILED" ]; then
+    warn "finished with problems:$FAILED (see the messages above)"
+    exit 1
+  fi
   log "done."
   if [ "$WANT_AUTOSTART" != y ]; then
     log "run it with:  tetron-wm   (install.sh noted the PATH if the dir is not already on it)"

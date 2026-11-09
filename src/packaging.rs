@@ -173,14 +173,24 @@ pub fn apps_install_command(raw: &str, size: Size, list: Option<&Path>, scripts:
     let s = size.name();
     let no_scripts = if scripts { "" } else { " --no-scripts" };
     let list = list.map(|p| format!(" --apps-list '{}'", p.to_string_lossy().replace('\'', "'\\''"))).unwrap_or_default();
+    // The installer of this binary's own release tag, so its sizes and options
+    // match this Settings; main only when the tag does not exist (a local build).
     format!(
         "clear; echo 'Installing the {s} apps for tetron-wm (the suite installer)…'; echo; \
-curl -fsSL {raw}/main/install-tetron-wm-suite.sh | bash -s -- --size {s} --no-wm --no-config --no-themes \
+f=install-tetron-wm-suite.sh; if t=$(curl -fsSL {raw}/{tag}/$f); then b={tag}; else b=main; t=$(curl -fsSL {raw}/main/$f); fi; \
+if [ -n \"$t\" ]; then printf '%s\\n' \"$t\" | BRANCH=$b bash -s -- --size {s} --no-wm --no-config --no-themes \
 --no-convert --no-kmscon --no-console --no-autologin --no-autostart --no-fullscreen{no_scripts}{list}; \
+else echo 'Could not download the suite installer.'; false; fi; \
 echo \"apps: suite installer for {s} exited with status $?\" >> {log}; \
 echo; printf 'Press Enter to close. '; read _",
+        tag = release_tag(),
         log = crate::logfile::shell_path(),
     )
+}
+
+/// The git tag of this binary's release (`v0.15.6`).
+pub fn release_tag() -> String {
+    format!("v{}", env!("CARGO_PKG_VERSION"))
 }
 
 /// Write the app list in use (the catalog's suite list, WMCAT-003) to
@@ -368,6 +378,11 @@ fn with_candidate(policy: &str) -> Vec<String> {
     out
 }
 
+/// True when no package in `apt-cache policy` output has a candidate.
+fn no_candidates(policy: &str) -> bool {
+    !policy.lines().filter_map(|l| l.trim().strip_prefix("Candidate:")).any(|c| c.trim() != "(none)")
+}
+
 /// The sum of the sizes in `apt-get --print-uris` output ('url' file size hash).
 fn sum_uri_sizes(out: &str) -> u64 {
     out.lines().filter(|l| l.starts_with('\'')).filter_map(|l| l.split_whitespace().nth(2)?.parse::<u64>().ok()).sum()
@@ -386,9 +401,12 @@ pub fn apt_download_size(pkgs: &[String]) -> Option<u64> {
     };
     let mut args = vec!["policy"];
     args.extend(pkgs.iter().map(String::as_str));
-    let have = with_candidate(&String::from_utf8_lossy(&run("apt-cache", &args)?.stdout));
+    let policy = String::from_utf8_lossy(&run("apt-cache", &args)?.stdout).into_owned();
+    let have = with_candidate(&policy);
     if have.is_empty() {
-        return Some(0);
+        // No name with a candidate at all: apt has no package lists yet (a
+        // live image built without them), so the size is unknown, not zero.
+        return if no_candidates(&policy) { None } else { Some(0) };
     }
     let mut args = vec!["install", "--print-uris", "-qq", "-y"];
     args.extend(have.iter().map(String::as_str));
@@ -600,6 +618,14 @@ essentials:script:opencode\n";
     }
 
     #[test]
+    fn no_package_lists_means_unknown_size() {
+        let none = "tmux:\n  Installed: (none)\n  Candidate: (none)\n  Version table:\ngit:\n  Installed: (none)\n  Candidate: (none)\n";
+        assert!(no_candidates(none) && with_candidate(none).is_empty());
+        let inst = "tmux:\n  Installed: 3.5a-3\n  Candidate: 3.5a-3\n";
+        assert!(!no_candidates(inst) && with_candidate(inst).is_empty(), "all installed: zero, not unknown");
+    }
+
+    #[test]
     fn download_size_parsers() {
         let policy = "glow:\n  Installed: (none)\n  Candidate: (none)\n  Version table:\ntmux:\n  Installed: (none)\n  Candidate: 3.5a-3\n  Version table:\n     3.5a-3 500\n";
         assert_eq!(with_candidate(policy), ["tmux"]);
@@ -755,5 +781,7 @@ essentials:script:opencode\n";
         assert!(cmd.contains("--size extras") && cmd.contains("--no-wm") && cmd.contains("--no-console"), "{cmd}");
         assert!(cmd.contains("install-tetron-wm-suite.sh"), "{cmd}");
         assert!(cmd.contains("read _"), "the window stays until Enter: {cmd}");
+        let tag = format!("o/r/v{}/$f", env!("CARGO_PKG_VERSION"));
+        assert!(cmd.contains(&tag) && cmd.contains("o/r/main/$f") && cmd.contains("BRANCH=$b"), "own tag first, then main: {cmd}");
     }
 }

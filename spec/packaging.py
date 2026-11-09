@@ -226,7 +226,12 @@ class SuiteScriptSizes(Requirement):
     - On a Debian or Ubuntu host where tetron-wm is the apt package and the
       release has the size's metapackages (essentials: tetron-wm-desktop and
       tetron-wm-essentials; each larger size adds its own), installs them from the
-      release (checked against its .sha256) with apt, so apt tracks the set.
+      release (checked against its .sha256) with apt, so apt tracks the set,
+      with Recommends forced on (a system may turn them off; TetronOS images
+      do). It then installs by name, marked automatic, any Recommends group
+      of the installed size debs that is still missing with a candidate (a
+      rerun over a size installed without its Recommends), and ends with
+      exit status 1, naming them, when any stays missing.
       Otherwise (tetron-wm not from the package, or no metapackage in the
       release) it installs the same apps one by one with the package
       manager. A metapackage is never installed next to a raw tetron-wm,
@@ -326,8 +331,11 @@ class SettingsAppsDialog(Requirement):
     installed, `apt-get
     install --print-uris` sums the sizes, run as the user off the main
     loop), that it needs the network and the sudo password, and how to
-    undo it. Install runs `install-tetron-wm-suite.sh --size <size>` in a
-    terminal window as before, with `--no-scripts` when the box is not
+    undo it. With no package lists (apt has no candidate for any name) the
+    size reads "unknown". Install runs `install-tetron-wm-suite.sh --size
+    <size>` of this binary's release tag (main only when that tag does not
+    exist, a local build), so the installer knows the sizes this Settings
+    offers, in a terminal window as before, with `--no-scripts` when the box is not
     ticked, which leaves out the script apps. Without curl a size does
     nothing and says it needs curl. Remove set lists the size debs it
     removes: the installed size's and the larger ones dpkg has, never
