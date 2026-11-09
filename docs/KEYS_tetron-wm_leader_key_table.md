@@ -36,6 +36,7 @@ The leader key exists so tetron-wm shortcuts never collide with your terminal, t
 | `S` | `store` | Open the app store |
 | `,` | `settings` | Open Settings |
 | `A` | `activity` | Open the activity monitor |
+| `*` | `assistant` | Open, show or hide the ✦ AI Assistant (as the menubar ✦ button) |
 | `C` | `clipboard` | Open the clipboard history popover |
 | `x`, `y` | `select` | Select mode: the next mouse drag selects text even in apps that capture the mouse (one shot) |
 | `c` | `copy` | Copy the mouse selection to the clipboard (same as Ctrl+Shift+C where the terminal allows it) |

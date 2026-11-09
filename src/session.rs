@@ -373,6 +373,8 @@ pub enum ClientMsg {
     FileManagerNextTab,
     /// Open the activity-monitor window (or focus it if already open).
     OpenActivity,
+    /// The ✦ Assistant: open it, or show / hide it like the menubar button.
+    ToggleAssistant,
     /// Activity monitor: move selection up / down.
     ActivityUp,
     ActivityDown,
@@ -3546,6 +3548,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::FileManagerCloseTab => { if let Some(f) = self.focused_filemanager_mut() { f.close_tab(); } }
             ClientMsg::FileManagerNextTab => { if let Some(f) = self.focused_filemanager_mut() { f.next_tab(); } }
             ClientMsg::OpenActivity => self.open_activity(),
+            ClientMsg::ToggleAssistant => self.toggle_assistant(),
             ClientMsg::ActivityUp => { if let Some(a) = self.focused_activity_mut() { a.move_up(); } }
             ClientMsg::ActivityDown => { if let Some(a) = self.focused_activity_mut() { a.move_down(); } }
             ClientMsg::ActivityKill => {

@@ -410,6 +410,7 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (Some("store"), _) => send(&mut out_stream, &ClientMsg::OpenStore)?,
                             (Some("settings"), _) => send(&mut out_stream, &ClientMsg::OpenSettings)?,
                             (Some("activity"), _) => send(&mut out_stream, &ClientMsg::OpenActivity)?,
+                            (Some("assistant"), _) => send(&mut out_stream, &ClientMsg::ToggleAssistant)?,
                             (Some("clipboard"), _) => send(&mut out_stream, &ClientMsg::ClipMenuToggle)?,
                             (Some("select"), _) => send(&mut out_stream, &ClientMsg::ToggleSelectMode)?,
                             (Some("copy"), _) => send(&mut out_stream, &ClientMsg::CopySelection)?,

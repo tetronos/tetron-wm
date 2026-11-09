@@ -51,6 +51,7 @@ pub fn help_sections() -> &'static [HelpSection] {
                 ("S", "app store"),
                 (",", "settings"),
                 ("A", "activity monitor"),
+                ("*", "the AI Assistant (open, show or hide)"),
             ],
             notes: &["In Settings: Tab switches between sections and rows."],
         },

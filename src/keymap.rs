@@ -45,6 +45,7 @@ pub const DEFAULTS: &[(&str, &[&str], &str)] = &[
     ("store", &["S"], "app store"),
     ("settings", &[","], "settings"),
     ("activity", &["A"], "activity monitor"),
+    ("assistant", &["*"], "the AI Assistant: open, show or hide it (like the menubar button)"),
     ("clipboard", &["C"], "clipboard history"),
     ("select", &["x", "y"], "select mode: drag selects text even in mouse-capturing apps (one-shot)"),
     ("copy", &["c"], "copy the mouse selection to the clipboard (Ctrl+Shift+C)"),
