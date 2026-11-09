@@ -300,10 +300,18 @@ pub enum Plan {
 /// - video: mpv over DRM, else cvlc on the framebuffer;
 /// - images: fbi, else fim (framebuffer), else mpv over DRM;
 /// - PDF: fbgs with gs (framebuffer), else pdftoppm pages through mpv over DRM.
-pub fn plan(kind: Kind, files: &[PathBuf], have: &dyn Fn(&str) -> bool, hw: Hw, keys: &Path) -> Result<Plan, String> {
+///
+/// `waiter`: the request runs on the spare VT while kmscon keeps the DRM
+/// device open. Many GPUs then never scan out the framebuffer emulation, so
+/// fbi and fbgs draw into a buffer nobody sees (the picture flashes only as
+/// they quit); images and PDFs go through mpv over DRM first there.
+pub fn plan(kind: Kind, files: &[PathBuf], have: &dyn Fn(&str) -> bool, hw: Hw, keys: &Path, waiter: bool) -> Result<Plan, String> {
     let run = |program: &str, args: Vec<String>| Ok(Plan::Run { program: program.into(), args });
     let first = files.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+    let drm_first = waiter && hw.drm && have("mpv");
     match kind {
+        Kind::Images if !files.is_empty() && drm_first => run("mpv", mpv_image_args(files, keys)),
+        Kind::Pdf if files.len() == 1 && drm_first && have("pdftoppm") => Ok(Plan::PdfPages { pdf: files[0].clone() }),
         Kind::Video if files.len() == 1 => {
             if hw.drm && have("mpv") {
                 run("mpv", mpv_args(&files[0]))
@@ -340,7 +348,7 @@ pub fn plan(kind: Kind, files: &[PathBuf], have: &dyn Fn(&str) -> bool, hw: Hw, 
 
 /// Whether any route exists for `kind` (what the menu checks).
 pub fn possible(kind: Kind, have: &dyn Fn(&str) -> bool, hw: Hw) -> bool {
-    plan(kind, &[PathBuf::from("/x")], have, hw, Path::new("/x")).is_ok()
+    plan(kind, &[PathBuf::from("/x")], have, hw, Path::new("/x"), false).is_ok()
 }
 
 /// Whether the attached client can show `kind` full screen: it is on a plain
@@ -506,7 +514,7 @@ fn handle(vt: u32, req: &Request) -> Result<(), String> {
     let files = req.files.iter().map(|f| validate(f)).collect::<Result<Vec<_>, _>>()?;
     let keys = keys_path();
     let hw = Hw::detect();
-    let plan = plan(req.kind, &files, &crate::catalog::is_installed, hw, &keys)?;
+    let plan = plan(req.kind, &files, &crate::catalog::is_installed, hw, &keys, true)?;
     crate::dbg_log(&format!("fullscreen waiter: {} {} file(s), first {}, hw {hw:?}, plan {} (back to tty{})", req.kind.name(), files.len(), files[0].display(), plan_name(&plan), req.return_vt));
     switch_vt(vt)?;
     if !wait_active(vt, 3) {
@@ -560,7 +568,7 @@ fn direct(kind: Kind, files: &[String]) -> i32 {
     }
     let keys = keys_path();
     let hw = Hw::detect();
-    match plan(kind, &abs, &crate::catalog::is_installed, hw, &keys) {
+    match plan(kind, &abs, &crate::catalog::is_installed, hw, &keys, false) {
         Err(e) => fail(&e),
         Ok(plan) => {
             crate::dbg_log(&format!("fullscreen: {} {} file(s), hw {hw:?}, plan {}", kind.name(), abs.len(), plan_name(&plan)));
@@ -724,23 +732,23 @@ mod tests {
         let drm_only = Hw { fb: false, drm: true };
         let nothing = Hw::default();
         // Video: mpv over DRM, else cvlc on the framebuffer.
-        assert_eq!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &all, both, keys)), "mpv");
-        assert_eq!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &all, fb_only, keys)), "cvlc");
-        assert!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &only(&["mpv"]), fb_only, keys)).starts_with("err"), "mpv needs DRM");
-        assert!(prog(plan(Kind::Video, &f(&["/a", "/b"]), &all, both, keys)).starts_with("err"), "one video only");
-        assert!(prog(plan(Kind::Video, &f(&["/a"]), &all, nothing, keys)).starts_with("err"));
+        assert_eq!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &all, both, keys, false)), "mpv");
+        assert_eq!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &all, fb_only, keys, false)), "cvlc");
+        assert!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &only(&["mpv"]), fb_only, keys, false)).starts_with("err"), "mpv needs DRM");
+        assert!(prog(plan(Kind::Video, &f(&["/a", "/b"]), &all, both, keys, false)).starts_with("err"), "one video only");
+        assert!(prog(plan(Kind::Video, &f(&["/a"]), &all, nothing, keys, false)).starts_with("err"));
         // Images: fbi, fim, then mpv over DRM.
         let imgs = f(&["/i/1.png", "/i/2.png"]);
-        assert_eq!(prog(plan(Kind::Images, &imgs, &all, both, keys)), "fbi");
-        assert_eq!(prog(plan(Kind::Images, &imgs, &only(&["fim", "mpv"]), both, keys)), "fim");
-        assert_eq!(prog(plan(Kind::Images, &imgs, &all, drm_only, keys)), "mpv");
-        assert!(prog(plan(Kind::Images, &imgs, &only(&["fbi"]), drm_only, keys)).starts_with("err"), "fbi needs a framebuffer");
-        assert!(prog(plan(Kind::Images, &imgs, &all, nothing, keys)).starts_with("err"));
-        match plan(Kind::Images, &imgs, &all, both, keys).unwrap() {
+        assert_eq!(prog(plan(Kind::Images, &imgs, &all, both, keys, false)), "fbi");
+        assert_eq!(prog(plan(Kind::Images, &imgs, &only(&["fim", "mpv"]), both, keys, false)), "fim");
+        assert_eq!(prog(plan(Kind::Images, &imgs, &all, drm_only, keys, false)), "mpv");
+        assert!(prog(plan(Kind::Images, &imgs, &only(&["fbi"]), drm_only, keys, false)).starts_with("err"), "fbi needs a framebuffer");
+        assert!(prog(plan(Kind::Images, &imgs, &all, nothing, keys, false)).starts_with("err"));
+        match plan(Kind::Images, &imgs, &all, both, keys, false).unwrap() {
             Plan::Run { args, .. } => assert_eq!(args, ["-a", "--noverbose", "--", "/i/1.png", "/i/2.png"]),
             other => panic!("{other:?}"),
         }
-        match plan(Kind::Images, &imgs, &all, drm_only, keys).unwrap() {
+        match plan(Kind::Images, &imgs, &all, drm_only, keys, false).unwrap() {
             Plan::Run { args, .. } => {
                 assert!(args.contains(&"--vo=drm".to_string()) && args.contains(&"--input-conf=/run/k.conf".to_string()));
                 assert_eq!(&args[args.len() - 3..], ["--", "/i/1.png", "/i/2.png"]);
@@ -749,12 +757,20 @@ mod tests {
         }
         // PDFs: fbgs with gs, else pdftoppm pages through mpv over DRM.
         let pdf = f(&["/d/x.pdf"]);
-        assert_eq!(prog(plan(Kind::Pdf, &pdf, &all, both, keys)), "fbgs");
-        assert_eq!(prog(plan(Kind::Pdf, &pdf, &all, drm_only, keys)), "pdfpages");
-        assert!(prog(plan(Kind::Pdf, &pdf, &only(&["fbgs"]), both, keys)).starts_with("err"), "fbgs needs gs");
-        assert!(prog(plan(Kind::Pdf, &pdf, &only(&["mpv"]), drm_only, keys)).starts_with("err"), "needs pdftoppm");
-        assert!(prog(plan(Kind::Pdf, &pdf, &all, nothing, keys)).starts_with("err"));
-        assert!(prog(plan(Kind::Images, &[], &all, both, keys)).starts_with("err"));
+        assert_eq!(prog(plan(Kind::Pdf, &pdf, &all, both, keys, false)), "fbgs");
+        assert_eq!(prog(plan(Kind::Pdf, &pdf, &all, drm_only, keys, false)), "pdfpages");
+        assert!(prog(plan(Kind::Pdf, &pdf, &only(&["fbgs"]), both, keys, false)).starts_with("err"), "fbgs needs gs");
+        assert!(prog(plan(Kind::Pdf, &pdf, &only(&["mpv"]), drm_only, keys, false)).starts_with("err"), "needs pdftoppm");
+        assert!(prog(plan(Kind::Pdf, &pdf, &all, nothing, keys, false)).starts_with("err"));
+        assert!(prog(plan(Kind::Images, &[], &all, both, keys, false)).starts_with("err"));
+        // The waiter (kmscon holds DRM): images and PDFs through mpv over DRM
+        // first; fbi and fbgs only without mpv or DRM; video unchanged.
+        assert_eq!(prog(plan(Kind::Images, &imgs, &all, both, keys, true)), "mpv");
+        assert_eq!(prog(plan(Kind::Pdf, &pdf, &all, both, keys, true)), "pdfpages");
+        assert_eq!(prog(plan(Kind::Images, &imgs, &only(&["fbi"]), both, keys, true)), "fbi", "no mpv: fbi still");
+        assert_eq!(prog(plan(Kind::Images, &imgs, &all, fb_only, keys, true)), "fbi", "no DRM: fbi still");
+        assert_eq!(prog(plan(Kind::Pdf, &pdf, &only(&["mpv", "fbgs", "gs"]), both, keys, true)), "fbgs", "no pdftoppm: fbgs");
+        assert_eq!(prog(plan(Kind::Video, &f(&["/v/a.mp4"]), &all, both, keys, true)), "mpv");
     }
 
     #[test]

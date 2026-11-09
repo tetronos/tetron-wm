@@ -167,7 +167,8 @@ RIGHT-CLICK MENU (desktop icons and Files; leader . from the keyboard):\n\
 \x20 GUI terminal) View full screen shows images with fbi and Play full screen plays\n\
 \x20 video with mpv; q returns, apps keep running. Under kmscon both work once the\n\
 \x20 full screen helper is installed (install-tetron-wm-suite.sh --fullscreen): it switches\n\
-\x20 to the spare VT, shows the video (mpv), images (fbi or fim) or PDF (fbgs) and switches\n\
+\x20 to the spare VT, shows the video, images or PDF pages with mpv (fbi, fim or fbgs only\n\
+\x20 without mpv or a DRM display) and switches\n\
 \x20 back, no sudo. Settings > Windows > Full screen helper service starts or stops it (sudo\n\
 \x20 systemctl, prompted in the terminal); the helper is off unless you install it. A window's title bar has Minimize,\n\
 \x20 Maximize, Move, Rename and Close.\n\n\

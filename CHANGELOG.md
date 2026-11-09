@@ -25,6 +25,7 @@ carry user-visible feature work and the occasional breaking config change.
 - `log_level` in config.toml and Settings > General > Log level: `error`, `warn`, `info` (default) or `debug`, applied at once. `TETRON_WM_DEBUG=1` forces `debug` for one run.
 
 ### Fixed
+- Show full screen under kmscon (the full screen helper on the spare VT) shows images and PDF pages with mpv over DRM: on many GPUs fbi drew into a framebuffer nobody saw while kmscon held the display, so the screen stayed blank and the picture only flashed as fbi quit. fbi, fim and fbgs stay for a plain Linux console and machines without mpv or DRM.
 - Settings > General > Apps runs the suite installer of its own release tag (main only for a local build without a tag), so a newer tetron-wm never meets an older installer on main ("--size must be minimal, desktop or extras").
 - The suite installer installs the set packages with their Recommends where the system turns Recommends off (TetronOS images), adds the apps a set installed earlier without its Recommends is missing (marked automatic, so Remove set takes them), and exits 1 naming any app that stays missing instead of saying "done.".
 - The Apps confirmation says "download size unknown" when apt has no package lists yet, instead of leaving the size out.
