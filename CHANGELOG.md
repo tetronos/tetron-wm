@@ -18,6 +18,9 @@ carry user-visible feature work and the occasional breaking config change.
 ### Changed
 - `assistant_command` holds an agent id; a value that is no id runs as a command line split on spaces. Saved values (`opencode`, `hermes`, a wrapper path) keep working.
 
+### Fixed
+- Launcher > Editors lists vim, Neovim and nano when installed. The launcher shows only catalogued apps and these three were not in the catalog (the suite installs them, and Files already used vim), so they never appeared; they are Store entries now too.
+
 ## [0.15.7] — 2026-11-13
 
 ### Added
