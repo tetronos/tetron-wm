@@ -41,8 +41,8 @@ exclude = [
 # [[app]] with set: a Store app in a set; check is its bin, names its pkg.
 # [[script]]: an app no distribution packages; the suite installer runs its
 #   own method (how) when the size includes its set.
-# After an edit run: python3 scripts/gen_suite_lists.py, then
-# python3 scripts/merge_catalog.py
+# After an edit run: scripts/rebuild-app-sets.sh (gen_suite_lists.py, then
+# merge_catalog.py, then their checks and tests).
 
 # tetron-wm-desktop: the tools tetron-wm's own features call (WMDEB-007).
 

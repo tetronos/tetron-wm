@@ -437,7 +437,7 @@ impl Settings {
     fn item_count(&self) -> usize {
         match self.section {
             WINDOWS => 10,                           // snapping, threshold, grid rows/cols, gap, auto-tile, launch-maximized, natural scroll, full screen, waiter service
-            APPEARANCE => 10,                           // shadows, theme, wallpaper toggle, wallpaper file, icon-scrim, icon style, desktop icons, launcher label, colors, get more themes
+            APPEARANCE => 9,                            // theme, wallpaper toggle, wallpaper file, icon-scrim, icon style, desktop icons, launcher label, colors, get more themes
             UPDATES => if self.apphost_outdated { 4 } else { 3 }, // check, install, branch [, restart apphost]
             APPS => self.cfg.launcher.len() + 1,  // custom apps + "＋ Add app…"
             DEFAULT_APPS => DEFAULT_APP_ROLES.len(),
@@ -665,8 +665,7 @@ impl Settings {
             (WINDOWS, 9) if self.waiter != crate::fullscreen::Service::Missing => {
                 self.action = Some(SettingsAction::WaiterService(self.waiter != crate::fullscreen::Service::Running));
             }
-            (APPEARANCE, 0) => self.cfg.window_shadows = flip(self.cfg.window_shadows, dir),
-            (APPEARANCE, 1) => {
+            (APPEARANCE, 0) => {
                 let presets = crate::theme::preset_names();
                 let cur_idx = presets.iter().position(|p| p == &self.cfg.theme).unwrap_or(0);
                 let next_idx = if dir == -1 {
@@ -676,10 +675,10 @@ impl Settings {
                 };
                 self.cfg.theme = presets[next_idx].clone();
             }
-            (APPEARANCE, 2) => self.cfg.wallpaper_enabled = flip(self.cfg.wallpaper_enabled, dir),
+            (APPEARANCE, 1) => self.cfg.wallpaper_enabled = flip(self.cfg.wallpaper_enabled, dir),
             // Wallpaper filename: Enter opens the text box (pre-filled with the
             // current value); ←/→ do nothing (it is free text, not a cycler).
-            (APPEARANCE, 3) if dir == 0 => {
+            (APPEARANCE, 2) if dir == 0 => {
                 let cur = self.cfg.wallpaper.as_deref().map(str::trim).unwrap_or_default();
                 let cur = if cur.is_empty() { crate::wallpaper::DEFAULT_NAME } else { cur };
                 let fresh = cur == crate::wallpaper::DEFAULT_NAME;
@@ -687,29 +686,29 @@ impl Settings {
             }
             // Icon label scrim on/off: "on" keeps the default (or a configured
             // color); "off" stores "none" so labels sit directly on the wallpaper.
-            (APPEARANCE, 4) => {
+            (APPEARANCE, 3) => {
                 self.cfg.desktop_scrim = if scrim_on(&self.cfg) { Some("none".into()) } else { None };
             }
-            (APPEARANCE, 5) => {
+            (APPEARANCE, 4) => {
                 use crate::iconset::IconStyle::*;
                 let all = [Auto, Ascii, Unicode, Nerd, Emoji];
                 let cur = all.iter().position(|x| *x == self.cfg.icon_style).unwrap_or(0);
                 let next = if dir == -1 { (cur + all.len() - 1) % all.len() } else { (cur + 1) % all.len() };
                 self.cfg.icon_style = all[next];
             }
-            (APPEARANCE, 6) => self.cfg.desktop_enabled = flip(self.cfg.desktop_enabled, dir),
+            (APPEARANCE, 5) => self.cfg.desktop_enabled = flip(self.cfg.desktop_enabled, dir),
             // Launcher label: Enter opens the text box (up to 6 characters, or
             // `@session`); ←/→ do nothing, it is free text.
-            (APPEARANCE, 7) if dir == 0 => {
+            (APPEARANCE, 6) if dir == 0 => {
                 self.text = Some(TextEdit { target: TextTarget::LauncherLabel, buf: self.cfg.launcher_label.clone(), error: false, fresh: false });
             }
-            (APPEARANCE, 8) => {
+            (APPEARANCE, 7) => {
                 let cur = COLOR_CHOICES.iter().position(|(v, _)| crate::display::ColorDepth::parse(v) == crate::display::ColorDepth::parse(&self.cfg.colors)).unwrap_or(0);
                 let n = COLOR_CHOICES.len();
                 let next = if dir == -1 { (cur + n - 1) % n } else { (cur + 1) % n };
                 self.cfg.colors = COLOR_CHOICES[next].0.to_string();
             }
-            (APPEARANCE, 9) if dir == 0 && !self.themes_busy => {
+            (APPEARANCE, 8) if dir == 0 && !self.themes_busy => {
                 self.themes_busy = true;
                 self.themes_status = "Starting".into();
                 self.action = Some(SettingsAction::GetThemes);
@@ -1087,9 +1086,8 @@ impl Settings {
                 self.row(&mut buf, cx, 12, 9, "Full screen helper service", waiter.into());
             }
             APPEARANCE => {
-                self.row(&mut buf, cx, 3, 0, "Window shadows", toggle_val(self.cfg.window_shadows));
-                self.row(&mut buf, cx, 4, 1, "Theme", self.cfg.theme.clone());
-                self.row(&mut buf, cx, 5, 2, "Wallpaper", toggle_val(self.cfg.wallpaper_enabled));
+                self.row(&mut buf, cx, 3, 0, "Theme", self.cfg.theme.clone());
+                self.row(&mut buf, cx, 4, 1, "Wallpaper", toggle_val(self.cfg.wallpaper_enabled));
                 // Filename text box. While editing, show the live buffer with a
                 // cursor; otherwise the saved value (or a placeholder).
                 let file_val = match self.text.as_ref().filter(|t| t.target == TextTarget::Wallpaper) {
@@ -1099,31 +1097,31 @@ impl Settings {
                         None => crate::wallpaper::DEFAULT_NAME.to_string(),
                     },
                 };
-                self.row(&mut buf, cx, 6, 3, "Wallpaper file", file_val);
-                self.row(&mut buf, cx, 7, 4, "Icon label scrim", toggle_val(scrim_on(&self.cfg)));
-                self.row(&mut buf, cx, 8, 5, "Icon style", format!("\u{25C2} {} \u{25B8}", icon_style_name(self.cfg.icon_style)));
-                self.row(&mut buf, cx, 9, 6, "Desktop icons", toggle_val(self.cfg.desktop_enabled));
+                self.row(&mut buf, cx, 5, 2, "Wallpaper file", file_val);
+                self.row(&mut buf, cx, 6, 3, "Icon label scrim", toggle_val(scrim_on(&self.cfg)));
+                self.row(&mut buf, cx, 7, 4, "Icon style", format!("\u{25C2} {} \u{25B8}", icon_style_name(self.cfg.icon_style)));
+                self.row(&mut buf, cx, 8, 5, "Desktop icons", toggle_val(self.cfg.desktop_enabled));
                 let label_val = match self.text.as_ref().filter(|t| t.target == TextTarget::LauncherLabel) {
                     Some(t) => format!("{}\u{2588}", t.buf), // block cursor while typing
                     None => self.cfg.launcher_label.clone(),
                 };
-                self.row(&mut buf, cx, 10, 7, "Launcher label", label_val);
-                self.row(&mut buf, cx, 11, 8, "Colors", format!("\u{25C2} {} \u{25B8}", color_choice_name(&self.cfg.colors)));
+                self.row(&mut buf, cx, 9, 6, "Launcher label", label_val);
+                self.row(&mut buf, cx, 10, 7, "Colors", format!("\u{25C2} {} \u{25B8}", color_choice_name(&self.cfg.colors)));
                 let themes_val = if self.themes_status.is_empty() { "Enter (downloads from GitHub)".to_string() } else { self.themes_status.clone() };
-                self.row(&mut buf, cx, 12, 9, "Get more themes", themes_val);
+                self.row(&mut buf, cx, 11, 8, "Get more themes", themes_val);
                 // A wallpaper problem goes on the spacer line under the rows,
                 // in the accent colour so it is not mistaken for a hint.
                 let theme_note = (!crate::theme::known(&self.cfg.theme)).then(|| format!("Theme '{}' not found, using midnight.", self.cfg.theme));
                 if let Some(n) = self.wallpaper_note.as_ref().or(theme_note.as_ref()) {
-                    buf.write_str(cx, 13, n, pal_accent(), pal_bg());
+                    buf.write_str(cx, 12, n, pal_accent(), pal_bg());
                 }
-                buf.write_str(cx, 14, "Wallpaper: default (follows the theme), black, #rrggbb,", pal_dim(), pal_bg());
-                buf.write_str(cx, 15, "none, a file in ~/.config/tetron-wm/themes/, or a full path.", pal_dim(), pal_bg());
-                buf.write_str(cx, 16, "Scrim: dark backing behind icon labels over a wallpaper.", pal_dim(), pal_bg());
-                buf.write_str(cx, 17, "Icon style: auto | ascii | unicode | nerd | emoji.", pal_dim(), pal_bg());
-                buf.write_str(cx, 18, "Launcher label: up to 6 characters, or @session for the session name.", pal_dim(), pal_bg());
-                buf.write_str(cx, 19, "Colors: auto follows the terminal; mono is no color; TETRON_WM_COLORS wins.", pal_dim(), pal_bg());
-                buf.write_str(cx, 20, "New themes are saved in ~/.local/share/tetron-wm/themes/.", pal_dim(), pal_bg());
+                buf.write_str(cx, 13, "Wallpaper: default (follows the theme), black, #rrggbb,", pal_dim(), pal_bg());
+                buf.write_str(cx, 14, "none, a file in ~/.config/tetron-wm/themes/, or a full path.", pal_dim(), pal_bg());
+                buf.write_str(cx, 15, "Scrim: dark backing behind icon labels over a wallpaper.", pal_dim(), pal_bg());
+                buf.write_str(cx, 16, "Icon style: auto | ascii | unicode | nerd | emoji.", pal_dim(), pal_bg());
+                buf.write_str(cx, 17, "Launcher label: up to 6 characters, or @session for the session name.", pal_dim(), pal_bg());
+                buf.write_str(cx, 18, "Colors: auto follows the terminal; mono is no color; TETRON_WM_COLORS wins.", pal_dim(), pal_bg());
+                buf.write_str(cx, 19, "New themes are saved in ~/.local/share/tetron-wm/themes/.", pal_dim(), pal_bg());
             }
             UPDATES => {
                 self.row(&mut buf, cx, 3, 0, "Check for updates", String::new());
@@ -1707,7 +1705,7 @@ mod tests {
             s.next_section();
         }
         s.sel = 0;
-        while s.sel < 3 {
+        while s.sel < 2 {
             s.move_down();
         }
     }
@@ -1747,7 +1745,7 @@ mod tests {
         while SECTIONS[s.section] != "Appearance" {
             s.next_section();
         }
-        s.sel = 7;
+        s.sel = 6;
     }
 
     #[test]
@@ -1807,7 +1805,7 @@ mod tests {
         while SECTIONS[s.section] != "Appearance" {
             s.next_section();
         }
-        s.sel = 4; // "Icon label scrim" row
+        s.sel = 3; // "Icon label scrim" row
         assert!(s.config().desktop_scrim.is_none()); // default = on
         s.toggle();
         assert_eq!(s.config().desktop_scrim.as_deref(), Some("none")); // -> off
@@ -1956,15 +1954,15 @@ mod tests {
         s.toggle();
         assert!(!s.config().fullscreen);
         s.section = APPEARANCE;
-        assert_eq!(s.item_count(), 10);
-        s.sel = 8;
+        assert_eq!(s.item_count(), 9);
+        s.sel = 7;
         for want in ["mono", "16", "256", "truecolor", "auto"] {
             s.right();
             assert_eq!(s.config().colors, want, "Colors cycles and wraps");
         }
         s.left();
         assert_eq!(s.config().colors, "truecolor");
-        s.sel = 5;
+        s.sel = 4;
         s.right();
         assert_eq!(s.config().icon_style, IconStyle::Ascii);
         s.right();
@@ -1973,7 +1971,7 @@ mod tests {
         s.right();
         s.right();
         assert_eq!(s.config().icon_style, IconStyle::Auto, "wraps");
-        s.sel = 6;
+        s.sel = 5;
         s.toggle();
         assert!(!s.config().desktop_enabled);
         for sec in 0..SECTIONS.len() {
@@ -2173,7 +2171,7 @@ mod tests {
     #[test]
     fn get_more_themes_asks_once_until_the_worker_is_done() {
         let mut s = Settings::new(Config::default());
-        s.sel = 9;
+        s.sel = 8;
         assert!(screen(&s).contains("Get more themes"));
         s.toggle();
         assert_eq!(s.take_action(), Some(SettingsAction::GetThemes));

@@ -42,7 +42,7 @@ Keys below are leader sequences: press `Ctrl+Space`, release, then the key. The 
 
 ## Files and the desktop
 
-- **File manager.** Launcher → Files. Icon, list and Miller-column views, thumbnails and a preview pane, tabs, an info panel, copy, cut, paste, rename and new folder. Delete goes to the Trash, never a hard delete. Right-click opens a context menu.
+- **File manager.** Launcher → Files. Icon, list and Miller-column views, thumbnails and a preview pane, tabs, an info panel, copy, cut, paste, rename and new folder. Delete goes to the Trash, never a hard delete; Empty Trash (right-click on empty space, confirmed) deletes for good. Right-click opens a context menu: Copy and Cut on files (on the desktop too), Paste on empty space and Paste into folder on a folder; a name already there gets " copy", " copy 2". Copy in one window and paste in another or on the desktop.
 - **Open with.** A file-type to app map (Settings → Default Apps) decides what opens each file: images in the built-in viewer, text and code in your `$EDITOR`.
 - **Desktop icons.** Clickable icons on the wallpaper, from your `~/Desktop` folder plus pinned shortcuts. They refresh within a couple of seconds when the folder changes, and drag to rearrange.
 - **Image viewing.** Real raster images in windows on terminals that speak the Kitty graphics protocol (Kitty, Ghostty, WezTerm), with a cell fallback elsewhere.

@@ -3705,10 +3705,13 @@ or a remote-side error — its authorized_keys was left untouched)",
                             self.wm.raise(id);
                             let local = Point::new(p.x - cr.x, p.y - cr.y);
                             if let Some(WinContent::FileManager(f)) = self.contents.get_mut(&id) {
-                                if let Some(crate::filemanager::Target::Entry(i)) = f.hit_test(local, cr.w, cr.h) {
+                                match f.hit_test(local, cr.w, cr.h) {
                                     // Anchor the menu at the exact click point (mirrors the
                                     // desktop's right_click), not the tile origin.
-                                    f.begin_context_at(i, local);
+                                    Some(crate::filemanager::Target::Entry(i)) => f.begin_context_at(i, local),
+                                    // The empty part of the listing: Paste, New Folder, ….
+                                    None if local.x >= crate::filemanager::SIDEBAR_W && local.y >= f.listing_top() => f.begin_background_context(local),
+                                    _ => {}
                                 }
                             }
                             return;
@@ -5733,7 +5736,29 @@ or a remote-side error — its authorized_keys was left untouched)",
                     self.desktop.menu_replace(items);
                 }
             }
-            A::Copy | A::Cut => self.desktop.cancel_overlay(),
+            A::Copy | A::Cut => {
+                self.desktop.cancel_overlay();
+                if let Some(p) = path {
+                    crate::fileops::clip_set(vec![p], action == A::Cut);
+                }
+            }
+            A::Paste | A::PasteInto => {
+                self.desktop.cancel_overlay();
+                let dir = if action == A::PasteInto { path } else { Some(self.desktop.dir().to_path_buf()) };
+                if let Some(dir) = dir {
+                    let (done, err) = crate::fileops::paste_clip_into(&dir);
+                    crate::dbg_log(&format!("desktop: pasted {done} into {}{}", dir.display(), err.map(|e| format!(", WARN {e}")).unwrap_or_default()));
+                    self.reload_desktop();
+                }
+            }
+            // The confirmation is the file manager's: open it there.
+            A::EmptyTrash => {
+                self.desktop.cancel_overlay();
+                self.open_filemanager();
+                if let Some(f) = self.focused_filemanager_mut() {
+                    f.begin_empty_trash();
+                }
+            }
             A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => self.desktop.cancel_overlay(),
         }
     }

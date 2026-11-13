@@ -4,11 +4,11 @@ use tetron_wm::config::Config;
 #[test]
 fn toggle_changes_config() {
     let mut s = Settings::new(Config::default());
-    // Fork defaults are OFF for both (docs/CONFIG.md); toggling flips them ON.
-    // (Upstream defaulted them on, which these asserts used to assume.)
-    assert!(!s.config().window_shadows);
-    s.toggle(); // Appearance (first) / window shadows
-    assert!(s.config().window_shadows);
+    // Theme is the first row of Appearance; window shadows are file-only.
+    let before = s.config().theme.clone();
+    s.toggle(); // Appearance (first) / theme
+    assert_ne!(s.config().theme, before);
+    assert!(!s.config().window_shadows, "shadows stay off: no Settings row");
     s.next_section(); // Windows
     s.toggle(); // snapping
     assert!(s.config().snapping_enabled);

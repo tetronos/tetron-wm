@@ -7,11 +7,17 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Added
+- Paste in the right-click menu: on the empty part of a file manager window or the desktop (Paste), and on a folder (Paste into folder). Copy and Cut are on the desktop's file menu too, and one clipboard serves the desktop and every file manager window on this machine. A name already there gets " copy", " copy 2"; a cut pasted into its own folder stays as it is; a folder is never pasted into itself. The file manager status line says what was copied or pasted.
+- Empty Trash: right-click on empty space in the file manager or on the desktop, shown when the Trash holds something. A confirmation names how many items go and that it can not be undone; it deletes the Trash's files and their records.
+- Right-click on the empty part of a file manager window opens a menu (Paste, New Folder, Open terminal here, Empty Trash); before, nothing happened.
+- The clock popover (the calendar) has an `Open calcurse` row, or `Get calcurse (Store)` when calcurse is missing. `[tray_tools] calendar` picks another app; an empty list removes the row.
 - Choose how tetron-wm is installed: the apt package or a binary, including your own build. `install.sh` takes `TETRON_WM_METHOD=deb|binary` and `TETRON_WM_FROM_CLONE=DIR`; the suite installer takes `--method` and `--from-clone` and asks on Debian and Ubuntu (`--convert` now means `--method deb`). The tetronos installer passes them on: `curl -fsSL https://tetronos.github.io/install.sh | bash -s -- tetron-wm --from-clone ~/code/tetron-wm`.
 - The deb method adds the tetronos apt repository by installing `tetronos-apt-source`, after checking the archive key against the SHA256 pinned in `install.sh`, so `apt upgrade` updates tetron-wm from then on. Existing package installs get it with their next update. `TETRON_WM_NO_APT_REPO=1` skips it.
 - An own build or a release binary on a machine with the package keeps the package installed and sets its binary aside with `dpkg-divert` (`/usr/bin/tetron-wm.packaged`), so the size packages, `tetronos-desktop` on TetronOS, the systemd units and the autostart keep working and run it. `TETRON_WM_METHOD=deb` puts the packaged binary back. Settings > About shows "own build (package diverted)", Settings > Updates installs nothing there and shows how to rebuild or go back, and `install.sh` without a method leaves the own build alone (exit 4). `--uninstall --purge` removes the own build and the diversion before the packages.
 
 ### Changed
+- `scripts/rebuild-app-sets.sh` regenerates everything made from the app sets in `lists/tetron.toml` (the suite installer's list, the size debs' Recommends, the catalog) and checks it, in one command; its header shows how to add an app to a set.
+- Settings > Appearance starts with Theme. Window shadows left the Settings page (they stay off by default; `window_shadows = true` in the config file still turns them on).
 - A binary now replaces an existing copy where it is (before, a copy outside `/usr/local/bin` was left and a second one written there), and every new binary is copied beside the old one and renamed over it, so a running tetron-wm is never written into.
 - The suite installer records `method` as `deb`, `binary` or `own` in `suite-state` (`raw` before).
 

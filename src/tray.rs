@@ -160,6 +160,7 @@ fn tool_item(kind: SegmentKind) -> Option<&'static str> {
         SegmentKind::Wifi => Some("network"),
         SegmentKind::Bluetooth => Some("bluetooth"),
         SegmentKind::Volume => Some("volume"),
+        SegmentKind::Clock => Some("calendar"),
         _ => None,
     }
 }
@@ -450,6 +451,20 @@ pub fn volume_mixer(
     let removed = tools.get("volume").is_some_and(|s| s.lines().is_empty());
     (cfg!(target_os = "linux") && !removed)
         .then(|| ("Get wiremix (Store)".to_string(), ControlIntent::OpenStoreSearch("wiremix".into())))
+}
+
+/// The calendar popover's app row: the first `[tray_tools] calendar` command
+/// installed (default calcurse), else "Get calcurse (Store)", unless the user
+/// emptied the list.
+pub fn calendar_app(
+    tools: &crate::traytools::TrayTools,
+    installed: &dyn Fn(&str) -> bool,
+) -> Option<(String, ControlIntent)> {
+    if let Some(a) = segment_app(SegmentKind::Clock, tools, installed) {
+        return Some((a.label, ControlIntent::OpenTool { title: a.title, command: a.command, args: a.args }));
+    }
+    let removed = tools.get("calendar").is_some_and(|s| s.lines().is_empty());
+    (!removed).then(|| ("Get calcurse (Store)".to_string(), ControlIntent::OpenStoreSearch("calcurse".into())))
 }
 
 /// The volume mixer row for the live config and glyph tier.
@@ -1031,8 +1046,9 @@ impl Tray {
         let weeks = crate::calendar::month_grid(year, month);
         // Upcoming events (khal): mark their days in the grid and list a few.
         let listed: Vec<&crate::system::CalEvent> = st.events.iter().take(3).collect();
+        let app = calendar_app(&self.tools, &crate::catalog::is_installed);
         let box_w = 24;
-        let box_h = weeks.len() as i32 + 5 + listed.len() as i32;
+        let box_h = weeks.len() as i32 + 5 + listed.len() as i32 + app.is_some() as i32;
         let origin = self.box_origin(w, anchor_x, box_w);
         let mut buf = CellBuffer::new(box_w, box_h);
         fill_box(&mut buf, box_w, box_h);
@@ -1085,7 +1101,7 @@ impl Tray {
         }
         let footer = format!("{}  up {}h", c.time, c.uptime_secs / 3600);
         buf.write_str(2, box_h - 2, &footer, t.dim, t.window_bg);
-        let hits = vec![
+        let mut hits = vec![
             PopoverHit {
                 rect: Rect::new(origin.x + 1, origin.y + 1, 3, 1),
                 intent: ControlIntent::CalendarPrev,
@@ -1095,6 +1111,12 @@ impl Tray {
                 intent: ControlIntent::CalendarNext,
             },
         ];
+        // App row above the footer: open the calendar app, or get it.
+        if let Some((label, intent)) = app {
+            let y = box_h - 3;
+            buf.write_str(2, y, &format!("\u{25B8} {label}"), t.accent, t.window_bg);
+            hits.push(PopoverHit { rect: Rect::new(origin.x + 1, origin.y + y, box_w - 2, 1), intent });
+        }
         Rendered { layers: vec![layer(origin, buf)], hits, bounds: Some(Rect::new(origin.x, origin.y, box_w, box_h)) }
     }
 
@@ -1174,6 +1196,20 @@ mod tests {
         // wiremix wins when present; on the ascii tier it gets the ASCII char set.
         let (_, intent) = volume_mixer(&tools, &|_| true, true).unwrap();
         assert_eq!(intent, ControlIntent::OpenTool { title: "Volume".into(), command: "wiremix".into(), args: vec!["-s".into(), "extracompat".into()] });
+    }
+
+    #[test]
+    fn calendar_opens_calcurse_or_offers_it_from_the_store() {
+        let tools = crate::traytools::TrayTools::new();
+        let (label, intent) = calendar_app(&tools, &|p| p == "calcurse").unwrap();
+        assert_eq!(label, "Open calcurse");
+        assert_eq!(intent, ControlIntent::OpenTool { title: "Calendar".into(), command: "calcurse".into(), args: vec![] });
+        let (label, intent) = calendar_app(&tools, &|_| false).unwrap();
+        assert_eq!(label, "Get calcurse (Store)");
+        assert_eq!(intent, ControlIntent::OpenStoreSearch("calcurse".into()));
+        let mut tools = crate::traytools::TrayTools::new();
+        tools.insert("calendar".into(), crate::traytools::ToolSpec::Many(Vec::new()));
+        assert_eq!(calendar_app(&tools, &|_| true), None, "an empty list removes the row");
     }
 
     #[test]

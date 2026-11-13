@@ -5,7 +5,7 @@
 pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("snapping_enabled", "false", "drag a window to a screen edge to snap it"),
     ("snap_threshold", "3", "cells from the edge that trigger snapping"),
-    ("window_shadows", "false", "draw window drop shadows"),
+    ("window_shadows", "false", "draw window drop shadows (file only)"),
     ("natural_scroll", "true", "invert wheel/touchpad scroll direction"),
     ("fullscreen", "true", "full screen video, images and PDFs; false hides the items and skips the framebuffer, DRM and waiter probes"),
     ("grid_rows", "2", "tiling grid rows (1-6)"),
@@ -63,7 +63,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("keys", "{}", "[keys] leader remaps: action = \"x\" or [\"x\", \"enter\"]"),
     ("tray_placement", "{}", "[tray_placement] segment -> bar | info | auto (defaults: cpu, mem, bluetooth info; rest auto)"),
     ("dock_badges", "built-in", "[dock_badges] app keyword -> badge color"),
-    ("tray_tools", "built-in", "[tray_tools] cpu/mem/battery/bluetooth/network/volume -> Open-row commands"),
+    ("tray_tools", "built-in", "[tray_tools] cpu/mem/battery/bluetooth/network/volume/calendar -> Open-row commands"),
 ];
 
 /// (name, description) for every environment variable.

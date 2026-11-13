@@ -61,6 +61,7 @@ pub fn defaults(item: &str) -> Vec<&'static str> {
         // serves them too), then ALSA's mixer, which ships almost everywhere
         // but sets the card's level, not the sink the menubar shows.
         "volume" => vec!["wiremix", "pulsemixer", "ncpamixer", "alsamixer"],
+        "calendar" => vec!["calcurse"],
         "network" => vec![
             "wlctl",
             "nmtui",
@@ -82,6 +83,7 @@ fn title(item: &str) -> &'static str {
         "bluetooth" => "Bluetooth",
         "network" => "Network",
         "volume" => "Volume",
+        "calendar" => "Calendar",
         _ => "Tool",
     }
 }

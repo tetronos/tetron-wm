@@ -210,6 +210,97 @@ fn split_name(name: &str) -> (String, String) {
     }
 }
 
+/// Files copied or cut on this machine, shared by the desktop and every local
+/// file manager window (one per daemon), so a copy in one pastes in another.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileClip {
+    pub paths: Vec<PathBuf>,
+    pub cut: bool,
+}
+
+static FILE_CLIP: std::sync::Mutex<Option<FileClip>> = std::sync::Mutex::new(None);
+
+/// Remember `paths` for Paste (`cut`: Paste moves them, once).
+pub fn clip_set(paths: Vec<PathBuf>, cut: bool) {
+    if paths.is_empty() {
+        return;
+    }
+    *FILE_CLIP.lock().unwrap_or_else(|e| e.into_inner()) = Some(FileClip { paths, cut });
+}
+
+/// What Paste would paste, if anything.
+pub fn clip_get() -> Option<FileClip> {
+    FILE_CLIP.lock().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+/// Paste `clip` into `dir` through `fs`: a copy, or a move for a cut. Name
+/// clashes get " copy", " copy 2", ... ([`unique_destination`]); a cut into
+/// the folder it came from is left alone; a folder is never pasted into
+/// itself. Returns how many were pasted and the first error, if any.
+pub fn paste_into(fs: &dyn FsOps, clip: &FileClip, dir: &Path) -> (usize, Option<String>) {
+    let mut done = 0;
+    let mut err = None;
+    for src in &clip.paths {
+        if clip.cut && src.parent() == Some(dir) {
+            continue;
+        }
+        if dir.starts_with(src) {
+            err.get_or_insert_with(|| format!("can not paste {} into itself", src.display()));
+            continue;
+        }
+        let r = if clip.cut { fs.move_to(src, dir) } else { fs.copy(src, dir) };
+        match r {
+            Ok(_) => done += 1,
+            Err(e) => {
+                err.get_or_insert_with(|| e.to_string());
+            }
+        }
+    }
+    (done, err)
+}
+
+/// Paste the shared clipboard into `dir` on this machine; a cut is used up.
+pub fn paste_clip_into(dir: &Path) -> (usize, Option<String>) {
+    let Some(clip) = clip_get() else { return (0, None) };
+    let r = paste_into(&StdFs, &clip, dir);
+    if clip.cut {
+        *FILE_CLIP.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    }
+    r
+}
+
+/// How many items the Trash holds (0 without one).
+pub fn trash_count() -> usize {
+    trash_dir().and_then(|d| std::fs::read_dir(d).ok()).map_or(0, |rd| rd.flatten().count())
+}
+
+/// Delete everything in the Trash for good: its `files` and, on Linux, the
+/// matching `info` records (freedesktop Trash). Returns how many items went.
+pub fn empty_trash() -> io::Result<usize> {
+    let Some(dir) = trash_dir() else { return Ok(0) };
+    let n = empty_dir(&dir)?;
+    if let Some(info) = dir.parent().map(|t| t.join("info")).filter(|i| !cfg!(target_os = "macos") && i.is_dir()) {
+        empty_dir(&info)?;
+    }
+    Ok(n)
+}
+
+/// Remove every entry of `dir`, keeping `dir`. Symlinks are removed, never followed.
+fn empty_dir(dir: &Path) -> io::Result<usize> {
+    let mut n = 0;
+    let Ok(rd) = std::fs::read_dir(dir) else { return Ok(0) };
+    for e in rd.flatten() {
+        let p = e.path();
+        if e.file_type().is_ok_and(|t| t.is_dir()) {
+            std::fs::remove_dir_all(&p)?;
+        } else {
+            std::fs::remove_file(&p)?;
+        }
+        n += 1;
+    }
+    Ok(n)
+}
+
 /// The OS Trash directory for moved-not-deleted files.
 pub fn trash_dir() -> Option<PathBuf> {
     let home = dirs::home_dir()?;
@@ -457,6 +548,63 @@ fn parse_ls_line(line: &str) -> Option<(char, u64, String)> {
 #[cfg(test)]
 mod ssh_tests {
     use super::*;
+
+    fn scratch(tag: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("tetron-wm-paste-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    fn paste_copies_with_clash_names_and_moves_a_cut() {
+        let d = scratch("clash");
+        let (a, b) = (d.join("a"), d.join("b"));
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+        std::fs::write(a.join("f.txt"), "x").unwrap();
+        std::fs::write(b.join("f.txt"), "old").unwrap();
+        let copy = FileClip { paths: vec![a.join("f.txt")], cut: false };
+        assert_eq!(paste_into(&StdFs, &copy, &b), (1, None));
+        assert_eq!(paste_into(&StdFs, &copy, &b), (1, None));
+        assert_eq!(std::fs::read_to_string(b.join("f.txt")).unwrap(), "old", "never overwrites");
+        assert!(b.join("f copy.txt").exists() && b.join("f copy 2.txt").exists());
+        let cut = FileClip { paths: vec![a.join("f.txt")], cut: true };
+        assert_eq!(paste_into(&StdFs, &cut, &a), (0, None), "a cut into its own folder stays as it is");
+        assert!(a.join("f.txt").exists() && !a.join("f copy.txt").exists());
+        assert_eq!(paste_into(&StdFs, &cut, &b), (1, None));
+        assert!(!a.join("f.txt").exists() && b.join("f copy 3.txt").exists());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_folder_is_never_pasted_into_itself() {
+        let d = scratch("self");
+        let a = d.join("a");
+        std::fs::create_dir_all(a.join("inner")).unwrap();
+        let clip = FileClip { paths: vec![a.clone()], cut: false };
+        let (done, err) = paste_into(&StdFs, &clip, &a.join("inner"));
+        assert_eq!(done, 0);
+        assert!(err.unwrap().contains("into itself"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn emptying_removes_files_folders_and_links_but_not_their_targets() {
+        let d = scratch("empty");
+        let (t, keep) = (d.join("trash"), d.join("keep"));
+        std::fs::create_dir_all(t.join("dir/sub")).unwrap();
+        std::fs::create_dir_all(&keep).unwrap();
+        std::fs::write(t.join("f"), "x").unwrap();
+        std::fs::write(keep.join("k"), "k").unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&keep, t.join("link")).unwrap();
+        let n = empty_dir(&t).unwrap();
+        assert_eq!(n, if cfg!(unix) { 3 } else { 2 });
+        assert!(t.is_dir() && std::fs::read_dir(&t).unwrap().next().is_none());
+        assert!(keep.join("k").exists(), "a link's target is kept");
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     #[test]
     fn ls_lines_parse_kinds_sizes_and_spaced_names() {

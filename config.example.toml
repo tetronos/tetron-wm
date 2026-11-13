@@ -245,6 +245,7 @@ bell      = "auto"
 #bluetooth = "bluetuith"
 #network = "nmtui"
 #volume = ["pulsemixer", "alsamixer"]
+#calendar = "calcurse"
 #mem = []
 
 ## ── Power commands ────────────────────────────────────────────────────────

@@ -36,6 +36,12 @@ pub enum MenuAction {
     Rename,
     Copy,
     Cut,
+    /// Paste the copied or cut files here (the folder shown, or the desktop).
+    Paste,
+    /// Paste the copied or cut files into the folder under the click.
+    PasteInto,
+    /// Delete everything in the Trash, after a confirmation.
+    EmptyTrash,
     Trash,
     GetInfo,
     Unpin,
@@ -84,6 +90,9 @@ impl MenuAction {
             MenuAction::Rename => "Rename".into(),
             MenuAction::Copy => "Copy".into(),
             MenuAction::Cut => "Cut".into(),
+            MenuAction::Paste => "Paste".into(),
+            MenuAction::PasteInto => "Paste into folder".into(),
+            MenuAction::EmptyTrash => "Empty Trash\u{2026}".into(),
             MenuAction::Trash => "Move to Trash".into(),
             MenuAction::GetInfo => "Get Info".into(),
             MenuAction::Unpin => "Unpin".into(),
@@ -128,6 +137,10 @@ pub struct Abilities {
     pub compress: bool,
     /// 7z, age or gpg is installed and the entry is on this machine: "Encrypt…".
     pub encrypt: bool,
+    /// Files were copied or cut on this machine: "Paste".
+    pub paste: bool,
+    /// The Trash holds something: "Empty Trash…" on the background.
+    pub trash: bool,
 }
 
 impl Abilities {
@@ -144,12 +157,14 @@ impl Abilities {
             cast: have("catt"),
             compress: have("tar"),
             encrypt: PackTools::current().choices(true).next().is_some(),
+            paste: crate::fileops::clip_get().is_some(),
+            trash: crate::fileops::trash_count() > 0,
         }
     }
 
     /// Without the local-only actions, for a folder on a remote system.
     pub fn remote(self) -> Self {
-        Abilities { compress: false, encrypt: false, ..self }
+        Abilities { compress: false, encrypt: false, paste: false, trash: false, ..self }
     }
 }
 
@@ -178,9 +193,9 @@ pub fn actions_for(surface: Surface, target: Target, can: Abilities) -> Vec<Menu
             if can.cast && !is_dir && matches!(role, Role::Video | Role::Audio | Role::Image) {
                 v.push(A::CastTo);
             }
-            v.push(A::Rename);
-            if surface == Surface::Files {
-                v.extend([A::Copy, A::Cut]);
+            v.extend([A::Rename, A::Copy, A::Cut]);
+            if is_dir && can.paste {
+                v.push(A::PasteInto);
             }
             if can.compress {
                 v.push(A::Compress);
@@ -194,8 +209,20 @@ pub fn actions_for(surface: Surface, target: Target, can: Abilities) -> Vec<Menu
             }
             v
         }
-        (Surface::Desktop, Target::Background) => vec![A::NewFolder, A::OpenTerminalHere, A::CleanUp],
-        (Surface::Files, Target::Background) => Vec::new(),
+        (_, Target::Background) => {
+            let mut v = Vec::new();
+            if can.paste {
+                v.push(A::Paste);
+            }
+            v.extend([A::NewFolder, A::OpenTerminalHere]);
+            if surface == Surface::Desktop {
+                v.push(A::CleanUp);
+            }
+            if can.trash {
+                v.push(A::EmptyTrash);
+            }
+            v
+        }
     }
 }
 
@@ -584,21 +611,28 @@ mod tests {
     fn actions_differ_by_surface_and_target() {
         use MenuAction as A;
         let none = Abilities::default();
-        let all = Abilities { fullscreen_image: true, fullscreen_video: true, fullscreen_pdf: true, send: true, cast: false, compress: false, encrypt: false };
+        let all = Abilities { fullscreen_image: true, fullscreen_video: true, fullscreen_pdf: true, send: true, cast: false, compress: false, encrypt: false, paste: false, trash: false };
         let file = Target::Entry { is_dir: false, pinned: false, role: Role::Text };
         let dir = Target::Entry { is_dir: true, pinned: false, role: Role::Directory };
         let img = Target::Entry { is_dir: false, pinned: false, role: Role::Image };
         let vid = Target::Entry { is_dir: false, pinned: false, role: Role::Video };
         let zip = Target::Entry { is_dir: false, pinned: false, role: Role::Archive };
-        assert_eq!(actions_for(Surface::Desktop, file, none), vec![A::Open, A::OpenWith, A::Rename, A::Trash, A::CopyPath, A::OpenTerminalHere, A::GetInfo]);
-        assert_eq!(actions_for(Surface::Desktop, dir, none), vec![A::Open, A::Rename, A::Trash, A::CopyPath, A::OpenTerminalHere, A::GetInfo], "no Open with for folders");
+        assert_eq!(actions_for(Surface::Desktop, file, none), vec![A::Open, A::OpenWith, A::Rename, A::Copy, A::Cut, A::Trash, A::CopyPath, A::OpenTerminalHere, A::GetInfo]);
+        assert_eq!(actions_for(Surface::Desktop, dir, none), vec![A::Open, A::Rename, A::Copy, A::Cut, A::Trash, A::CopyPath, A::OpenTerminalHere, A::GetInfo], "no Open with for folders");
         assert_eq!(actions_for(Surface::Desktop, Target::Entry { is_dir: false, pinned: true, role: Role::Other }, all), vec![A::Open, A::Unpin]);
         assert_eq!(actions_for(Surface::Desktop, Target::Background, all), vec![A::NewFolder, A::OpenTerminalHere, A::CleanUp]);
         assert_eq!(
             actions_for(Surface::Files, file, none),
             vec![A::Open, A::OpenWith, A::Rename, A::Copy, A::Cut, A::Trash, A::CopyPath, A::OpenTerminalHere, A::GetInfo]
         );
-        assert!(actions_for(Surface::Files, Target::Background, all).is_empty());
+        assert_eq!(actions_for(Surface::Files, Target::Background, all), vec![A::NewFolder, A::OpenTerminalHere]);
+        // Paste once something was copied or cut; Empty Trash once it holds something.
+        let full = Abilities { paste: true, trash: true, ..all };
+        assert_eq!(actions_for(Surface::Desktop, Target::Background, full), vec![A::Paste, A::NewFolder, A::OpenTerminalHere, A::CleanUp, A::EmptyTrash]);
+        assert_eq!(actions_for(Surface::Files, Target::Background, full), vec![A::Paste, A::NewFolder, A::OpenTerminalHere, A::EmptyTrash]);
+        assert!(actions_for(Surface::Files, dir, full).contains(&A::PasteInto), "a folder takes a paste");
+        assert!(!actions_for(Surface::Files, file, full).contains(&A::PasteInto), "a file does not");
+        assert!(!actions_for(Surface::Files, Target::Background, full.remote()).contains(&A::Paste), "no shared paste on a remote folder");
         // Images: wallpaper always, full screen only where the client can hand over.
         let plain = actions_for(Surface::Desktop, img, none);
         assert!(plain.contains(&A::SetWallpaper) && !plain.contains(&A::ViewFullscreen));

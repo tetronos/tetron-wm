@@ -42,7 +42,8 @@ pub enum FileManagerAction {
 pub enum Overlay {
     NewFolder { name: String },
     Rename { idx: usize, name: String },
-    ConfirmDelete { count: usize },
+    /// Move the selection to the Trash, or (`empty`) delete what the Trash holds.
+    ConfirmDelete { count: usize, empty: bool },
     /// Context menu (the shared [`crate::contextmenu::ContextMenu`]) for entry
     /// `idx`, anchored at a content-local point: the click point for a
     /// right-click, or the entry's tile/row for the keyboard. "Open with…"
@@ -525,7 +526,7 @@ impl<F: FsOps> FileManager<F> {
 
     pub fn begin_delete(&mut self) {
         let count = if self.tab().selection.is_empty() { 1 } else { self.tab().selection.len() };
-        self.overlay = Some(Overlay::ConfirmDelete { count });
+        self.overlay = Some(Overlay::ConfirmDelete { count, empty: false });
     }
 
     /// Open the context menu for the focused entry (keyboard-invoked),
@@ -549,6 +550,26 @@ impl<F: FsOps> FileManager<F> {
         }
         self.select_at(idx, false, false);
         self.open_menu(idx, at);
+    }
+
+    /// The menu of the empty area of the listing (Paste, New Folder, …),
+    /// anchored at the click.
+    pub fn begin_background_context(&mut self, at: Point) {
+        let can = crate::contextmenu::Abilities::current();
+        let items = crate::contextmenu::actions_for(
+            crate::contextmenu::Surface::Files,
+            crate::contextmenu::Target::Background,
+            if self.fs.is_local() { can } else { can.remote() },
+        );
+        // An index past the entries marks the background: no entry is the target.
+        let idx = self.tab().entries.len();
+        self.overlay = Some(Overlay::Context { idx, menu: crate::contextmenu::ContextMenu::new(at, items) });
+    }
+
+    /// Ask before emptying the Trash (nothing to ask when it is empty).
+    pub fn begin_empty_trash(&mut self) {
+        let count = crate::fileops::trash_count();
+        self.overlay = (count > 0).then_some(Overlay::ConfirmDelete { count, empty: true });
     }
 
     fn open_menu(&mut self, idx: usize, at: Point) {
@@ -657,12 +678,19 @@ impl<F: FsOps> FileManager<F> {
             A::Rename => self.begin_rename(),
             A::Copy => self.copy_selection(),
             A::Cut => self.cut_selection(),
+            A::Paste => self.paste(),
+            A::PasteInto => {
+                if let Some(dir) = path {
+                    self.paste_to(&dir);
+                }
+            }
+            A::EmptyTrash => self.begin_empty_trash(),
             A::Trash => self.begin_delete(),
             A::GetInfo => self.begin_get_info(),
             A::ViewFullscreen => self.action = path.map(FileManagerAction::Fullscreen),
             A::SetWallpaper => self.action = path.map(FileManagerAction::SetWallpaper),
             A::CopyPath => self.action = path.map(FileManagerAction::CopyPath),
-            A::OpenTerminalHere => self.action = path.map(FileManagerAction::TerminalAt),
+            A::OpenTerminalHere => self.action = Some(FileManagerAction::TerminalAt(path.unwrap_or_else(|| self.tab().cwd.clone()))),
             A::PlayFullscreen => self.action = path.map(FileManagerAction::PlayFullscreen),
             A::ExtractHere | A::ListContents => {
                 let list = action == A::ListContents;
@@ -685,7 +713,8 @@ impl<F: FsOps> FileManager<F> {
             }
             A::PackAs(pack) => self.action = path.map(|path| FileManagerAction::Pack { path, pack }),
             A::CastTo => self.action = path.map(FileManagerAction::Cast),
-            A::Unpin | A::NewFolder | A::CleanUp => {}
+            A::NewFolder => self.begin_new_folder(),
+            A::Unpin | A::CleanUp => {}
             A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => {}
         }
     }
@@ -744,24 +773,48 @@ impl<F: FsOps> FileManager<F> {
         }
     }
 
-    pub fn copy_selection(&mut self) {
-        let paths = self.selected_paths();
-        if !paths.is_empty() { self.clipboard = Some(Clipboard { paths, cut: false }); }
-    }
+    // On this machine the clipboard is shared with the desktop and the other
+    // windows (fileops::clip_set); a remote folder keeps its own.
+    pub fn copy_selection(&mut self) { self.clip(false); }
 
-    pub fn cut_selection(&mut self) {
-        let paths = self.selected_paths();
-        if !paths.is_empty() { self.clipboard = Some(Clipboard { paths, cut: true }); }
-    }
+    pub fn cut_selection(&mut self) { self.clip(true); }
 
-    pub fn paste(&mut self) {
-        let Some(cb) = self.clipboard.clone() else { return; };
-        let cwd = self.tab().cwd.clone();
-        for src in &cb.paths {
-            let r = if cb.cut { self.fs.move_to(src, &cwd) } else { self.fs.copy(src, &cwd) };
-            if let Err(e) = r { self.status = format!("Paste failed: {e}"); }
+    fn clip(&mut self, cut: bool) {
+        let paths = self.selected_paths();
+        if paths.is_empty() { return; }
+        let n = paths.len();
+        if self.fs.is_local() {
+            crate::fileops::clip_set(paths, cut);
+        } else {
+            self.clipboard = Some(Clipboard { paths, cut });
         }
-        if cb.cut { self.clipboard = None; }
+        let what = if n == 1 { "1 item".to_string() } else { format!("{n} items") };
+        self.status = format!("{} {what}; Paste with Ctrl+V or the right-click menu", if cut { "Cut" } else { "Copied" });
+    }
+
+    /// Paste into the folder shown.
+    pub fn paste(&mut self) {
+        let cwd = self.tab().cwd.clone();
+        self.paste_to(&cwd);
+    }
+
+    /// Paste into `dir`. Name clashes get " copy", " copy 2", …
+    pub fn paste_to(&mut self, dir: &Path) {
+        let (done, err) = if self.fs.is_local() {
+            crate::fileops::paste_clip_into(dir)
+        } else {
+            let Some(cb) = self.clipboard.clone() else { return; };
+            let fs: &dyn crate::fileops::FsOps = &self.fs;
+            let clip = crate::fileops::FileClip { paths: cb.paths, cut: cb.cut };
+            let r = crate::fileops::paste_into(fs, &clip, dir);
+            if cb.cut { self.clipboard = None; }
+            r
+        };
+        self.status = match err {
+            Some(e) => format!("Paste failed: {e}"),
+            None if done == 0 => String::new(),
+            None => format!("Pasted {}", if done == 1 { "1 item".to_string() } else { format!("{done} items") }),
+        };
         self.reload();
     }
 
@@ -786,11 +839,11 @@ impl<F: FsOps> FileManager<F> {
     /// a click outside the box cancels; any click closes an error or info box.
     /// Always consumed (the listing underneath never sees it).
     pub fn dialog_click(&mut self, p: Point, w: i32, h: i32) -> bool {
-        if let Some(Overlay::ConfirmDelete { count }) = self.overlay {
-            let (trash, cancel) = confirm_buttons(w, h, count);
+        if let Some(Overlay::ConfirmDelete { count, empty }) = self.overlay {
+            let (trash, cancel) = confirm_buttons(w, h, count, empty);
             if trash.contains(p) {
                 self.confirm_delete();
-            } else if cancel.contains(p) || !confirm_box(w, h, count).contains(p) {
+            } else if cancel.contains(p) || !confirm_box(w, h, count, empty).contains(p) {
                 self.overlay = None;
             }
         } else {
@@ -803,14 +856,22 @@ impl<F: FsOps> FileManager<F> {
     /// coordinates, when it is open.
     pub fn confirm_buttons(&self, w: i32, h: i32) -> Option<(Rect, Rect)> {
         match self.overlay {
-            Some(Overlay::ConfirmDelete { count }) => Some(confirm_buttons(w, h, count)),
+            Some(Overlay::ConfirmDelete { count, empty }) => Some(confirm_buttons(w, h, count, empty)),
             _ => None,
         }
     }
 
     pub fn confirm_delete(&mut self) {
-        if !matches!(self.overlay, Some(Overlay::ConfirmDelete { .. })) { return; }
+        let Some(Overlay::ConfirmDelete { empty, .. }) = self.overlay else { return; };
         self.overlay = None;
+        if empty {
+            self.status = match crate::fileops::empty_trash() {
+                Ok(n) => format!("Trash emptied ({n} item{})", if n == 1 { "" } else { "s" }),
+                Err(e) => format!("Empty Trash failed: {e}"),
+            };
+            self.reload();
+            return;
+        }
         for src in self.selected_paths() {
             if let Err(e) = self.fs.trash(&src) { self.status = format!("Trash failed: {e}"); }
         }
@@ -821,6 +882,7 @@ impl<F: FsOps> FileManager<F> {
 // ---- Dialog geometry: render and hit-test share these, so they can not drift.
 
 const TRASH_BUTTON: &str = "[ Move to Trash ]";
+const EMPTY_BUTTON: &str = "[ Empty Trash ]";
 const CANCEL_BUTTON: &str = "[ Cancel ]";
 
 /// A centred dialog box: the title row, a gap, then `lines`.
@@ -831,24 +893,34 @@ fn box_rect(w: i32, h: i32, title: &str, lines: &[String]) -> Rect {
     Rect::new((w - bw) / 2, (h - bh) / 2, bw, bh)
 }
 
-/// The trash confirmation: the question, a blank row, the button row.
-fn confirm_text(count: usize) -> (&'static str, Vec<String>) {
-    let what = if count == 1 { "1 item".to_string() } else { format!("{count} items") };
-    let buttons = format!("{TRASH_BUTTON}  {CANCEL_BUTTON}");
-    ("Move to Trash", vec![format!("Move {what} to the Trash?"), String::new(), buttons])
+/// The action button of the confirmation: Move to Trash, or Empty Trash.
+fn confirm_button(empty: bool) -> &'static str {
+    if empty { EMPTY_BUTTON } else { TRASH_BUTTON }
 }
 
-fn confirm_box(w: i32, h: i32, count: usize) -> Rect {
-    let (title, lines) = confirm_text(count);
+/// The trash confirmation: the question, a blank row, the button row.
+/// `empty`: emptying the Trash, which can not be undone.
+fn confirm_text(count: usize, empty: bool) -> (&'static str, Vec<String>) {
+    let what = if count == 1 { "1 item".to_string() } else { format!("{count} items") };
+    let buttons = format!("{}  {CANCEL_BUTTON}", confirm_button(empty));
+    if empty {
+        ("Empty Trash", vec![format!("Delete the {what} in the Trash for good?"), "This can not be undone.".into(), String::new(), buttons])
+    } else {
+        ("Move to Trash", vec![format!("Move {what} to the Trash?"), String::new(), buttons])
+    }
+}
+
+fn confirm_box(w: i32, h: i32, count: usize, empty: bool) -> Rect {
+    let (title, lines) = confirm_text(count, empty);
     box_rect(w, h, title, &lines)
 }
 
-/// The (Move to Trash, Cancel) buttons on the confirmation's last line.
-fn confirm_buttons(w: i32, h: i32, count: usize) -> (Rect, Rect) {
-    let (title, lines) = confirm_text(count);
+/// The (action, Cancel) buttons on the confirmation's last line.
+fn confirm_buttons(w: i32, h: i32, count: usize, empty: bool) -> (Rect, Rect) {
+    let (title, lines) = confirm_text(count, empty);
     let b = box_rect(w, h, title, &lines);
     let y = b.y + 2 + lines.len() as i32 - 1;
-    let tw = TRASH_BUTTON.chars().count() as i32;
+    let tw = confirm_button(empty).chars().count() as i32;
     let trash = Rect::new(b.x + 2, y, tw, 1);
     let cancel = Rect::new(b.x + 2 + tw + 2, y, CANCEL_BUTTON.chars().count() as i32, 1);
     (trash, cancel)
@@ -903,7 +975,7 @@ fn pal_dim() -> Rgba { crate::theme::current().dim }
 fn pal_sel() -> Rgba { crate::theme::current().active_bg }
 fn pal_accent() -> Rgba { crate::theme::current().accent }
 
-const SIDEBAR_W: i32 = 16; // left shortcuts column
+pub const SIDEBAR_W: i32 = 16; // left shortcuts column
 const TOOLBAR_Y: i32 = 0;  // breadcrumb/toolbar row
 const LIST_TOP: i32 = 2;   // first entry row (below toolbar + spacer)
 /// Icon-grid tile size — mirrors the desktop's icon tile
@@ -983,6 +1055,11 @@ impl<F: FsOps> FileManager<F> {
     }
 
     /// First content row, shifted down by one when the tab strip is shown.
+    /// The first row of the listing (below toolbar, crumbs and headers).
+    pub fn listing_top(&self) -> i32 {
+        self.content_top()
+    }
+
     fn content_top(&self) -> i32 {
         if self.tabs.len() > 1 { LIST_TOP + 1 } else { LIST_TOP }
     }
@@ -1287,11 +1364,11 @@ impl<F: FsOps> FileManager<F> {
             Overlay::Rename { name, .. } => {
                 self.draw_box(buf, w, h, "Rename", &[format!("Name: {name}\u{2588}")]);
             }
-            Overlay::ConfirmDelete { count } => {
-                let (title, lines) = confirm_text(*count);
+            Overlay::ConfirmDelete { count, empty } => {
+                let (title, lines) = confirm_text(*count, *empty);
                 self.draw_box(buf, w, h, title, &lines);
-                let (trash, cancel) = confirm_buttons(w, h, *count);
-                buf.write_str(trash.x, trash.y, TRASH_BUTTON, pal_bg(), pal_accent());
+                let (trash, cancel) = confirm_buttons(w, h, *count, *empty);
+                buf.write_str(trash.x, trash.y, confirm_button(*empty), pal_bg(), pal_accent());
                 buf.write_str(cancel.x, cancel.y, CANCEL_BUTTON, pal_fg(), pal_bg());
             }
             Overlay::Context { menu, .. } => {

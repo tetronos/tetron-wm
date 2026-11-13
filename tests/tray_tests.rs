@@ -233,8 +233,8 @@ fn popover_offers_the_right_tool() {
     assert_eq!(segment_app(SegmentKind::Bluetooth, &cfg, &all).unwrap().command, "bluetuith");
     let only_ctl = |b: &str| b == "bluetoothctl";
     assert_eq!(segment_app(SegmentKind::Bluetooth, &cfg, &only_ctl).unwrap().command, "bluetoothctl");
-    // Other segments have no action row.
-    assert!(segment_app(SegmentKind::Clock, &cfg, &all).is_none());
+    // The clock (calendar) opens calcurse.
+    assert_eq!(segment_app(SegmentKind::Clock, &cfg, &all).unwrap().command, "calcurse");
 }
 
 #[test]
