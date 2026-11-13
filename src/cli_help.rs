@@ -125,6 +125,10 @@ COMMANDS:\n\
 \x20                       file is there (never overwrites); config example prints it.\n\
 \x20                       In the app: Settings > General > Config file (open, create, reset\n\
 \x20                       keeping config.toml.bak, reload)\n\
+\x20 mcp                   MCP server over stdio (desktop tools for an AI agent: windows,\n\
+\x20                       launch, tile, theme, screenshot). The agent starts it; with\n\
+\x20                       assistant_mcp = true the Assistant's agent is told to start it\n\
+\x20                       (Settings > Assistant > Desktop tools)\n\
 \x20 theme <name>          switch theme\n\
 \x20 theme --list          list built-in and file themes. Theme files are read from\n\
 \x20                       <config dir>/themes, ~/.local/share/tetron-wm/themes, then\n\

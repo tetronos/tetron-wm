@@ -236,13 +236,15 @@ pub struct Flags {
 
 /// Daemon answer to [`crate::session::ClientMsg::Status`] on the control socket
 /// (one JSON line). Every field is `#[serde(default)]` so version skew degrades.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 #[serde(default)]
 pub struct StatusReply {
     /// A client is attached right now.
     pub attached: bool,
     /// Open windows in the session.
     pub windows: usize,
+    /// Window titles, front-to-back order as the taskbar lists them.
+    pub titles: Vec<String>,
 }
 
 /// Live status published by the render loop for the control thread to read (the
@@ -251,6 +253,8 @@ pub struct StatusReply {
 pub struct DaemonStatus {
     pub attached: std::sync::atomic::AtomicBool,
     pub windows: std::sync::atomic::AtomicUsize,
+    /// Window titles as of the last publish (`tetron-wm mcp` lists them).
+    pub titles: std::sync::Mutex<Vec<String>>,
     /// Bumped on every attach, so background pollers that were paused while
     /// detached can wake at once instead of waiting out their interval.
     pub attach_gen: std::sync::atomic::AtomicU64,
@@ -259,7 +263,19 @@ pub struct DaemonStatus {
 impl DaemonStatus {
     pub fn snapshot(&self) -> StatusReply {
         use std::sync::atomic::Ordering::Relaxed;
-        StatusReply { attached: self.attached.load(Relaxed), windows: self.windows.load(Relaxed) }
+        let titles = self.titles.lock().map(|t| t.clone()).unwrap_or_default();
+        StatusReply { attached: self.attached.load(Relaxed), windows: self.windows.load(Relaxed), titles }
+    }
+
+    /// Publish the window count and titles (the titles only when they changed).
+    pub fn publish(&self, windows: usize, titles: impl FnOnce() -> Vec<String>) {
+        self.windows.store(windows, std::sync::atomic::Ordering::Relaxed);
+        let t = titles();
+        if let Ok(mut cur) = self.titles.lock() {
+            if *cur != t {
+                *cur = t;
+            }
+        }
     }
 }
 
@@ -388,4 +404,68 @@ pub fn apphost_socket_path() -> PathBuf {
 /// apphost serves one connection at a time.
 pub fn apphost_ctl_socket_path() -> PathBuf {
     socket_dir().join("apphost-ctl.sock")
+}
+
+/// Send one newline-framed message, then keep the connection open reading to EOF
+/// so the recipient processes the message before our socket closes.
+///
+/// Without this, a control command (`kill`/`reload`) that writes-then-exits can
+/// race the daemon: the daemon hits a broken pipe on its next frame *write* and
+/// bails before its reader thread has delivered our queued message. Holding the
+/// connection open (until the daemon acts and closes its end) removes the race.
+pub fn send_and_drain(stream: &mut std::os::unix::net::UnixStream, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Read;
+    std::io::Write::write_all(stream, bytes)?;
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+    let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(3)));
+    let mut sink = [0u8; 256];
+    loop {
+        match stream.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {}
+        }
+    }
+    Ok(())
+}
+
+/// Send a control message (Shutdown/Reload) to the daemon. Returns whether a
+/// daemon was reachable.
+///
+/// The daemon serves its single attached client serially, so a control message
+/// on the main socket would queue behind that client and never be read. We send
+/// to the out-of-band control socket (read by the daemon's control thread even
+/// while attached), and also poke the main socket so an *unattached* daemon —
+/// blocked in `accept()` — wakes and re-checks the control flag (this also covers
+/// an older daemon that predates the control socket).
+pub fn send_control(msg: &crate::session::ClientMsg) -> std::io::Result<bool> {
+    let mut buf = serde_json::to_vec(msg).map_err(std::io::Error::other)?;
+    buf.push(b'\n');
+    let mut reached = false;
+    if let Ok(mut s) = std::os::unix::net::UnixStream::connect(daemon_ctl_path()) {
+        let _ = send_and_drain(&mut s, &buf);
+        reached = true;
+    }
+    if let Ok(mut s) = std::os::unix::net::UnixStream::connect(socket_path()) {
+        // Best-effort wake poke: write and close without draining so we don't
+        // block when the daemon is busy serving an attached client.
+        let _ = std::io::Write::write_all(&mut s, &buf);
+        let _ = s.shutdown(std::net::Shutdown::Write);
+        reached = true;
+    }
+    Ok(reached)
+}
+
+/// Ask the running daemon for its status over the control socket (`None`: no
+/// daemon, or one too old to answer).
+pub fn query_status() -> Option<StatusReply> {
+    use std::io::BufRead;
+    let mut s = std::os::unix::net::UnixStream::connect(daemon_ctl_path()).ok()?;
+    let _ = s.set_read_timeout(Some(std::time::Duration::from_secs(2)));
+    let mut buf = serde_json::to_vec(&crate::session::ClientMsg::Status).ok()?;
+    buf.push(b'\n');
+    std::io::Write::write_all(&mut s, &buf).ok()?;
+    let _ = s.shutdown(std::net::Shutdown::Write);
+    let mut line = String::new();
+    std::io::BufReader::new(s).read_line(&mut line).ok().filter(|n| *n > 0)?;
+    serde_json::from_str(line.trim()).ok()
 }

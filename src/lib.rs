@@ -26,6 +26,7 @@ pub mod store;
 pub mod settings;
 pub mod appsdlg;
 pub mod listpicker;
+pub mod mcp;
 pub mod activity;
 pub mod launcher;
 pub mod powermenu;

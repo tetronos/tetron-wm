@@ -6,20 +6,16 @@ into the assistant's working directory (`~/.local/share/tetron-wm/assistant/`) o
 every launch, with live placeholders (host name, saved systems, version)
 filled in.
 
-tetron-wm standardises on the **opencode** CLI, with **hermes** as a supported
-alternative (switch between them in **Settings → Assistant**). Its working
-directory is forced as the agent's cwd, and the pack is written there as
-`AGENTS.md` — the context file opencode reads on startup (hermes is assumed
-compatible with the same convention, but that isn't verified against its own
-docs):
+The agent CLI is chosen in **Settings → Assistant → Agent** (opencode by
+default). Agents are data: app catalog entries with an `agent` table
+(`lists/tetron.toml`) and `[[assistant_agent]]` tables in config.toml. Every
+one of them runs in the assistant's working directory, where the pack is
+written as `AGENTS.md`, the file opencode, Codex, pi, Claude Code (2.1.277 and
+later) and Antigravity CLI read on startup. An agent that reads another file
+name lists it in `context_files` and gets a link to `AGENTS.md`.
 
-| File written at launch | Read by                  |
-|------------------------|--------------------------|
-| `AGENTS.md`            | opencode (confirmed); hermes (assumed) |
-
-(`assistant_command` in config.toml stores the switch and can also point the
-panel at any other binary by hand, but the briefing is always stamped as
-`AGENTS.md`.)
+With `assistant_mcp` on, the agent is also told to start `tetron-wm mcp`,
+which gives it the desktop as MCP tools.
 
 Editing a file here changes what the agent is told, after a rebuild.
 
@@ -29,7 +25,11 @@ Editing a file here changes what the agent is told, after a rebuild.
 - `DESKTOP.md` — driving the desktop via the `tetron-wm` control CLI
 - `SYSTEMS.md` — operating across the user's machines over ssh/scp
 - `TROUBLESHOOTING.md` — logs, common failures, fixing tetron-wm itself
+- `SUITE.md` — the shipped tetron suite parts and which are installed here
+- `CODE.md` — working on suite code: code folder, spec first, own build, reload
 - `RULES.md` — ground rules (safety, output width, confirmations)
 
 Placeholders substituted at launch: `{{HOST}}`, `{{VERSION}}`, `{{SHA}}`,
-`{{REPO}}`, `{{SYSTEMS}}` (the saved-systems table from systems.toml).
+`{{REPO}}`, `{{SYSTEMS}}` (the saved-systems table from systems.toml),
+`{{CODE_DIR}}` (`assistant_code_dir`), `{{INSTALL}}` (install method),
+`{{SUITE}}` (suite commands installed here).

@@ -2942,6 +2942,11 @@ or a remote-side error — its authorized_keys was left untouched)",
     /// Return the number of live windows (app instances spawned successfully).
     pub fn window_count(&self) -> usize { self.contents.len() }
 
+    /// Titles of the open windows, in taskbar order.
+    pub fn window_titles(&self) -> Vec<String> {
+        self.titles.iter().filter(|(id, _)| self.contents.contains_key(id)).map(|(_, t)| t.clone()).collect()
+    }
+
     /// Test: force-open `kind`'s tray popover and return the hit rect for its
     /// `TetronOpenTerminal` row, if present (used to drive a click at that cell).
     pub fn tray_openterm_rect_for_test(
@@ -4328,6 +4333,8 @@ or a remote-side error — its authorized_keys was left untouched)",
         crate::assistant::link_context(&dir, &agent);
         let all = crate::assistant::agents(&self.cfg.assistant_agent);
         let bin = crate::assistant::self_bin();
+        // MCP args go last: some take a variable number of values (claude's
+        // --mcp-config), which would swallow arguments after them.
         args.extend(crate::assistant::wire_mcp(&dir, &agent, &all, self.cfg.assistant_mcp, &bin));
         crate::dbg_log(&format!(
             "assistant: starting {} as '{command}' {:?} ({}, mcp {}) in {}",
