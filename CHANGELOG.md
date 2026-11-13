@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.7] — 2026-11-13
+
 ### Added
 - The bottom right corner of every window shows a resize grip, `◢` (`┘` with the ascii icon style, since the console fonts lack `◢`). Dragging the right edge, the grip included, resizes the window.
 - Paste in the right-click menu: on the empty part of a file manager window or the desktop (Paste), and on a folder (Paste into folder). Copy and Cut are on the desktop's file menu too, and one clipboard serves the desktop and every file manager window on this machine. A name already there gets " copy", " copy 2"; a cut pasted into its own folder stays as it is; a folder is never pasted into itself. The file manager status line says what was copied or pasted.
