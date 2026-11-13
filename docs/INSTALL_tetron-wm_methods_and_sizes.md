@@ -139,4 +139,6 @@ Settings > Updates, or `install.sh` again. Settings > Updates first runs `uv sel
 | the suite installer or `install.sh` | `install-tetron-wm-suite.sh --uninstall --purge`: console changes, then tetron-wm (through apt when it is the package, with its desktop and extras packages, after removing an own build and its diversion) and `~/.config/tetron-wm`, each confirmed; apps stay installed as ordinary packages; the apt repository stays (`sudo apt remove tetronos-apt-source` removes it) |
 | source | `cargo uninstall tetron-wm` |
 
+`install.sh` (run as a user) and the suite installer create `~/code` when it is missing: the folder the ✦ Assistant clones and builds suite code in, listed as Code in the Files sidebar. An existing `~/code` is never touched.
+
 The suite installer records its choices (size, method, console setup) in `~/.config/tetron-wm/suite-state`; Settings > About shows the method and size.
