@@ -47,11 +47,42 @@ pub fn owned_in(info_dir: &Path, path: &Path) -> bool {
         .any(|text| list_owns(&text, &real) || list_owns(&text, path))
 }
 
-/// Whether apt installed the running binary. Checked once per process.
+/// dpkg's diversions: three lines each, the diverted path, where the
+/// package's file went, and the diverting package (`:` for a local one).
+const DPKG_DIVERSIONS: &str = "/var/lib/dpkg/diversions";
+
+/// Whether `diversions` (the text of dpkg's diversions file) diverts `path`
+/// (WMINST-013: an own build in place of the package's binary).
+pub fn diverted_in(diversions: &str, path: &Path) -> bool {
+    let want = path.to_string_lossy();
+    let lines: Vec<&str> = diversions.lines().collect();
+    lines.chunks(3).any(|c| c.len() == 3 && c[0] == want)
+}
+
+/// Whether the running binary sits where dpkg diverted the package's binary
+/// away: an own build (or a release binary) replaces the package's file,
+/// which apt then writes to `/usr/bin/tetron-wm.packaged`. Checked once.
+pub fn running_is_diverted() -> bool {
+    static DIVERTED: OnceLock<bool> = OnceLock::new();
+    *DIVERTED.get_or_init(|| {
+        let text = std::fs::read_to_string(DPKG_DIVERSIONS).unwrap_or_default();
+        let d = std::env::current_exe().is_ok_and(|exe| {
+            let real = std::fs::canonicalize(&exe).unwrap_or_else(|_| exe.clone());
+            diverted_in(&text, &real) || diverted_in(&text, &exe)
+        });
+        if d {
+            crate::dbg_log("packaging: the running tetron-wm is an own build in place of the diverted package binary");
+        }
+        d
+    })
+}
+
+/// Whether apt installed the running binary (not an own build in its place).
+/// Checked once per process.
 pub fn running_is_packaged() -> bool {
     static PACKAGED: OnceLock<bool> = OnceLock::new();
     *PACKAGED.get_or_init(|| {
-        let owned = std::env::current_exe().is_ok_and(|exe| owned_in(Path::new(DPKG_INFO), &exe));
+        let owned = !running_is_diverted() && std::env::current_exe().is_ok_and(|exe| owned_in(Path::new(DPKG_INFO), &exe));
         if owned {
             crate::dbg_log("packaging: the running tetron-wm is owned by the tetron-wm package (apt)");
         }
@@ -134,8 +165,10 @@ pub fn size_from(info_dir: &Path, state: &str) -> Size {
 }
 
 /// How tetron-wm was installed, for Settings > About.
-pub fn method_name(packaged: bool, exe: &Path) -> &'static str {
-    if packaged {
+pub fn method_name(packaged: bool, diverted: bool, exe: &Path) -> &'static str {
+    if diverted {
+        "own build (package diverted)"
+    } else if packaged {
         "apt package"
     } else if exe.parent().and_then(|d| d.parent()).and_then(|r| r.file_name()).is_some_and(|n| n == ".cargo") {
         "cargo"
@@ -159,7 +192,7 @@ pub fn installed_size() -> Size {
 /// The install method of the running binary.
 pub fn install_method() -> &'static str {
     let exe = std::env::current_exe().unwrap_or_default();
-    method_name(running_is_packaged(), &exe)
+    method_name(running_is_packaged(), running_is_diverted(), &exe)
 }
 
 /// The terminal command that installs the apps of `size` with the suite
@@ -781,6 +814,15 @@ essentials:script:opencode\n";
     }
 
     #[test]
+    fn a_local_diversion_of_the_binary_is_an_own_build() {
+        let text = "/usr/share/doc/x\n/usr/share/doc/x.distrib\nother-pkg\n/usr/bin/tetron-wm\n/usr/bin/tetron-wm.packaged\n:\n";
+        assert!(diverted_in(text, Path::new("/usr/bin/tetron-wm")));
+        assert!(!diverted_in(text, Path::new("/usr/local/bin/tetron-wm")), "a raw copy elsewhere is not diverted");
+        assert!(!diverted_in(text, Path::new("/usr/bin/tetron-wm.packaged")), "the moved package file is not the diverted path");
+        assert!(!diverted_in("", Path::new("/usr/bin/tetron-wm")));
+    }
+
+    #[test]
     fn multiarch_list_name_is_found() {
         let d = tmp("multiarch");
         std::fs::write(d.join("tetron-wm-desktop.list"), "/usr/bin/tetron-wm\n").unwrap();
@@ -811,10 +853,11 @@ essentials:script:opencode\n";
 
     #[test]
     fn method_from_ownership_and_path() {
-        assert_eq!(method_name(true, Path::new("/usr/bin/tetron-wm")), "apt package");
-        assert_eq!(method_name(false, Path::new("/home/u/.cargo/bin/tetron-wm")), "cargo");
-        assert_eq!(method_name(false, Path::new("/usr/local/bin/tetron-wm")), "binary");
-        assert_eq!(method_name(false, Path::new("tetron-wm")), "binary");
+        assert_eq!(method_name(true, false, Path::new("/usr/bin/tetron-wm")), "apt package");
+        assert_eq!(method_name(false, true, Path::new("/usr/bin/tetron-wm")), "own build (package diverted)");
+        assert_eq!(method_name(false, false, Path::new("/home/u/.cargo/bin/tetron-wm")), "cargo");
+        assert_eq!(method_name(false, false, Path::new("/usr/local/bin/tetron-wm")), "binary");
+        assert_eq!(method_name(false, false, Path::new("tetron-wm")), "binary");
     }
 
     /// The suite script fetches the list published for its core minor; that

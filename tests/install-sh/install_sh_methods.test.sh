@@ -96,5 +96,57 @@ check "direct run: tetron-wm only, then points to the suite script" '[ $rc = 0 ]
 run v9.9.7
 check "called by the suite (TETRON_WM_SKIP_DEPS=1): no pointer" '! grep -q "install-tetron-wm-suite.sh" /tmp/out'
 
+# ── method choice (WMINST-013) ──
+runm() { m="$1"; shift; TETRON_WM_METHOD="$m" TETRON_WM_TAG="$1" TETRON_WM_RELEASES_URL=file://$R TETRON_WM_SKIP_DEPS=1 sh /src/install.sh </dev/null > /tmp/out 2>&1; }
+truename() { dpkg-divert --truename /usr/bin/tetron-wm; }
+pkgd() { dpkg -i $R/download/v9.9.8/tetron-wm_9.9.8-1_$arch.deb $R/download/v9.9.8/tetron-wm-desktop_9.9.8-1_all.deb >/dev/null; }
+undiv() { rm -f /usr/bin/tetron-wm; dpkg-divert --local --rename --remove /usr/bin/tetron-wm >/dev/null 2>&1 || true; }
+
+reset; undiv; rc=0; runm bogus v9.9.9 || rc=$?
+check "a bad method: exit 2, nothing installed" '[ $rc = 2 ] && [ -z "$(ver)" ]'
+
+reset; undiv; pkgd; runm binary v9.9.9; rc=$?
+check "binary on a packaged host: package kept, binary diverted, release binary at /usr/bin" '[ $rc = 0 ] && [ "$(ver)" = 9.9.8-1 ] && [ "$(mver)" = 9.9.8-1 ] && [ "$(truename)" = /usr/bin/tetron-wm.packaged ] && [ "$(/usr/bin/tetron-wm)" = raw-9.9.9 ] && [ "$(/usr/bin/tetron-wm.packaged)" = deb-9.9.8-1 ]'
+runm binary v9.9.8; rc=$?
+check "binary again: converges (one diversion, new binary)" '[ $rc = 0 ] && [ "$(/usr/bin/tetron-wm)" = raw-9.9.8 ] && [ "$(dpkg-divert --list /usr/bin/tetron-wm | wc -l)" = 1 ]'
+dpkg -i $R/download/v9.9.9/tetron-wm_9.9.9-1_$arch.deb >/dev/null
+check "an apt upgrade of the package writes only the diverted file" '[ "$(/usr/bin/tetron-wm)" = raw-9.9.8 ] && [ "$(/usr/bin/tetron-wm.packaged)" = deb-9.9.9-1 ]'
+rc=0; run v9.9.9 || rc=$?
+check "no method on a host with an own build: exit 4, unchanged" '[ $rc = 4 ] && [ "$(/usr/bin/tetron-wm)" = raw-9.9.8 ] && grep -q "own build" /tmp/out'
+runm deb v9.9.9; rc=$?
+check "deb on a diverted host: diversion gone, packaged binary back" '[ $rc = 0 ] && [ "$(/usr/bin/tetron-wm)" = deb-9.9.9-1 ] && [ "$(truename)" = /usr/bin/tetron-wm ] && [ ! -e /usr/bin/tetron-wm.packaged ]'
+
+reset; undiv; pkgd; runm binary v9.9.9; rm -f /usr/bin/tetron-wm.packaged; runm deb v9.9.8; rc=$?
+check "deb with the diverted file gone: package reinstalled" '[ $rc = 0 ] && [ "$(/usr/bin/tetron-wm)" = deb-9.9.8-1 ] && [ "$(truename)" = /usr/bin/tetron-wm ]'
+
+reset; undiv; mkraw 0.0.1 /tmp && tar -xzf /tmp/tetron-wm-$target.tar.gz -C /usr/local/bin
+mkdir -p /root/.config/systemd/user; printf '[Service]\nExecStart=/usr/local/bin/tetron-wm --apphost\n' > /root/.config/systemd/user/tetron-wm-apphost.service
+runm deb v9.9.9; rc=$?
+check "deb over a raw copy: package installed, raw copy removed, user unit points at /usr/bin" '[ $rc = 0 ] && [ "$(ver)" = 9.9.9-1 ] && [ ! -e /usr/local/bin/tetron-wm ] && grep -q "ExecStart=/usr/bin/tetron-wm --apphost" /root/.config/systemd/user/tetron-wm-apphost.service'
+rm -rf /root/.config/systemd
+
+reset; undiv; mkdir -p /opt/u; mkraw 0.0.1 /tmp && tar -xzf /tmp/tetron-wm-$target.tar.gz -C /opt/u; PATH=/opt/u:$PATH runm binary v9.9.9; rc=$?
+check "binary over a raw copy elsewhere on PATH: replaced where it is" '[ $rc = 0 ] && [ "$(/opt/u/tetron-wm)" = raw-9.9.9 ] && [ ! -e /usr/local/bin/tetron-wm ] && [ -z "$(ver)" ]'
+rm -rf /opt/u
+
+# Own build: a stand-in cargo that "builds" target/release/tetron-wm.
+mkdir -p /clone /fakebin; echo '[package]' > /clone/Cargo.toml
+cat > /fakebin/cargo <<'C'
+#!/bin/sh
+[ -e FAIL ] && exit 101
+mkdir -p target/release; printf '#!/bin/sh\necho own-build\n' > target/release/tetron-wm; chmod 755 target/release/tetron-wm
+C
+chmod +x /fakebin/cargo
+own() { PATH=/fakebin:$PATH TETRON_WM_FROM_CLONE=/clone TETRON_WM_RELEASES_URL=file://$R TETRON_WM_SKIP_DEPS=1 sh /src/install.sh </dev/null > /tmp/out 2>&1; }
+reset; undiv; pkgd; own; rc=$?
+check "own build on a packaged host: built, diverted, at /usr/bin" '[ $rc = 0 ] && [ "$(/usr/bin/tetron-wm)" = own-build ] && [ "$(truename)" = /usr/bin/tetron-wm.packaged ] && [ "$(ver)" = 9.9.8-1 ]'
+touch /clone/FAIL; rm -rf /clone/target; rc=0; own || rc=$?
+check "a failed own build changes nothing" '[ $rc = 1 ] && [ "$(/usr/bin/tetron-wm)" = own-build ] && grep -q "build failed" /tmp/out'
+rm -f /clone/FAIL; undiv
+reset; own; rc=$?
+check "own build, no package: installed to the bin dir, no diversion" '[ $rc = 0 ] && [ "$(/usr/local/bin/tetron-wm)" = own-build ] && [ "$(truename)" = /usr/bin/tetron-wm ]'
+rc=0; TETRON_WM_METHOD=deb TETRON_WM_FROM_CLONE=/clone sh /src/install.sh </dev/null >/tmp/out 2>&1 || rc=$?
+check "own build with the deb method: exit 2" '[ $rc = 2 ]'
+
 exit $fail
 IN

@@ -1130,7 +1130,13 @@ impl Settings {
                 self.row(&mut buf, cx, 4, 1, "Update & Reload", String::new());
                 self.row(&mut buf, cx, 5, 2, "Channel", format!("\u{25C2} {} \u{25B8}", self.cfg.update_branch));
                 let sha = &crate::GIT_SHA[..crate::GIT_SHA.len().min(7)];
-                let by = if crate::packaging::running_is_packaged() { ", by apt" } else { "" };
+                let by = if crate::packaging::running_is_diverted() {
+                    ", own build"
+                } else if crate::packaging::running_is_packaged() {
+                    ", by apt"
+                } else {
+                    ""
+                };
                 buf.write_str(cx, 7, &format!("installed: v{} ({}){by}", crate::VERSION, sha), pal_dim(), pal_bg());
                 if !self.update_status.is_empty() {
                     let col = if self.update_status.contains("available") { green() } else { pal_dim() };

@@ -6,6 +6,18 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- Choose how tetron-wm is installed: the apt package or a binary, including your own build. `install.sh` takes `TETRON_WM_METHOD=deb|binary` and `TETRON_WM_FROM_CLONE=DIR`; the suite installer takes `--method` and `--from-clone` and asks on Debian and Ubuntu (`--convert` now means `--method deb`). The tetronos installer passes them on: `curl -fsSL https://tetronos.github.io/install.sh | bash -s -- tetron-wm --from-clone ~/code/tetron-wm`.
+- The deb method adds the tetronos apt repository by installing `tetronos-apt-source`, after checking the archive key against the SHA256 pinned in `install.sh`, so `apt upgrade` updates tetron-wm from then on. Existing package installs get it with their next update. `TETRON_WM_NO_APT_REPO=1` skips it.
+- An own build or a release binary on a machine with the package keeps the package installed and sets its binary aside with `dpkg-divert` (`/usr/bin/tetron-wm.packaged`), so the size packages, `tetronos-desktop` on TetronOS, the systemd units and the autostart keep working and run it. `TETRON_WM_METHOD=deb` puts the packaged binary back. Settings > About shows "own build (package diverted)", Settings > Updates installs nothing there and shows how to rebuild or go back, and `install.sh` without a method leaves the own build alone (exit 4). `--uninstall --purge` removes the own build and the diversion before the packages.
+
+### Changed
+- A binary now replaces an existing copy where it is (before, a copy outside `/usr/local/bin` was left and a second one written there), and every new binary is copied beside the old one and renamed over it, so a running tetron-wm is never written into.
+- The suite installer records `method` as `deb`, `binary` or `own` in `suite-state` (`raw` before).
+
+### Fixed
+- The no-sudo install command in the README and `install.sh` set `TETRON_WM_BIN_DIR` for curl instead of the script; it now reads `curl … | TETRON_WM_BIN_DIR="$HOME/.local/bin" sh`.
+
 ## [0.15.6] — 2026-11-08
 
 ### Changed

@@ -1351,7 +1351,9 @@ impl SessionCore {
                     let (tx, rx) = std::sync::mpsc::channel();
                     std::thread::spawn(move || {
                         let mut msg = check_for_updates(&branch);
-                        if crate::packaging::running_is_packaged() {
+                        if crate::packaging::running_is_diverted() {
+                            msg.push_str(" (own build)");
+                        } else if crate::packaging::running_is_packaged() {
                             msg.push_str(" (installed by apt)");
                         }
                         crate::dbg_log(&format!("update: check (branch {branch}, running v{}) -> {msg}", crate::VERSION));
@@ -1465,7 +1467,11 @@ impl SessionCore {
                 // Remember to reopen Settings on the Updates screen after the
                 // reload, so the user isn't dumped back on the bare desktop.
                 write_reopen_hint(Ui_SETTINGS_UPDATES);
-                let cmd = update_command(&self.cfg.update_branch, crate::packaging::running_is_packaged());
+                let cmd = if crate::packaging::running_is_diverted() {
+                    own_build_update_command()
+                } else {
+                    update_command(&self.cfg.update_branch, crate::packaging::running_is_packaged())
+                };
                 crate::dbg_log(&format!(
                     "update: install requested (branch {}, running v{}, exe {:?}); running in a window",
                     self.cfg.update_branch,
@@ -6817,6 +6823,22 @@ else echo \"update: FAILED (cargo branch {branch})\" >> {log}; echo 'Update fail
     }
 }
 
+/// Settings > Updates on an own build (the package's binary diverted,
+/// WMINST-013): installs nothing, since apt would only update the diverted
+/// file and a release binary would replace the user's build. Shows how to
+/// rebuild from the clone or go back to the apt package, then a shell.
+fn own_build_update_command() -> String {
+    let log = crate::logfile::shell_path();
+    let raw = "https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh";
+    format!(
+        "clear; echo 'tetron-wm here is your own build: the tetron-wm package stays installed and its'; \
+echo 'binary is set aside (dpkg-divert), so Update does not replace your build.'; echo; \
+echo 'Rebuild from your clone:'; echo '  cd ~/code/tetron-wm && git pull && TETRON_WM_FROM_CLONE=$PWD sh install.sh && tetron-wm reload'; echo; \
+echo 'Back to the apt package (apt upgrade updates it again):'; echo '  curl -fsSL {raw} | TETRON_WM_METHOD=deb sh && /usr/bin/tetron-wm reload'; echo; \
+echo \"update: not run, own build (diverted package)\" >> {log}; exec \"$SHELL\""
+    )
+}
+
 /// The ` --root <dir>` flag that steers `cargo install` to the running
 /// binary's own `bin/` dir (its parent's parent — cargo appends `/bin` to the
 /// root), or an empty string when the binary isn't in a `bin/` dir (leaving
@@ -7331,6 +7353,8 @@ mod tests {
         assert!(!cmd.contains("cargo"), "no source build beside the package: {cmd}");
         assert!(!cmd.contains("TETRON_WM_BIN_DIR"), "apt decides where the binary goes: {cmd}");
         assert!(cmd.contains("/tetron-wm' reload"), "reloads the installed binary: {cmd}");
+        let own = own_build_update_command();
+        assert!(!own.contains("apt-get") && !own.contains("| sh;") && own.contains("TETRON_WM_FROM_CLONE") && own.contains("TETRON_WM_METHOD=deb"), "{own}");
         let dev = update_command("dev", true);
         assert!(!dev.contains("cargo") && !dev.contains("install.sh"), "dev refuses on a packaged install: {dev}");
         assert!(dev.contains("installed by apt"), "and says why: {dev}");

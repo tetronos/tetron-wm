@@ -30,8 +30,10 @@ It asks how much to install (minimal: tetron-wm only; desktop: plus the tools it
 Only tetron-wm, nothing else (the suite installer, or Settings > General > Apps, adds the apps later). It installs to `/usr/local/bin` with `sudo`; for your home instead:
 
 ```sh
-TETRON_WM_BIN_DIR="$HOME/.local/bin" curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh | TETRON_WM_BIN_DIR="$HOME/.local/bin" sh
 ```
+
+On Debian and Ubuntu you choose the apt package (the installer adds the tetronos apt repository, so `apt upgrade` updates it) or a binary, including your own build from a clone run in place of the package: [Deb or binary, and your own build](docs/INSTALL_tetron-wm_methods_and_sizes.md#deb-or-binary-and-your-own-build).
 
 Or build from source with a [Rust toolchain](https://rustup.rs) (1.95 or newer):
 

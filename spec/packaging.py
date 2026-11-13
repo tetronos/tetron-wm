@@ -433,3 +433,68 @@ class InstallGuide(Requirement):
     size later (suite script `--size`, Settings > General > Apps). The
     README's Install section links to it.
     """
+
+
+class InstallMethodChoice(Requirement):
+    """REQUIREMENT-ID: WMINST-013
+
+    Depends on WMDEB-005, WMINST-002 and WMINST-005. One install method per
+    host, chosen by the user: `deb` (the tetron-wm package, managed by apt)
+    or `binary` (a release binary, or an own build from a clone). Both
+    installers take it: `install.sh` reads `TETRON_WM_METHOD` (deb |
+    binary) and `TETRON_WM_FROM_CLONE` (a tetron-wm checkout, implies
+    binary); the suite script takes `--method deb|binary` and
+    `--from-clone DIR` and passes them on, and the tetronos installer
+    (`tetronos.github.io/install.sh`) hands its arguments to the suite
+    script. Without a method install.sh keeps WMDEB-005, except on a host
+    with an own build, where it changes nothing and exits 4 so a rerun or
+    an update never writes over the own build.
+
+    deb: on a Debian or Ubuntu host the release .deb is installed as in
+    WMDEB-005, and the tetronos apt repository is added so `apt upgrade`
+    updates tetron-wm from then on. The repository files belong to the
+    `tetronos-apt-source` package (its sources file is a conffile), so
+    the installer never writes them: it downloads the archive key, checks
+    it against the SHA256 pinned in install.sh, lets apt check the
+    repository with that key from a temporary source list, and installs
+    `tetronos-apt-source` from it, keeping a sources file the user made
+    (`--force-confold`). Skipped when the package is installed (TetronOS),
+    when another sources file already names the repository, with
+    `TETRON_WM_NO_APT_REPO=1`, or with a local release
+    (`TETRON_WM_RELEASES_URL`); a failure is a warning and the release
+    .deb still installs. An own build is undone first (below); a raw copy
+    is removed and user units that name it are pointed at
+    `/usr/bin/tetron-wm`. deb on a host without dpkg and apt-get exits 2.
+
+    binary on a host where the tetron-wm package is installed keeps the
+    package and diverts its binary (`dpkg-divert --local --rename
+    --divert /usr/bin/tetron-wm.packaged`), then puts the binary at
+    `/usr/bin/tetron-wm`: metapackages (tetron-wm-desktop and the sizes,
+    tetronos-desktop on TetronOS), system units and autostart keep working
+    and run it, and an apt upgrade of the package writes only the
+    diverted file. Without the package the binary replaces a raw copy
+    where it is (keeping user units), else goes to TETRON_WM_BIN_DIR.
+    Going back to deb removes the own binary and the diversion
+    (`--rename`, so the packaged binary returns; reinstalled when it is
+    missing). Repository files stay when switching to binary.
+
+    Own build: `cargo build --release` in the clone, then
+    `target/release/tetron-wm --version` must run; a failed build or check
+    changes nothing. Without cargo it exits 1 and names rustup.
+
+    Every new binary is copied beside its target and renamed over it, so a
+    running tetron-wm is never written into. A live session (overlay or
+    tmpfs root) gets a warning that the change is lost at reboot.
+
+    tetron-wm reads the diversion from `/var/lib/dpkg/diversions`: a
+    running `/usr/bin/tetron-wm` diverted there is not the package, so
+    Settings > About shows "own build (package diverted)", and Settings >
+    Updates does not run apt or install.sh; it shows the commands to
+    rebuild from the clone or to go back to deb. The suite script records
+    `method deb | binary | own` in `suite-state`, offers the choice when
+    asked (`--method`, else a question on a Debian or Ubuntu host that
+    has a tty, default the current method), `--convert` is read as
+    `--method deb`, and `--dry-run` prints the method and the clone.
+    `--uninstall --purge` on a diverted host removes the own binary and
+    the diversion before removing the packages.
+    """

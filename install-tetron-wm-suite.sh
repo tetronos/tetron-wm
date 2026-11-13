@@ -70,8 +70,15 @@
 #   --no-scripts               leave out the apps no distribution packages (opencode, fresh,
 #                              uv, catt, casttui, the Nerd Font, the helper scripts; with
 #                              recommended also croft, pyradio, llm, yt-dlp, freebuff)
-#   --convert / --no-convert   Debian and Ubuntu: replace a tetron-wm that is not from a
-#                              package with the apt package (asked, default no)
+#   --method M                 deb | binary: how tetron-wm is installed (asked on Debian and
+#                              Ubuntu, default the current method). deb: the apt package, plus
+#                              the tetronos apt repo so apt upgrade updates it. binary: a
+#                              release binary; where the package is installed it stays and its
+#                              binary is diverted (dpkg-divert), so the size packages, units
+#                              and autostart keep working
+#   --from-clone DIR           an own build: cargo build --release in a tetron-wm clone DIR,
+#                              installed like binary (implies --method binary)
+#   --convert                  same as --method deb (older flag)
 #   --services / --no-services force the system-services step on/off
 #   --kmscon / --no-kmscon     force the kmscon step on/off
 #   --console / --no-console   run kmscon on a VT (replaces getty there)
@@ -91,7 +98,9 @@
 #
 # Env overrides: REPO (default tetronos/tetron-wm), BRANCH (default main),
 # TETRON_WM_LISTS_URL (default https://tetronos.github.io/apt/lists),
-# and anything install.sh honours (TETRON_WM_BIN_DIR, TETRON_WM_RELEASES_URL, TETRON_WM_TAG).
+# TETRON_WM_METHOD and TETRON_WM_FROM_CLONE (as --method and --from-clone),
+# and anything install.sh honours (TETRON_WM_BIN_DIR, TETRON_WM_RELEASES_URL, TETRON_WM_TAG,
+# TETRON_WM_NO_APT_REPO).
 set -euo pipefail
 
 REPO="${REPO:-tetronos/tetron-wm}"
@@ -135,7 +144,8 @@ fetch() {
 
 # ── Args ─────────────────────────────────────────────────────────────────────
 ASSUME_YES=0
-SIZE=""; CONVERT=""; APPS_LIST=""; NO_SCRIPTS=0
+SIZE=""; APPS_LIST=""; NO_SCRIPTS=0
+METHOD="${TETRON_WM_METHOD:-}"; CLONE="${TETRON_WM_FROM_CLONE:-}"
 WANT_WM=""; WANT_CONFIG=""; WANT_THEMES=""; WANT_EXTRAS=""; WANT_SERVICES=""; WANT_KMSCON=""; WANT_CONSOLE=""; WANT_AUTOLOGIN=""; WANT_AUTOSTART=""; WANT_FULLSCREEN=""
 FSVT=9; VT=""; PROFILE=""; UNINSTALL=0; PURGE=0; DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -150,7 +160,9 @@ while [ $# -gt 0 ]; do
     --size)       shift; SIZE="${1:-}" ;;
     --apps-list)  shift; APPS_LIST="${1:-}" ;;
     --no-scripts) NO_SCRIPTS=1 ;;
-    --convert)    CONVERT=y ;; --no-convert) CONVERT=n ;;
+    --method)     shift; METHOD="${1:-}" ;;
+    --from-clone) shift; CLONE="${1:-}" ;;
+    --convert)    METHOD=deb ;; --no-convert) ;;
     --services)   WANT_SERVICES=y ;; --no-services) WANT_SERVICES=n ;;
     --kmscon)     WANT_KMSCON=y ;; --no-kmscon) WANT_KMSCON=n ;;
     --console)    WANT_CONSOLE=y ;;   --no-console)   WANT_CONSOLE=n ;;
@@ -172,6 +184,13 @@ done
 case "$PROFILE" in ""|gui|console|login|appliance) ;; *) die "--profile must be gui, console, login or appliance" ;; esac
 [ "$SIZE" = desktop ] && SIZE=essentials   # the size's name before recommended existed
 case "$SIZE" in ""|minimal|essentials|recommended|extras) ;; *) die "--size must be minimal, essentials, recommended or extras" ;; esac
+[ -z "$CLONE" ] || [ -n "$METHOD" ] || METHOD=binary
+case "$METHOD" in ""|deb|binary) ;; *) die "--method must be deb or binary" ;; esac
+[ -z "$CLONE" ] || [ "$METHOD" = binary ] || die "--from-clone builds a binary; it does not go with --method deb"
+if [ -n "$CLONE" ]; then
+  CLONE="$(cd "$CLONE" 2>/dev/null && pwd)" || die "--from-clone: no such directory"
+  [ -f "$CLONE/Cargo.toml" ] || die "--from-clone: $CLONE is not a tetron-wm clone (no Cargo.toml)"
+fi
 case "$VT" in ""|[1-9]|[1-5][0-9]|6[0-3]) ;; *) die "--vt must be a VT number 1-63" ;; esac
 case "$FSVT" in [1-9]|[1-5][0-9]|6[0-3]) ;; *) die "--fullscreen-vt must be a VT number 1-63" ;; esac
 
@@ -214,12 +233,14 @@ install_wm() {
   # The apps come from the size chosen here (WMINST-002), so install.sh only
   # installs tetron-wm itself. It picks the deb or the raw binary (WMDEB-005).
   export TETRON_WM_SKIP_DEPS=1
+  export TETRON_WM_METHOD="$METHOD" TETRON_WM_FROM_CLONE="$CLONE"
   local rc=0
   if tty_ok; then sh "$tmp" </dev/tty || rc=$?; else sh "$tmp" </dev/null || rc=$?; fi
   rm -f "$tmp"
   case "$rc" in
     0) ;;
     3) warn "install.sh changed nothing: tetron-wm is the apt package and the latest release has no .deb" ;;
+    4) log "kept the own build of tetron-wm (choose --method to replace it)" ;;
     *) warn "install.sh failed (status $rc); tetron-wm was not installed or updated" ;;
   esac
 }
@@ -330,13 +351,9 @@ install_size_recommends() {
   miss="$(size_recommends_missing | tr '\n' ' ')"
   [ -z "${miss% }" ] || { warn "these $SIZE apps did not install: $miss"; return 1; }
 }
-# Remove a raw tetron-wm so install.sh installs the package in its place.
-remove_raw_copy() {
-  local p="$1" s=""
-  [ -w "$(dirname "$p")" ] || s="$SUDO"
-  log "removing the raw copy $p (the apt package replaces it)"
-  $s rm -f "$p"
-}
+# The package's binary is diverted: tetron-wm here is an own build or a
+# release binary in its place (WMINST-013).
+wm_diverted() { deb_host && [ "$(dpkg-divert --truename /usr/bin/tetron-wm 2>/dev/null || true)" = /usr/bin/tetron-wm.packaged ]; }
 
 # Where the binary landed, for later steps (install.sh default: ~/.local/bin).
 wm_bin() { command -v tetron-wm 2>/dev/null || echo "${TETRON_WM_BIN_DIR:-/usr/local/bin}/tetron-wm"; }
@@ -1046,6 +1063,11 @@ do_uninstall() {
     if deb_host && wm_packaged; then
       # apt owns it: removing the file by hand would leave a broken package.
       if confirm "Remove the tetron-wm package and its size packages with apt?" n; then
+        # An own build first: remove it and the diversion, so nothing is left behind.
+        if wm_diverted; then
+          $SUDO rm -f /usr/bin/tetron-wm
+          $SUDO dpkg-divert --local --rename --remove /usr/bin/tetron-wm >/dev/null && log "removed the own build and the diversion"
+        fi
         # shellcheck disable=SC2046
         $SUDO apt-get remove -y $(for p in tetron-wm-extras tetron-wm-recommended tetron-wm-essentials tetron-wm-desktop tetron-wm; do
           dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null | grep -qx installed && echo "$p"; done) \
@@ -1144,20 +1166,35 @@ main() {
   fi
   load_apps
 
-  resolve WANT_WM     "Install tetron-wm (latest release)?" y
-  # Debian and Ubuntu: a raw tetron-wm can become the apt package (default no:
-  # it changes how this machine updates tetron-wm).
-  local raw="" debarch=""
+  # Debian and Ubuntu: how tetron-wm is installed (WMINST-013). An own build
+  # (diverted package) is kept unless a method is chosen.
+  local raw="" debarch="" cur=""
   if deb_host; then
     debarch="$(dpkg --print-architecture)"
     raw="$(wm_raw_copy || true)"
-    if [ -n "$raw" ] && [ -n "$(asset_for tetron-wm "$debarch")" ]; then
-      resolve CONVERT "tetron-wm at $raw is not from a package. Replace it with the apt package (updates then go through apt)?" n
-    else
-      CONVERT=n
+    if wm_diverted; then cur=own; elif wm_packaged; then cur=deb; elif [ -n "$raw" ]; then cur=binary; fi
+    if [ -z "$METHOD" ] && [ "$cur" = own ] && [ "$WANT_WM" != n ]; then
+      if confirm "tetron-wm here is your own build (the package's binary is diverted). Keep it?" y; then
+        [ -n "$WANT_WM" ] || WANT_WM=n
+      else
+        choose "Install tetron-wm as:" 1 \
+          "deb: the apt package again, updated by apt upgrade" \
+          "binary: the latest release binary in place of your build"
+        case "$CHOICE" in 2) METHOD=binary ;; *) METHOD=deb ;; esac
+        WANT_WM=y
+      fi
+    elif [ -z "$METHOD" ] && [ "$HAVE_TTY" = 1 ] && [ "$WANT_WM" != n ]; then
+      local def=1; [ "$cur" = binary ] && def=2
+      choose "How should tetron-wm be installed?" "$def" \
+        "deb: the apt package; apt upgrade updates it (adds the tetronos apt repo)" \
+        "binary: the release binary$( [ "$cur" = deb ] && echo '; the package stays, its binary is set aside (dpkg-divert)')"
+      case "$CHOICE" in 2) METHOD=binary ;; *) METHOD=deb ;; esac
+      [ "$METHOD" = deb ] && [ "$cur" = deb ] && METHOD=""   # unchanged: install.sh keeps it
+      [ "$METHOD" = binary ] && [ "$cur" = binary ] && METHOD=""
     fi
   fi
-  [ "$CONVERT" = y ] && WANT_WM=y
+  [ -n "$METHOD" ] && WANT_WM=y
+  resolve WANT_WM     "Install tetron-wm (latest release)?" y
   resolve WANT_CONFIG "Set up ~/.config/tetron-wm/ (config.toml, themes/)?" y
   resolve WANT_THEMES "Download the extra themes into ~/.local/share/tetron-wm/themes/? Files you already have are kept." y
 
@@ -1166,7 +1203,8 @@ main() {
   # beside a raw tetron-wm: it depends on the package and would add a copy.
   local will_be_deb=0 use_debs=0
   if deb_host; then
-    if wm_packaged || { [ "$WANT_WM" = y ] && { [ "$CONVERT" = y ] || [ -z "$raw" ]; } && [ -n "$(asset_for tetron-wm "$debarch")" ]; }; then
+    # The package is (or stays) installed: deb, or binary with it diverted.
+    if wm_packaged || { [ "$WANT_WM" = y ] && [ "$METHOD" != binary ] && { [ "$METHOD" = deb ] || [ -z "$raw" ]; } && [ -n "$(asset_for tetron-wm "$debarch")" ]; }; then
       will_be_deb=1
     fi
     [ "$will_be_deb" = 1 ] && release_has_size_debs && use_debs=1
@@ -1213,14 +1251,17 @@ main() {
   [ -n "$VT" ] || VT=1
 
   echo
-  local method=raw; [ "$will_be_deb" = 1 ] && method=deb
+  local method=binary; [ "$will_be_deb" = 1 ] && method=deb
+  [ "$METHOD" = binary ] && method=binary
+  [ -n "$CLONE" ] && method="own (cargo build --release in $CLONE)"
+  [ -z "$METHOD" ] && [ "$cur" = own ] && method=own
+  [ "$method" = binary ] && [ "$will_be_deb" = 1 ] && method="binary (package kept, its binary diverted)"
   if [ "$DRY_RUN" = 1 ]; then
-    log "plan (dry run, nothing changed): size=$SIZE method=$method wm=$WANT_WM convert=${CONVERT:-n} config=$WANT_CONFIG themes=$WANT_THEMES services=$WANT_SERVICES${services:+ ($services)} kmscon=$WANT_KMSCON console=$WANT_CONSOLE vt=$VT autologin=$WANT_AUTOLOGIN autostart=$WANT_AUTOSTART fullscreen=$WANT_FULLSCREEN$([ "$WANT_FULLSCREEN" = y ] && echo " (tty$FSVT)")"
+    log "plan (dry run, nothing changed): size=$SIZE method=$method wm=$WANT_WM config=$WANT_CONFIG themes=$WANT_THEMES services=$WANT_SERVICES${services:+ ($services)} kmscon=$WANT_KMSCON console=$WANT_CONSOLE vt=$VT autologin=$WANT_AUTOLOGIN autostart=$WANT_AUTOSTART fullscreen=$WANT_FULLSCREEN$([ "$WANT_FULLSCREEN" = y ] && echo " (tty$FSVT)")"
     if [ "$use_debs" = 1 ]; then log "apps: apt install $(size_debs) (from release $(release_tag))$(no_mouse && echo ', without gpm (no mouse device)')${shown:+; missing now: $shown}"
     else log "apps: ${shown:-none}"; fi
     return 0
   fi
-  [ "$CONVERT" = y ] && [ -n "$raw" ] && remove_raw_copy "$raw"
   [ "$WANT_WM" = y ]        && install_wm
   [ "$WANT_CONFIG" = y ]    && seed_config
   [ "$WANT_THEMES" = y ]    && install_themes
@@ -1248,7 +1289,13 @@ main() {
   [ "$WANT_CONSOLE" = y ]   && setup_console "$VT" "$WANT_AUTOLOGIN"
   [ "$WANT_AUTOSTART" = y ] && setup_autostart "$VT"
   [ "$WANT_FULLSCREEN" = y ] && setup_fullscreen "$FSVT"
-  method=raw; deb_host && wm_packaged && method=deb
+  # deb | binary | own (an own build; a kept diverted binary counts as one).
+  method=binary
+  if [ -n "$CLONE" ] && [ "$WANT_WM" = y ]; then method=own
+  elif deb_host && wm_diverted; then [ "$WANT_WM" = y ] || method=own
+  elif deb_host && wm_packaged; then method=deb
+  elif [ "$WANT_WM" != y ] && [ "$(state_get method)" = own ]; then method=own
+  fi
   state_set size "$SIZE"; state_set method "$method"
 
   echo

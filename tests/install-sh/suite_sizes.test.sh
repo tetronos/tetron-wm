@@ -38,22 +38,32 @@ out="$(plan)"; ok "no mouse device: the metapackage without gpm" "echo \"\$out\"
 out="$(plan --size minimal)"; ok "debian --size minimal: no apps" "echo \"\$out\" | grep -q \"size=minimal\" && echo \"\$out\" | grep -q \"apps: none\""
 out="$(plan --no-extras)"; ok "--no-extras means minimal" "echo \"\$out\" | grep -q \"size=minimal\""
 printf "#!/bin/sh\necho raw\n" > /usr/local/bin/tetron-wm; chmod +x /usr/local/bin/tetron-wm
-out="$(plan)"; ok "raw copy: not converted under -y, apps one by one with apt names" "echo \"\$out\" | grep -q \"method=raw wm=y convert=n\" && echo \"\$out\" | grep -q \"apps: .*poppler-utils\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm-desktop\""
+out="$(plan)"; ok "raw copy: not converted under -y, apps one by one with apt names" "echo \"\$out\" | grep -q \"method=binary wm=y\" && echo \"\$out\" | grep -q \"apps: .*poppler-utils\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm-desktop\""
 ok "no mouse device: gpm left out of the one-by-one list" "! echo \"\$out\" | grep -q \" gpm \""
 mkdir -p /dev/input && touch /dev/input/mice
 out="$(plan)"; ok "with a mouse device: gpm stays in" "echo \"\$out\" | grep -q \" gpm \""
 rm -f /dev/input/mice
-out="$(plan --convert)"; ok "raw copy with --convert: becomes the deb" "echo \"\$out\" | grep -q \"method=deb wm=y convert=y\""
+out="$(plan --convert)"; ok "raw copy with --convert: becomes the deb" "echo \"\$out\" | grep -q \"method=deb wm=y\""
+out="$(plan --method deb)"; ok "raw copy with --method deb: becomes the deb, apps through the metapackages" "echo \"\$out\" | grep -q \"method=deb wm=y\" && echo \"\$out\" | grep -q \"apt install tetron-wm-desktop\""
 rm /usr/local/bin/tetron-wm
 assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-extras_9.9.9-1_all.deb
 out="$(plan)"; ok "release with only the metapackages from before the sets: apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*ripgrep\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm\""
 assets tetron-wm_9.9.9-1_$A.deb
 out="$(plan)"; ok "release without metapackages: deb, apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*chafa\""
 assets
-out="$(plan)"; ok "release without any deb: raw" "echo \"\$out\" | grep -q \"method=raw\""
+out="$(plan)"; ok "release without any deb: binary" "echo \"\$out\" | grep -q \"method=binary\""
+assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-essentials_9.9.9-1_all.deb
+out="$(plan --method binary)"; ok "--method binary, no package: binary, apps one by one" "echo \"\$out\" | grep -q \"method=binary wm=y\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm-desktop\""
+out="$(plan --from-clone /src)"; ok "--from-clone: an own build of the clone" "echo \"\$out\" | grep -q \"method=own (cargo build --release in /src) wm=y\""
+out="$(bash /src/install-tetron-wm-suite.sh -y --dry-run --method bogus 2>&1 || true)"; ok "a bad --method is refused" "echo \"\$out\" | grep -q \"must be deb or binary\""
+out="$(bash /src/install-tetron-wm-suite.sh -y --dry-run --method deb --from-clone /src 2>&1 || true)"; ok "--from-clone with --method deb is refused" "echo \"\$out\" | grep -q \"does not go with\""
+printf "#!/bin/sh\necho own\n" > /usr/bin/tetron-wm; chmod +x /usr/bin/tetron-wm
+dpkg-divert --local --rename --divert /usr/bin/tetron-wm.packaged --add /usr/bin/tetron-wm >/dev/null; printf "#!/bin/sh\necho own\n" > /usr/bin/tetron-wm; chmod +x /usr/bin/tetron-wm
+out="$(plan)"; ok "own build (diverted): kept under -y" "echo \"\$out\" | grep -q \"method=own wm=n\""
+out="$(plan --method deb)"; ok "own build with --method deb: back to the deb" "echo \"\$out\" | grep -q \"method=deb wm=y\""
 '
 run fedora:latest '
-out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=raw\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
+out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=binary\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
 ok "essentials size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
 ok "fedora essentials: fbida (View full screen images)" "echo \"\$out\" | grep -q fbida"
 ok "fedora essentials: git, bind-utils; no recommended app" "echo \"\$out\" | grep -q \" git \" && echo \"\$out\" | grep -q bind-utils && ! echo \"\$out\" | grep -q ShellCheck"
