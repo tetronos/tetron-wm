@@ -459,6 +459,18 @@ mod tests {
         assert_eq!(path_with_user_bin(None, h).unwrap(), "/home/u/.local/bin");
     }
 
+    #[test]
+    fn common_editors_are_catalogued_so_the_launcher_lists_them() {
+        // Detection lists only catalogued apps: an installed vim, nano or
+        // nvim must be in the catalog, in Editors, to reach Launcher > Editors.
+        for bin in ["vim", "nvim", "nano"] {
+            let c = catalog().iter().find(|c| c.bin == bin).unwrap_or_else(|| panic!("{bin} must be in the catalog"));
+            assert_eq!(c.category, "Editors", "{bin}");
+            assert!(!c.cli, "{bin} is a full-screen editor, not a command that prints and exits");
+            assert!(c.pkg.any_distro(), "{bin} installs through the Store with the host package manager");
+        }
+    }
+
     /// `detect_installed` emits a base entry plus one extra entry per declared
     /// variant, carrying the variant's args/warn through and leaving `cli`
     /// unset (variants launch exactly as declared). Fakes the `$PATH` scan via

@@ -6533,3 +6533,27 @@ requires_cwd = true
 tip = "First run: start `agy` and sign in with your Google account."
 [app.agent]
 label = "Antigravity"
+
+[[app]]
+name = "Vim"
+bin = "vim"
+category = "Editors"
+description = "The classic modal text editor: vi, improved."
+homepage = "https://www.vim.org"
+pkg = { apt = "vim", dnf = "vim-enhanced", pacman = "vim", brew = "vim" }
+
+[[app]]
+name = "Neovim"
+bin = "nvim"
+category = "Editors"
+description = "Vim, refactored: a modal editor with Lua scripting and built-in LSP."
+homepage = "https://neovim.io"
+pkg = { apt = "neovim", dnf = "neovim", pacman = "neovim", brew = "neovim" }
+
+[[app]]
+name = "nano"
+bin = "nano"
+category = "Editors"
+description = "GNU nano: a small, friendly modeless editor with its key help on screen."
+homepage = "https://www.nano-editor.org"
+pkg = { apt = "nano", dnf = "nano", pacman = "nano", brew = "nano" }
