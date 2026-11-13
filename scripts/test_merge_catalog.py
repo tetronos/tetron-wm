@@ -82,7 +82,8 @@ class Merge(unittest.TestCase):
         self.assertEqual(a["htop"]["agent"], {"label": "H", "mcp": {"file": "x.json", "template": "json"}})
         for bad in ('nope = 1', 'context_files = ["a/b.md"]', 'context_files = ["AGENTS.md"]',
                     'mcp = { file = "x.json" }', 'mcp = { file = "/etc/x", template = "json" }',
-                    'mcp = { file = "x", template = "yaml" }', 'args = [1]'):
+                    'mcp = { file = "x", template = "yaml" }', 'args = [1]',
+                    'briefing = { env = { A = 1 } }', 'briefing = { nope = "x" }'):
             with self.assertRaises(SystemExit, msg=bad):
                 self.merged([app("htop", "htop")], f'[[app]]\nname = "htop"\n[app.agent]\n{bad}\n')
 

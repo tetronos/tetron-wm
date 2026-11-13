@@ -33,9 +33,9 @@ OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg",
 MANAGERS = ("apt", "dnf", "pacman", "brew")
 RECIPE_KEYS = {"install", "method", "verified", "os", "requires_cwd", "tip"}
 # The agent table of an AI coding agent the ✦ Assistant can run (WMAST-001).
-AGENT_KEYS = {"label", "command", "args", "context_files", "mcp"}
-MCP_KEYS = {"file", "template", "args"}
-MCP_TEMPLATES = {"json", "opencode"}
+AGENT_KEYS = {"label", "command", "args", "context_files", "briefing", "mcp"}
+WIRING_KEYS = {"file", "template", "args", "env"}
+TEMPLATES = {"json", "opencode"}
 TIERS = {"default", "recommended", "optional"}
 # Suite sizes (WMINST-001) and the catalog tier an app of each gets.
 SIZES = {"essentials": "default", "recommended": "recommended", "extras": "optional"}
@@ -92,14 +92,21 @@ def check_agent(name, ag):
             fail(f"{name}: agent.{k} must be a list of strings")
     if any("/" in f or f in ("", ".", "..", "AGENTS.md") for f in ag.get("context_files", [])):
         fail(f"{name}: agent.context_files are plain file names other than AGENTS.md")
-    mcp = ag.get("mcp", {})
-    if set(mcp) - MCP_KEYS or ("file" in mcp) != ("template" in mcp):
-        fail(f"{name}: agent.mcp takes file with template, or args")
-    if "template" in mcp and mcp["template"] not in MCP_TEMPLATES:
-        fail(f"{name}: agent.mcp.template must be one of {sorted(MCP_TEMPLATES)}")
-    if ".." in mcp.get("file", "").split("/") or mcp.get("file", "").startswith("/"):
-        fail(f"{name}: agent.mcp.file is relative to the assistant folder")
+    for k in ("briefing", "mcp"):
+        check_wiring(name, k, ag.get(k, {}))
 
+
+def check_wiring(name, key, w):
+    """A briefing or mcp table: file with template, args, env (strings)."""
+    if set(w) - WIRING_KEYS or ("file" in w) != ("template" in w):
+        fail(f"{name}: agent.{key} takes {sorted(WIRING_KEYS)}, file only with template")
+    if "template" in w and w["template"] not in TEMPLATES:
+        fail(f"{name}: agent.{key}.template must be one of {sorted(TEMPLATES)}")
+    f = w.get("file", "")
+    if f.startswith("/") or ".." in f.split("/"):
+        fail(f"{name}: agent.{key}.file is relative to the AI folder")
+    if not all(isinstance(v, str) for v in w.get("args", [])) or not all(isinstance(v, str) for v in w.get("env", {}).values()):
+        fail(f"{name}: agent.{key} args and env values are strings")
 
 def merged_apps(lists=LISTS):
     """Every app of the lists merged, with its package names (pkg), before

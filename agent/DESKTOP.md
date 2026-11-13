@@ -48,7 +48,7 @@ Other things worth knowing when helping the user:
 
 ## Desktop tools over MCP
 
-When the user turns on Settings → Assistant → Desktop tools (MCP), you also
+When the user turns on Settings → AI → Desktop tools (MCP), you also
 get `tetron-wm` MCP tools (list windows, read a window's text, launch, focus,
 close, tile, theme, notify, screenshot). Prefer them when present: they
 answer in structured form. Without them, use the `tetron-wm` commands above.

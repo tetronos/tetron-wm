@@ -145,6 +145,12 @@
    },
    "agent": {
     "label": "Claude Code",
+    "briefing": {
+     "args": [
+      "--append-system-prompt-file",
+      "{{BRIEFING}}"
+     ]
+    },
     "mcp": {
      "args": [
       "--mcp-config",
@@ -485,13 +491,23 @@
      "linux"
     ],
     "requires_cwd": true,
-    "tip": "The agent of the ✦ Assistant (Settings > Assistant). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
+    "tip": "The agent of ✦ AI (Settings > AI). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
    },
    "agent": {
     "label": "opencode",
+    "briefing": {
+     "file": "opencode.json",
+     "template": "opencode",
+     "env": {
+      "OPENCODE_CONFIG": "{{AI_DIR}}/opencode.json"
+     }
+    },
     "mcp": {
      "file": "opencode.json",
-     "template": "opencode"
+     "template": "opencode",
+     "env": {
+      "OPENCODE_CONFIG": "{{AI_DIR}}/opencode.json"
+     }
     }
    },
    "pkg": {
@@ -545,7 +561,13 @@
     "tip": "First run: start `pi` and log in with /login, or set a provider API key in the environment."
    },
    "agent": {
-    "label": "pi"
+    "label": "pi",
+    "briefing": {
+     "args": [
+      "--append-system-prompt",
+      "{{BRIEFING}}"
+     ]
+    }
    },
    "tier": "optional",
    "sources": [

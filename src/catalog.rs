@@ -74,22 +74,29 @@ pub struct AgentSpec {
     /// Other file names it reads its instructions from, linked to AGENTS.md.
     #[serde(default)]
     pub context_files: Vec<String>,
+    /// How it gets the briefing when it runs outside the AI folder (WMAST-007).
+    #[serde(default)]
+    pub briefing: Option<Wiring>,
     /// How it is told about `tetron-wm mcp` (WMAST-006).
     #[serde(default)]
-    pub mcp: Option<McpWiring>,
+    pub mcp: Option<Wiring>,
 }
 
-/// Where an agent learns about the tetron-wm MCP server: a file in the
-/// assistant folder from a named template, or extra arguments in which
-/// `{{MCP_JSON}}` and `{{MCP_BIN}}` are filled.
+/// How an agent is handed something from outside its working folder (the
+/// briefing, the MCP server): a file written in the AI folder from a named
+/// template, extra arguments, and environment variables. In args and env,
+/// `{{BRIEFING}}` (AGENTS.md), `{{AI_DIR}}`, `{{MCP_JSON}}` and `{{MCP_BIN}}`
+/// are filled.
 #[derive(Clone, Debug, Default, Deserialize, serde::Serialize, PartialEq)]
-pub struct McpWiring {
+pub struct Wiring {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub file: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub template: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub env: std::collections::BTreeMap<String, String>,
 }
 
 /// An app's package name for each package manager the Store uses; an empty

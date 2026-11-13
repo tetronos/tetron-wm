@@ -16,7 +16,9 @@ pub struct AgentDef {
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub env: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mcp: Option<crate::catalog::McpWiring>,
+    pub briefing: Option<crate::catalog::Wiring>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp: Option<crate::catalog::Wiring>,
 }
 
 /// A single application entry in the config file.
@@ -220,6 +222,10 @@ pub struct Config {
     /// Folder the assistant clones and builds suite code in (default `~/code`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub assistant_code_dir: Option<String>,
+    /// Where the AI agent starts (WMAST-007): unset = the code folder, `ask` =
+    /// the folder picker at each launch, `ai` = the AI folder, else a path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assistant_cwd: Option<String>,
     /// How the ✦ assistant opens: "panel" (right-docked) or "window" (floating).
     #[serde(default = "default_assistant_mode")]
     pub assistant_mode: String,
@@ -386,6 +392,7 @@ impl Default for Config {
             assistant_agent: Vec::new(),
             assistant_mcp: false,
             assistant_code_dir: None,
+            assistant_cwd: None,
             assistant_mode: default_assistant_mode(),
             update_branch: default_update_branch(),
             clipboard_history: true,

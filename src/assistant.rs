@@ -14,7 +14,7 @@
 //! Store's Update list or one config table, never a release. Only the default
 //! is named here.
 
-use crate::catalog::McpWiring;
+use crate::catalog::Wiring;
 use crate::config::{AgentDef, Config};
 use std::path::{Path, PathBuf};
 
@@ -50,20 +50,24 @@ pub struct Agent {
     pub args: Vec<String>,
     pub context_files: Vec<String>,
     pub env: Vec<(String, String)>,
-    pub mcp: Option<McpWiring>,
+    /// How it gets the briefing outside the AI folder (None: it does not).
+    pub briefing: Option<Wiring>,
+    pub mcp: Option<Wiring>,
     /// The catalog app name, for the Store's Install (None: config only).
     pub app: Option<String>,
 }
 
 impl Agent {
-    /// The command to run: the agent's own, wrapped in `env` when it sets
-    /// variables (the app server spawns a plain argv).
-    pub fn argv(&self, extra: &[String]) -> (String, Vec<String>) {
+    /// The command to run: the agent's own args, then `extra`, wrapped in
+    /// `env` when it or `extra_env` sets variables (the app server spawns a
+    /// plain argv).
+    pub fn argv(&self, extra: &[String], extra_env: &[(String, String)]) -> (String, Vec<String>) {
         let mut args: Vec<String> = self.args.iter().chain(extra).cloned().collect();
-        if self.env.is_empty() {
+        let env: Vec<&(String, String)> = self.env.iter().chain(extra_env).collect();
+        if env.is_empty() {
             return (self.command.clone(), args);
         }
-        let mut wrapped: Vec<String> = self.env.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        let mut wrapped: Vec<String> = env.iter().map(|(k, v)| format!("{k}={v}")).collect();
         wrapped.push(self.command.clone());
         wrapped.append(&mut args);
         ("env".into(), wrapped)
@@ -86,6 +90,7 @@ pub fn agents(defs: &[AgentDef]) -> Vec<Agent> {
             args: s.args.clone(),
             context_files: s.context_files.clone(),
             env: Vec::new(),
+            briefing: s.briefing.clone(),
             mcp: s.mcp.clone(),
             app: Some(a.name.clone()),
         })
@@ -109,6 +114,7 @@ fn apply(a: &mut Agent, d: &AgentDef) {
     if let Some(v) = &d.command { a.command = v.clone(); }
     if let Some(v) = &d.args { a.args = v.clone(); }
     if let Some(v) = &d.context_files { a.context_files = v.clone(); }
+    if d.briefing.is_some() { a.briefing = d.briefing.clone(); }
     if d.mcp.is_some() { a.mcp = d.mcp.clone(); }
     a.env = d.env.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
 }
@@ -125,16 +131,59 @@ pub fn selected(cfg: &Config) -> Agent {
     Agent { id: want.into(), label: format!("custom: {want}"), command, args: words.collect(), ..Agent::default() }
 }
 
-/// The agent to start and its argv, or `None` when the chosen agent is a
-/// known one that is not installed (the caller opens the Store). A custom
-/// command line is trusted as typed.
-pub fn resolve(cfg: &Config) -> Option<(Agent, String, Vec<String>)> {
+/// The agent to start, or `None` when the chosen agent is a known one that
+/// is not installed (the caller opens the Store). A custom command line is
+/// trusted as typed.
+pub fn resolve(cfg: &Config) -> Option<Agent> {
     let a = selected(cfg);
-    if a.app.is_some() && !a.installed() {
-        return None;
+    (a.app.is_none() || a.installed()).then_some(a)
+}
+
+/// Where the agent starts (WMAST-007).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Cwd {
+    /// The AI folder, where AGENTS.md is written.
+    Ai,
+    /// The folder picker at each launch.
+    Ask,
+    Dir(PathBuf),
+}
+
+/// `assistant_cwd`: unset is the code folder, `ask`, `ai`, else a path.
+pub fn cwd_choice(cfg: &Config) -> Cwd {
+    match cfg.assistant_cwd.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        None => Cwd::Dir(code_dir(cfg)),
+        Some("ask") => Cwd::Ask,
+        Some("ai") => Cwd::Ai,
+        Some(p) => Cwd::Dir(expand_home(p)),
     }
-    let (cmd, args) = a.argv(&cfg.assistant_args);
-    Some((a, cmd, args))
+}
+
+/// Settings text for the working folder choice.
+pub fn cwd_label(cfg: &Config) -> String {
+    match (cwd_choice(cfg), cfg.assistant_cwd.is_none()) {
+        (Cwd::Ai, _) => "AI folder".into(),
+        (Cwd::Ask, _) => "ask each launch".into(),
+        (Cwd::Dir(d), true) => format!("code folder ({})", tilde(&d)),
+        (Cwd::Dir(d), false) => tilde(&d),
+    }
+}
+
+fn expand_home(p: &str) -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+    match p {
+        "~" => home,
+        _ => p.strip_prefix("~/").map(|r| home.join(r)).unwrap_or_else(|| PathBuf::from(p)),
+    }
+}
+
+/// `/home/u/code` as `~/code`.
+pub fn tilde(p: &Path) -> String {
+    match dirs::home_dir().and_then(|h| p.strip_prefix(h).ok().map(Path::to_path_buf)) {
+        Some(r) if r.as_os_str().is_empty() => "~".into(),
+        Some(r) => format!("~/{}", r.display()),
+        None => p.display().to_string(),
+    }
 }
 
 /// Whether the configured agent command looks runnable, for the Settings
@@ -163,11 +212,9 @@ pub fn agent_available(command: &str) -> bool {
 
 /// The code folder (WMAST-004): `assistant_code_dir` with `~` expanded, else `~/code`.
 pub fn code_dir(cfg: &Config) -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
     match cfg.assistant_code_dir.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        Some("~") => home,
-        Some(d) => d.strip_prefix("~/").map(|r| home.join(r)).unwrap_or_else(|| PathBuf::from(d)),
-        None => home.join("code"),
+        Some(d) => expand_home(d),
+        None => expand_home("~/code"),
     }
 }
 
@@ -268,66 +315,129 @@ pub fn link_context(dir: &Path, agent: &Agent) {
     }
 }
 
-/// The MCP server entry in one of the named file shapes.
-fn mcp_doc(template: &str, bin: &str) -> Option<String> {
-    let v = match template {
-        "json" => serde_json::json!({"mcpServers": {"tetron-wm": {"command": bin, "args": ["mcp"]}}}),
-        "opencode" => serde_json::json!({
-            "$schema": "https://opencode.ai/config.json",
-            "mcp": {"tetron-wm": {"type": "local", "command": [bin, "mcp"], "enabled": true}}
-        }),
+/// One file written in the AI folder: its template and what goes in it.
+struct FileDoc<'a> {
+    template: &'a str,
+    briefing: Option<String>,
+    mcp: bool,
+}
+
+/// The file in one of the named shapes: opencode's config (instructions and
+/// MCP server) or an `mcpServers` object.
+fn render_doc(d: &FileDoc, bin: &str) -> Option<String> {
+    let server = serde_json::json!({"command": bin, "args": ["mcp"]});
+    let v = match d.template {
+        "json" => serde_json::json!({"mcpServers": {"tetron-wm": server}}),
+        "opencode" => {
+            let mut v = serde_json::json!({"$schema": "https://opencode.ai/config.json"});
+            if let Some(b) = &d.briefing {
+                v["instructions"] = serde_json::json!([b]);
+            }
+            if d.mcp {
+                v["mcp"] = serde_json::json!({"tetron-wm": {"type": "local", "command": [bin, "mcp"], "enabled": true}});
+            }
+            v
+        }
         _ => return None,
     };
     serde_json::to_string_pretty(&v).ok()
 }
 
-/// A file in `dir` that tetron-wm wrote for MCP (it names the server), so
-/// turning MCP off never deletes a file of the user's own.
+/// A file in the AI folder that tetron-wm wrote (it names tetron-wm), so a
+/// file of the user's own there is never removed.
 fn ours(p: &Path) -> bool {
-    std::fs::read_to_string(p).is_ok_and(|t| t.contains("\"tetron-wm\""))
+    std::fs::read_to_string(p).is_ok_and(|t| t.contains("tetron-wm"))
 }
 
-/// Remove the MCP files of every known agent from `dir` (WMAST-006).
-fn clear_mcp(dir: &Path, all: &[Agent]) {
-    let files = all.iter().filter_map(|a| a.mcp.as_ref()).map(|m| m.file.as_str()).filter(|f| !f.is_empty());
-    for f in files.chain([MCP_JSON_FILE]) {
-        let p = dir.join(f);
+/// Remove the files every known agent's wiring writes (WMAST-006, WMAST-007).
+fn clear_wired(ai: &Path, all: &[Agent]) {
+    let named = all.iter().flat_map(|a| [a.briefing.as_ref(), a.mcp.as_ref()]).flatten().map(|w| w.file.as_str());
+    for f in named.filter(|f| !f.is_empty()).chain([MCP_JSON_FILE]) {
+        let p = ai.join(f);
         if ours(&p) && std::fs::remove_file(&p).is_ok() {
-            crate::dbg_log(&format!("assistant: mcp off, removed {}", p.display()));
+            crate::dbg_log(&format!("assistant: removed {}", p.display()));
         }
     }
 }
 
-/// Wire `tetron-wm mcp` into `agent` when `on`: write its file into `dir`
-/// and return the extra args it needs. Files of earlier launches are removed
-/// first, so off really is off and a switched agent leaves nothing behind.
-pub fn wire_mcp(dir: &Path, agent: &Agent, all: &[Agent], on: bool, bin: &str) -> Vec<String> {
-    clear_mcp(dir, all);
-    let Some(m) = agent.mcp.as_ref().filter(|_| on) else {
-        if on {
-            crate::dbg_log(&format!("assistant: mcp on, but {} has no mcp entry; started without it", agent.label));
+/// What the launch adds to the agent's argv and environment.
+#[derive(Debug, Default, PartialEq)]
+pub struct Prepared {
+    pub args: Vec<String>,
+    pub env: Vec<(String, String)>,
+    /// The agent gets the briefing (it starts in the AI folder, or has a way).
+    pub briefed: bool,
+}
+
+/// Wire `agent` for a start in `cwd`: outside the AI folder `ai` it gets the
+/// briefing through its `briefing` wiring, and with `mcp_on` the MCP server
+/// through its `mcp` wiring. Files go in `ai` only, never in `cwd`; files of
+/// earlier launches are removed first, so off is off and a switched agent
+/// leaves nothing behind. Briefing args come before MCP args, which go last
+/// (some take a variable number of values).
+pub fn prepare(ai: &Path, cwd: &Path, agent: &Agent, all: &[Agent], mcp_on: bool, bin: &str) -> Prepared {
+    clear_wired(ai, all);
+    let in_ai = cwd == ai;
+    let brief = agent.briefing.as_ref().filter(|_| !in_ai);
+    let mcp = agent.mcp.as_ref().filter(|_| mcp_on);
+    if mcp_on && agent.mcp.is_none() {
+        crate::dbg_log(&format!("assistant: mcp on, but {} has no mcp entry; started without it", agent.label));
+    }
+    if !in_ai && brief.is_none() {
+        crate::dbg_log(&format!("assistant: {} has no briefing entry; outside the AI folder it starts without the briefing", agent.label));
+    }
+    let agents_md = ai.join("AGENTS.md").display().to_string();
+    let mut docs: Vec<(String, FileDoc)> = Vec::new();
+    let mut add = |file: &str, template: &'static str, briefing: bool, mcp_part: bool| {
+        if file.is_empty() || file.starts_with('/') || file.split('/').any(|c| c == "..") {
+            return;
         }
-        return Vec::new();
+        let i = docs.iter().position(|(f, _)| f == file).unwrap_or_else(|| {
+            docs.push((file.to_string(), FileDoc { template, briefing: None, mcp: false }));
+            docs.len() - 1
+        });
+        if briefing {
+            docs[i].1.briefing = Some(agents_md.clone());
+        }
+        docs[i].1.mcp |= mcp_part;
     };
-    let write = |name: &str, template: &str| {
-        let p = dir.join(name);
-        let res = match mcp_doc(template, bin) {
-            Some(doc) => p.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&p, doc)),
-            None => Err(std::io::Error::other(format!("unknown template '{template}'"))),
+    let tpl = |w: &Wiring| -> &'static str { if w.template == "opencode" { "opencode" } else if w.template == "json" { "json" } else { "" } };
+    if let Some(w) = brief {
+        add(&w.file, tpl(w), true, false);
+    }
+    if let Some(w) = mcp {
+        add(&w.file, tpl(w), false, true);
+        if w.args.iter().chain(w.env.values()).any(|a| a.contains("{{MCP_JSON}}")) {
+            add(MCP_JSON_FILE, "json", false, true);
+        }
+    }
+    for (file, doc) in &docs {
+        let p = ai.join(file);
+        let res = match render_doc(doc, bin) {
+            Some(text) => p.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&p, text)),
+            None => Err(std::io::Error::other(format!("unknown template '{}'", doc.template))),
         };
         match res {
-            Ok(()) => crate::dbg_log(&format!("assistant: mcp wired for {} in {}", agent.label, p.display())),
-            Err(e) => crate::log_warn(&format!("assistant: mcp file {} not written: {e}", p.display())),
+            Ok(()) => crate::dbg_log(&format!("assistant: wired {} in {}", agent.label, p.display())),
+            Err(e) => crate::log_warn(&format!("assistant: {} not written: {e}", p.display())),
         }
+    }
+    let fill = |t: &str| {
+        t.replace("{{BRIEFING}}", &agents_md)
+            .replace("{{AI_DIR}}", &ai.display().to_string())
+            .replace("{{MCP_JSON}}", &ai.join(MCP_JSON_FILE).display().to_string())
+            .replace("{{MCP_BIN}}", bin)
     };
-    if !m.file.is_empty() && !m.file.starts_with('/') && !m.file.split('/').any(|c| c == "..") {
-        write(&m.file, &m.template);
+    let mut out = Prepared { briefed: in_ai || brief.is_some(), ..Prepared::default() };
+    for w in brief.into_iter().chain(mcp) {
+        out.args.extend(w.args.iter().map(|a| fill(a)));
+        for (k, v) in &w.env {
+            if !out.env.iter().any(|(e, _)| e == k) {
+                out.env.push((k.clone(), fill(v)));
+            }
+        }
     }
-    if m.args.iter().any(|a| a.contains("{{MCP_JSON}}")) {
-        write(MCP_JSON_FILE, "json");
-    }
-    let json = dir.join(MCP_JSON_FILE).display().to_string();
-    m.args.iter().map(|a| a.replace("{{MCP_JSON}}", &json).replace("{{MCP_BIN}}", bin)).collect()
+    out
 }
 
 /// This binary's path for agents to start `tetron-wm mcp` with (after an
@@ -405,8 +515,8 @@ mod tests {
         let a = selected(&cfg(Some("my-agent --flag"), vec![]));
         assert_eq!((a.command.as_str(), a.args.clone(), a.app.clone()), ("my-agent", vec!["--flag".to_string()], None));
         // A custom command line is trusted as typed, installed or not.
-        let (_, cmd, args) = resolve(&Config { assistant_args: vec!["-x".into()], ..cfg(Some("my-agent --flag"), vec![]) }).unwrap();
-        assert_eq!((cmd.as_str(), args), ("my-agent", vec!["--flag".to_string(), "-x".to_string()]));
+        let a = resolve(&cfg(Some("my-agent --flag"), vec![])).unwrap();
+        assert_eq!(a.argv(&["-x".into()], &[]), ("my-agent".to_string(), vec!["--flag".to_string(), "-x".to_string()]));
     }
 
     #[test]
@@ -424,7 +534,8 @@ mod tests {
         assert!(codex.mcp.is_some(), "catalog mcp kept");
         let n = all.iter().find(|a| a.id == "newthing").unwrap();
         assert_eq!((n.label.as_str(), n.command.as_str(), n.app.clone()), ("NewThing", "newthing", None));
-        assert_eq!(n.argv(&["a".into()]), ("env".to_string(), vec!["K=v".into(), "newthing".into(), "a".into()]));
+        let extra_env = [("E".to_string(), "1".to_string())];
+        assert_eq!(n.argv(&["a".into()], &extra_env), ("env".to_string(), vec!["K=v".into(), "E=1".into(), "newthing".into(), "a".into()]));
     }
 
     fn tmp(tag: &str) -> PathBuf {
@@ -450,20 +561,60 @@ mod tests {
         let d = tmp("mcp");
         let all = agents(&[]);
         let oc = all.iter().find(|a| a.id == "opencode").unwrap();
-        assert!(wire_mcp(&d, oc, &all, true, "/bin/tetron-wm").is_empty());
+        let p = prepare(&d, &d, oc, &all, true, "/bin/tetron-wm");
+        assert!(p.args.is_empty() && p.briefed);
         let f = std::fs::read_to_string(d.join("opencode.json")).unwrap();
         assert!(f.contains("/bin/tetron-wm") && f.contains("\"tetron-wm\""));
+        assert!(!f.contains("instructions"), "in the AI folder AGENTS.md is read directly");
         let claude = all.iter().find(|a| a.id == "claude").unwrap();
-        let args = wire_mcp(&d, claude, &all, true, "/bin/tetron-wm");
-        assert_eq!(args, vec!["--mcp-config".to_string(), d.join(MCP_JSON_FILE).display().to_string()]);
+        let p = prepare(&d, &d, claude, &all, true, "/bin/tetron-wm");
+        assert_eq!(p.args, vec!["--mcp-config".to_string(), d.join(MCP_JSON_FILE).display().to_string()]);
         assert!(!d.join("opencode.json").exists(), "switching agent clears the other agent's file");
-        assert!(wire_mcp(&d, claude, &all, false, "/bin/tetron-wm").is_empty());
+        assert!(prepare(&d, &d, claude, &all, false, "/bin/tetron-wm").args.is_empty());
         assert!(!d.join(MCP_JSON_FILE).exists(), "off removes the file");
-        // A file of the user's own (no tetron-wm server in it) is never removed.
+        // A file of the user's own (no tetron-wm in it) is never removed.
         std::fs::write(d.join("opencode.json"), "{}").unwrap();
-        wire_mcp(&d, oc, &all, false, "x");
+        prepare(&d, &d, oc, &all, false, "x");
         assert!(d.join("opencode.json").exists());
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn outside_the_ai_folder_the_briefing_comes_by_flags_and_nothing_lands_in_cwd() {
+        let d = tmp("brief");
+        let proj = d.join("proj");
+        std::fs::create_dir_all(&proj).unwrap();
+        let all = agents(&[]);
+        let md = d.join("AGENTS.md").display().to_string();
+        // opencode: OPENCODE_CONFIG points at a file in the AI folder with the
+        // instructions, and the MCP server in the same file.
+        let oc = all.iter().find(|a| a.id == "opencode").unwrap();
+        let p = prepare(&d, &proj, oc, &all, true, "/b");
+        assert!(p.briefed);
+        assert_eq!(p.env, vec![("OPENCODE_CONFIG".to_string(), d.join("opencode.json").display().to_string())]);
+        let f = std::fs::read_to_string(d.join("opencode.json")).unwrap();
+        assert!(f.contains(&md) && f.contains("\"mcp\""), "{f}");
+        // Claude Code: the briefing file by flag, before the MCP args.
+        let claude = all.iter().find(|a| a.id == "claude").unwrap();
+        let p = prepare(&d, &proj, claude, &all, true, "/b");
+        assert_eq!(p.args[..2], ["--append-system-prompt-file".to_string(), md.clone()]);
+        assert_eq!(p.args[2], "--mcp-config");
+        // An agent without a briefing entry is started without it.
+        let hermes = all.iter().find(|a| a.id == "hermes").unwrap();
+        assert!(!prepare(&d, &proj, hermes, &all, false, "/b").briefed);
+        assert_eq!(std::fs::read_dir(&proj).unwrap().count(), 0, "nothing is written into the working folder");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn cwd_choice_reads_the_config() {
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(cwd_choice(&Config::default()), Cwd::Dir(home.join("code")));
+        let c = |v: &str| Config { assistant_cwd: Some(v.into()), ..Config::default() };
+        assert_eq!(cwd_choice(&c("ask")), Cwd::Ask);
+        assert_eq!(cwd_choice(&c("ai")), Cwd::Ai);
+        assert_eq!(cwd_choice(&c("~/p")), Cwd::Dir(home.join("p")));
+        assert_eq!(tilde(&home.join("p")), "~/p");
     }
 
     #[test]

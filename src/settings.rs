@@ -20,7 +20,7 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "Assistant", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
@@ -115,6 +115,7 @@ pub enum SettingsAction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum PickFor {
     Agent,
+    Cwd,
 }
 
 /// Picker key of the "Custom command…" row.
@@ -146,8 +147,10 @@ enum TextTarget {
     LauncherLabel,
     TermBg,
     TermFg,
-    /// Assistant → Agent → Custom command… (a command line).
+    /// AI → Agent → Custom command… (a command line).
     AgentCommand,
+    /// AI → Working folder → Other folder… (a path).
+    AiCwd,
 }
 
 /// The open text box: its target, the in-progress text, and whether the last
@@ -460,7 +463,7 @@ impl Settings {
         }));
         items.push(PickItem { label: "Custom command\u{2026}".into(), detail: "any command line".into(), key: PICK_CUSTOM.into() });
         let cur = crate::assistant::selected(&self.cfg).id;
-        self.picker = Some((PickFor::Agent, ListPicker::new("Assistant \u{203A} Agent", items, &cur)));
+        self.picker = Some((PickFor::Agent, ListPicker::new("AI \u{203A} Agent", items, &cur)));
     }
 
     fn pick_outcome(&mut self, o: crate::listpicker::Pick) {
@@ -474,8 +477,42 @@ impl Settings {
                 self.picker = None;
                 match what {
                     PickFor::Agent => self.choose_agent(&key),
+                    PickFor::Cwd => self.choose_cwd(&key),
                 }
             }
+        }
+    }
+
+    /// AI > Working folder: the code folder, ask each launch, the AI folder,
+    /// or another folder (WMAST-007).
+    fn open_cwd_picker(&mut self) {
+        use crate::listpicker::{ListPicker, PickItem};
+        let code = crate::assistant::tilde(&crate::assistant::code_dir(&self.cfg));
+        let ai = crate::assistant::workdir().map(|d| crate::assistant::tilde(&d)).unwrap_or_default();
+        let item = |label: &str, detail: String, key: &str| PickItem { label: label.into(), detail, key: key.into() };
+        let items = vec![
+            item("Code folder", format!("{code} (default)"), "@code"),
+            item("Ask each launch", "pick a folder when the agent starts".into(), "ask"),
+            item("AI folder", format!("{ai}, where AGENTS.md is"), "ai"),
+            item("Other folder\u{2026}", "type a path".into(), "@other"),
+        ];
+        let cur = match self.cfg.assistant_cwd.as_deref() {
+            None => "@code",
+            Some("ask") => "ask",
+            Some("ai") => "ai",
+            Some(_) => "@other",
+        };
+        self.picker = Some((PickFor::Cwd, ListPicker::new("AI \u{203A} Working folder", items, cur)));
+    }
+
+    fn choose_cwd(&mut self, key: &str) {
+        match key {
+            "@code" => self.cfg.assistant_cwd = None,
+            "@other" => {
+                let buf = self.cfg.assistant_cwd.clone().filter(|c| c != "ask" && c != "ai").unwrap_or_default();
+                self.text = Some(TextEdit { target: TextTarget::AiCwd, buf, error: false, fresh: false });
+            }
+            k => self.cfg.assistant_cwd = Some(k.to_string()),
         }
     }
 
@@ -514,7 +551,7 @@ impl Settings {
             UPDATES => if self.apphost_outdated { 4 } else { 3 }, // check, install, branch [, restart apphost]
             APPS => self.cfg.launcher.len() + 1,  // custom apps + "＋ Add app…"
             DEFAULT_APPS => DEFAULT_APP_ROLES.len(),
-            ASSISTANT => 3,                            // assistant: open-as mode, agent, MCP
+            ASSISTANT => 4,                            // AI: open-as mode, agent, working folder, MCP
             CLIPBOARD => 10,                           // clipboard: history, disk, selections, size, shims, osc52 read, fake display, expiry, max item, clear
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
@@ -831,7 +868,8 @@ impl Settings {
                     if self.cfg.assistant_mode == "panel" { "window".into() } else { "panel".into() };
             }
             (ASSISTANT, 1) if dir == 0 => self.open_agent_picker(),
-            (ASSISTANT, 2) => self.cfg.assistant_mcp = flip(self.cfg.assistant_mcp, dir),
+            (ASSISTANT, 2) if dir == 0 => self.open_cwd_picker(),
+            (ASSISTANT, 3) => self.cfg.assistant_mcp = flip(self.cfg.assistant_mcp, dir),
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -1043,6 +1081,10 @@ impl Settings {
             TextTarget::AgentCommand => {
                 self.cfg.assistant_command = (!s.is_empty()).then_some(s);
             }
+            // Empty goes back to the code folder.
+            TextTarget::AiCwd => {
+                self.cfg.assistant_cwd = (!s.is_empty()).then_some(s);
+            }
             TextTarget::TermBg | TextTarget::TermFg => {
                 let val = if s.is_empty() {
                     None
@@ -1084,7 +1126,7 @@ impl Settings {
         if let Some(t) = self.text.as_ref() {
             // The wallpaper name commits on click-away; a half-typed color is
             // discarded instead (committing it would stage a wrong color).
-            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand) {
+            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd) {
                 self.commit_text();
                 return true;
             }
@@ -1261,17 +1303,26 @@ impl Settings {
                     None if a.installed() => format!("{} \u{25BE}", a.label),
                     None => format!("{} (not installed) \u{25BE}", a.label),
                 };
+                let cwd_val = match self.text.as_ref().filter(|t| t.target == TextTarget::AiCwd) {
+                    Some(t) => format!("{}\u{2588}", t.buf),
+                    None => format!("{} \u{25BE}", crate::assistant::cwd_label(&self.cfg)),
+                };
                 let mcp_val = match (self.cfg.assistant_mcp, a.mcp.is_some()) {
                     (true, false) => "on (this agent has no MCP entry)".to_string(),
                     (on, _) => toggle_val(on),
                 };
                 self.row(&mut buf, cx, 3, 0, "Open as", format!("\u{25C2} {} \u{25B8}", self.cfg.assistant_mode));
                 self.row(&mut buf, cx, 4, 1, "Agent", agent_val);
-                self.row(&mut buf, cx, 5, 2, "Desktop tools (MCP)", mcp_val);
-                buf.write_str(cx, 7, &format!("The {} menubar button opens the assistant.", crate::glyphs::get(crate::glyphs::Glyph::Assistant)), pal_dim(), pal_bg());
-                buf.write_str(cx, 8, "Enter on Agent lists the agents; more in config.toml", pal_dim(), pal_bg());
-                buf.write_str(cx, 9, "([[assistant_agent]]). Briefing: ~/.local/share/", pal_dim(), pal_bg());
-                buf.write_str(cx, 10, "tetron-wm/assistant. MCP: the agent starts tetron-wm mcp.", pal_dim(), pal_bg());
+                self.row(&mut buf, cx, 5, 2, "Working folder", cwd_val);
+                self.row(&mut buf, cx, 6, 3, "Desktop tools (MCP)", mcp_val);
+                let away = crate::assistant::cwd_choice(&self.cfg) != crate::assistant::Cwd::Ai;
+                if away && a.briefing.is_none() {
+                    buf.write_str(cx, 7, &format!("{} reads the briefing only in the AI folder.", a.label), pal_accent(), pal_bg());
+                }
+                buf.write_str(cx, 8, &format!("The {} menubar button opens the AI agent.", crate::glyphs::get(crate::glyphs::Glyph::Assistant)), pal_dim(), pal_bg());
+                buf.write_str(cx, 9, "Enter on Agent or Working folder lists the choices;", pal_dim(), pal_bg());
+                buf.write_str(cx, 10, "more agents: [[assistant_agent]] in config.toml.", pal_dim(), pal_bg());
+                buf.write_str(cx, 11, "MCP: the agent starts tetron-wm mcp itself.", pal_dim(), pal_bg());
             }
             DEFAULT_APPS => {
                 for (i, (key, label)) in DEFAULT_APP_ROLES.iter().enumerate() {
@@ -2138,7 +2189,7 @@ mod tests {
     fn assistant_agent_row_opens_a_picker() {
         let mut s = Settings::new(Config::default());
         s.section = ASSISTANT;
-        assert_eq!(SECTIONS[s.section], "Assistant");
+        assert_eq!(SECTIONS[s.section], "AI");
         s.sel = 1; // the Agent row
         assert!(s.config().assistant_command.is_none(), "unset defaults to opencode");
         s.toggle();
@@ -2158,6 +2209,36 @@ mod tests {
     }
 
     #[test]
+    fn ai_working_folder_picker() {
+        let mut s = Settings::new(Config::default());
+        s.section = ASSISTANT;
+        s.sel = 2;
+        assert!(s.config().assistant_cwd.is_none(), "default: the code folder");
+        s.toggle();
+        for c in "ask".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().assistant_cwd.as_deref(), Some("ask"));
+        s.toggle();
+        for c in "other".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        for c in "~/src".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().assistant_cwd.as_deref(), Some("~/src"));
+        s.toggle();
+        for c in "code".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert!(s.config().assistant_cwd.is_none());
+    }
+
+    #[test]
     fn assistant_custom_command_and_mcp_row() {
         let mut s = Settings::new(Config::default());
         s.section = ASSISTANT;
@@ -2173,7 +2254,7 @@ mod tests {
         }
         s.toggle();
         assert_eq!(s.config().assistant_command.as_deref(), Some("my-agent --x"));
-        s.sel = 2;
+        s.sel = 3;
         assert!(!s.config().assistant_mcp, "MCP is off by default");
         s.toggle();
         assert!(s.config().assistant_mcp);
@@ -2274,7 +2355,7 @@ mod tests {
         assert_eq!(SECTIONS[s.section], "Appearance");
         assert_eq!(SECTIONS[GENERAL], "General");
         assert_eq!(SECTIONS.last(), Some(&"About"));
-        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "Assistant"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
+        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "AI"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
             assert_eq!(SECTIONS[i], name);
         }
     }

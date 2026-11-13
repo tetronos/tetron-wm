@@ -373,7 +373,7 @@ pub enum ClientMsg {
     FileManagerNextTab,
     /// Open the activity-monitor window (or focus it if already open).
     OpenActivity,
-    /// The ✦ Assistant: open it, or show / hide it like the menubar button.
+    /// ✦ AI: open it, or show / hide it like the menubar button.
     ToggleAssistant,
     /// Activity monitor: move selection up / down.
     ActivityUp,
@@ -4026,6 +4026,10 @@ or a remote-side error — its authorized_keys was left untouched)",
     fn confirm_dirpicker(&mut self) {
         let Some(picker) = self.dirpicker.take() else { return };
         let (pending, path) = picker.confirm();
+        if pending.command == AI_PENDING {
+            self.start_assistant(path);
+            return;
+        }
         // Record in the MRU (most-recent first, deduped, capped at 10).
         let p = path.to_string_lossy().to_string();
         self.state.recent_dirs.retain(|d| d != &p);
@@ -4204,7 +4208,7 @@ or a remote-side error — its authorized_keys was left untouched)",
     }
 
     /// Open the store window, or focus it if it's already open.
-    /// Open the Store filtered to one app (Settings > Assistant > Agent on
+    /// Open the Store filtered to one app (Settings > AI > Agent on
     /// an agent that is not installed).
     fn open_store_for(&mut self, app: &str) {
         self.open_store();
@@ -4310,12 +4314,11 @@ or a remote-side error — its authorized_keys was left untouched)",
         self.open_assistant();
     }
 
-    /// Spawn the assistant agent (`assistant_command`, opencode by default) in
-    /// a persistent right-side panel. The agent is a normal apphost app
-    /// (survives detach/reload); its briefing is stamped as `AGENTS.md` in a
-    /// dedicated working directory, which the agent reads on startup.
+    /// Open the AI agent (`assistant_command`, opencode by default) in its
+    /// working folder (`assistant_cwd`, WMAST-007): the code folder, a folder
+    /// picked now, the AI folder, or a fixed one.
     fn open_assistant(&mut self) {
-        let Some((agent, command, mut args)) = crate::assistant::resolve(&self.cfg) else {
+        if crate::assistant::resolve(&self.cfg).is_none() {
             let a = crate::assistant::selected(&self.cfg);
             crate::dbg_log(&format!(
                 "assistant: '{}' ({}) not installed; opening the Store (or set assistant_command in config.toml)",
@@ -4323,7 +4326,43 @@ or a remote-side error — its authorized_keys was left untouched)",
             ));
             self.open_store();
             return;
-        };
+        }
+        let Some(ai) = crate::assistant::workdir() else { return };
+        match crate::assistant::cwd_choice(&self.cfg) {
+            crate::assistant::Cwd::Ai => self.start_assistant(ai),
+            crate::assistant::Cwd::Ask => {
+                let root = crate::assistant::code_dir(&self.cfg);
+                let root = if root.is_dir() { root } else { self.picker_root() };
+                self.dirpicker = Some(crate::dirpicker::DirPicker::new(
+                    root,
+                    crate::dirpicker::PendingLaunch { name: "AI".into(), command: AI_PENDING.into(), args: Vec::new() },
+                ));
+            }
+            crate::assistant::Cwd::Dir(d) => {
+                // The code folder is ours to create; another missing folder
+                // falls back to the AI folder rather than failing.
+                if !d.is_dir() && d == crate::assistant::code_dir(&self.cfg) {
+                    match std::fs::create_dir_all(&d) {
+                        Ok(()) => crate::dbg_log(&format!("assistant: created {}", d.display())),
+                        Err(e) => crate::log_warn(&format!("assistant: {} not created: {e}", d.display())),
+                    }
+                }
+                if d.is_dir() {
+                    self.start_assistant(d);
+                } else {
+                    crate::log_warn(&format!("assistant: working folder {} missing; starting in the AI folder", d.display()));
+                    self.start_assistant(ai);
+                }
+            }
+        }
+    }
+
+    /// Spawn the agent in `cwd` in a persistent right-side panel. It is a
+    /// normal apphost app (survives detach/reload); its briefing is stamped as
+    /// `AGENTS.md` in the AI folder, read there on startup or handed over by
+    /// the agent's own flags elsewhere.
+    fn start_assistant(&mut self, cwd: std::path::PathBuf) {
+        let Some(agent) = crate::assistant::resolve(&self.cfg) else { return };
         let Some(dir) = crate::assistant::workdir() else { return };
         let host = self.host_label.clone();
         let code = crate::assistant::code_dir(&self.cfg);
@@ -4333,16 +4372,17 @@ or a remote-side error — its authorized_keys was left untouched)",
         crate::assistant::link_context(&dir, &agent);
         let all = crate::assistant::agents(&self.cfg.assistant_agent);
         let bin = crate::assistant::self_bin();
-        // MCP args go last: some take a variable number of values (claude's
-        // --mcp-config), which would swallow arguments after them.
-        args.extend(crate::assistant::wire_mcp(&dir, &agent, &all, self.cfg.assistant_mcp, &bin));
+        let prep = crate::assistant::prepare(&dir, &cwd, &agent, &all, self.cfg.assistant_mcp, &bin);
+        let extra: Vec<String> = self.cfg.assistant_args.iter().chain(&prep.args).cloned().collect();
+        let (command, args) = agent.argv(&extra, &prep.env);
         crate::dbg_log(&format!(
-            "assistant: starting {} as '{command}' {:?} ({}, mcp {}) in {}",
+            "assistant: starting {} as '{command}' {:?} ({}, mcp {}, briefing {}) in {}",
             agent.label,
             args,
             self.cfg.assistant_mode,
             if self.cfg.assistant_mcp { "on" } else { "off" },
-            dir.display()
+            if prep.briefed { "yes" } else { "no" },
+            cwd.display()
         ));
         // "panel": right-docked, full work height, 2/5 width (clamped readable).
         // "window": a regular floating window — the popped-out mode. Either way
@@ -4355,13 +4395,13 @@ or a remote-side error — its authorized_keys was left untouched)",
             let panel_w = (self.w * 2 / 5).clamp(34.min(self.w), 70);
             Rect::new((self.w - panel_w).max(0), 1, panel_w, (self.h - 2).max(4))
         };
-        let id = self.wm.add_window("Assistant".into(), rect);
+        let id = self.wm.add_window("AI".into(), rect);
         let content = self.wm.get(id).unwrap().content_rect();
-        match self.apphost.spawn(&command, &args, Some(&dir), content.w.max(1), content.h.max(1)) {
+        match self.apphost.spawn(&command, &args, Some(&cwd), content.w.max(1), content.h.max(1)) {
             Ok(app_id) => {
                 self.app_keys.insert(id, "Assistant".into());
                 self.contents.insert(id, WinContent::App(app_id));
-                self.titles.push((id, "Assistant".into()));
+                self.titles.push((id, "AI".into()));
                 if self.simple {
                     self.sync_app_size(id);
                 }
@@ -6690,6 +6730,9 @@ fn cli_wrap(command: &str, args: &[String]) -> (String, Vec<String>) {
 }
 
 /// Expand a leading `~` to the user's home directory.
+/// The folder picker's pending launch for the AI agent (`assistant_cwd = "ask"`).
+const AI_PENDING: &str = "@ai-cwd";
+
 fn expand_tilde(s: &str) -> std::path::PathBuf {
     if let Some(rest) = s.strip_prefix("~/") {
         if let Some(home) = dirs::home_dir() {

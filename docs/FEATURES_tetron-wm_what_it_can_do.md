@@ -42,7 +42,7 @@ Keys below are leader sequences: press `Ctrl+Space`, release, then the key. The 
 
 ## Files and the desktop
 
-- **File manager.** Launcher → Files. The sidebar has Home, Code (`~/code`, the Assistant's code folder), Desktop, Documents, Downloads and Pictures. Icon, list and Miller-column views, thumbnails and a preview pane, tabs, an info panel, copy, cut, paste, rename and new folder. Delete goes to the Trash, never a hard delete; Empty Trash (right-click on empty space, confirmed) deletes for good. Right-click opens a context menu: Copy and Cut on files (on the desktop too), Paste on empty space and Paste into folder on a folder; a name already there gets " copy", " copy 2". Copy in one window and paste in another or on the desktop.
+- **File manager.** Launcher → Files. The sidebar has Home, Code (`~/code`, the AI agent's code folder), Desktop, Documents, Downloads and Pictures. Icon, list and Miller-column views, thumbnails and a preview pane, tabs, an info panel, copy, cut, paste, rename and new folder. Delete goes to the Trash, never a hard delete; Empty Trash (right-click on empty space, confirmed) deletes for good. Right-click opens a context menu: Copy and Cut on files (on the desktop too), Paste on empty space and Paste into folder on a folder; a name already there gets " copy", " copy 2". Copy in one window and paste in another or on the desktop.
 - **Open with.** A file-type to app map (Settings → Default Apps) decides what opens each file: images in the built-in viewer, text and code in your `$EDITOR`.
 - **Desktop icons.** Clickable icons on the wallpaper, from your `~/Desktop` folder plus pinned shortcuts. They refresh within a couple of seconds when the folder changes, and drag to rearrange.
 - **Image viewing.** Real raster images in windows on terminals that speak the Kitty graphics protocol (Kitty, Ghostty, WezTerm), with a cell fallback elsewhere.
@@ -83,9 +83,10 @@ Sessions in detail: `tetron-wm --help`, and the Recipes in [CONFIG.md](CONFIG.md
 
 ## AI assistant
 
-- The ✦ button opens a chat panel (or a floating window, your choice) running the agent CLI you pick: [opencode](https://opencode.ai) by default, or Claude Code, Codex, pi, Antigravity CLI, Hermes. Settings → Assistant → Agent lists them (installed first; a missing one opens the Store) and takes any custom command line. The list comes from the app catalog, so new agents arrive with the Store's Update list; `[[assistant_agent]]` in config.toml adds or adjusts one by hand.
+- The ✦ button opens a chat panel (or a floating window, your choice) running the agent CLI you pick: [opencode](https://opencode.ai) by default, or Claude Code, Codex, pi, Antigravity CLI, Hermes. Settings → AI → Agent lists them (installed first; a missing one opens the Store) and takes any custom command line. The list comes from the app catalog, so new agents arrive with the Store's Update list; `[[assistant_agent]]` in config.toml adds or adjusts one by hand.
+- Settings → AI → Working folder: the code folder `~/code` (default), ask each launch (folder picker), the AI folder, or another folder. Outside the AI folder opencode, Claude Code and pi get the briefing through their own flags; nothing is written into your folder.
 - Every agent starts with the same `AGENTS.md`: the desktop, your saved systems, the tetron suite, and how to work on its code in `~/code` (spec first, branch, test, install an own build, `tetron-wm reload`).
-- Desktop tools over MCP (Settings → Assistant, off by default): the agent starts `tetron-wm mcp` and gets windows, launch, tile, themes and screenshots as tools. Nothing runs while no agent does.
+- Desktop tools over MCP (Settings → AI, off by default): the agent starts `tetron-wm mcp` and gets windows, launch, tile, themes and screenshots as tools. Nothing runs while no agent does.
 - It is told about the desktop: the control commands (`tetron-wm launch`, `tile`, `theme`, `msg`), the logs, and your saved systems. See [agent/](../agent/README.md).
 - It can also drive the desktop from any shell with the same commands, so scripts can too: `tetron-wm launch htop`, `tetron-wm tile`.
 

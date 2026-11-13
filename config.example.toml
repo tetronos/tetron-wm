@@ -120,9 +120,9 @@ show_hidden_dirs = false
 ## startup yet (list is always the default).
 #filemanager_view = "list"
 
-## ── Assistant (the ✦ panel) ───────────────────────────────────────────────
+## ── AI (the ✦ panel; Settings > AI) ───────────────────────────────────────────────
 ## Agent the assistant runs: an agent id ("opencode" when unset; Settings >
-## Assistant > Agent lists the agents the app catalog knows: opencode, hermes,
+## AI > Agent lists the agents the app catalog knows: opencode, hermes,
 ## pi, codex, claude, agy, ...), or any command line.
 #assistant_command = "opencode"
 ## Extra arguments for the assistant CLI.
@@ -132,6 +132,12 @@ assistant_args = []
 assistant_mcp = false
 ## Folder the assistant clones and builds suite code in.
 #assistant_code_dir = "~/code"
+## Where the agent starts: unset = the code folder above; "ask" = pick a folder
+## at each launch; "ai" = the AI folder (~/.local/share/tetron-wm/assistant,
+## where AGENTS.md is written); or a path. Outside the AI folder an agent gets
+## the briefing through its own flags (opencode, Claude Code, pi) and nothing is
+## written into the folder.
+#assistant_cwd = "ask"
 ## Add an agent by hand, or override a catalog agent field by field (same id).
 ## Tables go at the end of the file (keys after a table header belong to it).
 ## mcp: file + template ("json" or "opencode") written in the assistant folder,

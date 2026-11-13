@@ -1,4 +1,4 @@
-"""✦ Assistant requirements for tetron-wm (WMAST-*): which agent CLI runs,
+"""✦ AI requirements for tetron-wm (WMAST-*): which agent CLI runs,
 how it is chosen, what it is told, the code folder, and the optional MCP
 server."""
 from libspec import Requirement
@@ -26,7 +26,7 @@ class AgentsAreData(Requirement):
 class AgentPicker(Requirement):
     """REQUIREMENT-ID: WMAST-002
 
-    Settings > Assistant > Agent opens a picker list instead of cycling:
+    Settings > AI > Agent opens a picker list instead of cycling:
     installed agents first, then agents not installed (choosing one opens the
     Store), then "Custom command…", which opens a text box and stores the
     command line in `assistant_command`. Up and Down move, typed text filters
@@ -40,8 +40,8 @@ class AgentPicker(Requirement):
 class OneContextFile(Requirement):
     """REQUIREMENT-ID: WMAST-003
 
-    At each Assistant launch the briefing is written as `AGENTS.md` in the
-    assistant working directory, the agent's cwd. An agent whose
+    At each launch of the AI agent the briefing is written as `AGENTS.md` in
+    the AI folder (`~/.local/share/tetron-wm/assistant`). An agent whose
     `context_files` names other files gets each as a symbolic link to
     `AGENTS.md` (a copy where links fail); names are plain file names, never
     paths. No `CLAUDE.md` is written.
@@ -76,7 +76,7 @@ class McpServer(Requirement):
     `tetron-wm mcp` is an MCP server over stdio (JSON-RPC 2.0, newline
     delimited) that forwards to the running desktop through the control
     socket. It is never resident: the agent starts it and it exits with its
-    stdin. `assistant_mcp` (default false, a Settings > Assistant row) turns
+    stdin. `assistant_mcp` (default false, a Settings > AI row) turns
     the wiring on: at launch the agent's `mcp` entry says where it is told
     about the server, a file in the assistant working directory written from
     a named template (`json` for an `mcpServers` object, `opencode`)
@@ -85,4 +85,21 @@ class McpServer(Requirement):
     own global config. With `assistant_mcp` off those files are removed at the
     next launch. An agent without an `mcp` entry is started without it. Every
     tool call is logged.
+    """
+
+
+class WorkingFolder(Requirement):
+    """REQUIREMENT-ID: WMAST-007
+
+    The Settings section and the agent's window are named AI. Settings > AI >
+    Working folder picks where the agent starts (`assistant_cwd`): the code
+    folder (unset, the default, created when missing), `ask` (the folder
+    picker at each launch, rooted at the code folder), `ai` (the AI folder),
+    or a path; a missing path falls back to the AI folder with a log line.
+    Outside the AI folder the agent gets the briefing through the `briefing`
+    entry of its agent table (file in the AI folder from a template, args, env,
+    with `BRIEFING` and `AI_DIR` in double braces filled), and with MCP on
+    through its `mcp` entry, briefing args before MCP args. Nothing is written
+    into the working folder. An agent without a `briefing` entry starts there
+    without the briefing, and Settings says so.
     """

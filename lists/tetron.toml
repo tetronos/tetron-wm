@@ -865,7 +865,7 @@ how = "tetron-wm-startpage and tetron-aimode from scripts/ into ~/.local/bin, on
 [[script]]
 name = "opencode"
 set = "essentials"
-how = "the agent of the ✦ Assistant: its stable release tarball for this CPU, checked against GitHub's sha256 digest, into ~/.local/bin (Homebrew on macOS); Settings > Updates replaces it the same way"
+how = "the agent of ✦ AI: its stable release tarball for this CPU, checked against GitHub's sha256 digest, into ~/.local/bin (Homebrew on macOS); Settings > Updates replaces it the same way"
 
 [[script]]
 name = "croft"
@@ -964,6 +964,7 @@ requires_cwd = true
 tip = "First run: `claude` walks you through logging in with your Anthropic account (or set ANTHROPIC_API_KEY)."
 [app.agent]
 label = "Claude Code"
+briefing = { args = ["--append-system-prompt-file", "{{BRIEFING}}"] }
 mcp = { args = ["--mcp-config", "{{MCP_JSON}}"] }
 
 [[app.variants]]
@@ -1162,11 +1163,12 @@ method = "binary"
 verified = true
 os = ["linux"]
 requires_cwd = true
-tip = "The agent of the ✦ Assistant (Settings > Assistant). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
+tip = "The agent of ✦ AI (Settings > AI). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
 
 [app.agent]
 label = "opencode"
-mcp = { file = "opencode.json", template = "opencode" }
+briefing = { file = "opencode.json", template = "opencode", env = { OPENCODE_CONFIG = "{{AI_DIR}}/opencode.json" } }
+mcp = { file = "opencode.json", template = "opencode", env = { OPENCODE_CONFIG = "{{AI_DIR}}/opencode.json" } }
 
 [[app]]
 name = "OpenHands"
@@ -6514,6 +6516,7 @@ requires_cwd = true
 tip = "First run: start `pi` and log in with /login, or set a provider API key in the environment."
 [app.agent]
 label = "pi"
+briefing = { args = ["--append-system-prompt", "{{BRIEFING}}"] }
 
 [[app]]
 name = "Antigravity CLI"
