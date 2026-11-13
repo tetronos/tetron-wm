@@ -24,7 +24,7 @@ pub const CONSOLE_SAFE: &str =
 /// Absent there, so never used by `unicode`: ⓘ ℹ ⏻ ⎘ ⍾ ☰ ᛒ.
 pub const UNICODE_SAFE: &str = concat!(
     "§±²³µ·¹×–—“”•…←↑→↓−≤≥⊙─│╭╮╯╰█■▮▲▶▸▼▾◂●☐✗¶≈¤¦¬°«»‹›░▒╱╲┌┐└┘├┤┬┴┼═║♦‰†‡∞≠≡",
-    "✦⊞▦✕▢❐★☆⏎⌕⌘○✓▣‖▯⌨▤⚙◇◉♪♫▫↯⇄⚠",
+    "✦⊞▦✕▢❐★☆⏎⌕⌘○✓▣‖▯⌨▤⚙◇◉♪♫▫↯⇄⚠◢",
 );
 
 /// Upper half block, for image art only (two pixels per cell), never chrome.
@@ -54,14 +54,16 @@ pub enum Glyph {
     BarOff,
     Terminal,
     Plus,
+    /// The window's bottom right corner: the resize grip.
+    ResizeGrip,
 }
 
-pub const ALL: [Glyph; 20] = [
+pub const ALL: [Glyph; 21] = [
     Glyph::Assistant, Glyph::ModeDesktop, Glyph::ModeSimple, Glyph::Close,
     Glyph::Maximize, Glyph::Restore, Glyph::Pinned, Glyph::Unpinned,
     Glyph::Newline, Glyph::Search, Glyph::Prompt, Glyph::Off, Glyph::Check,
     Glyph::Revoke, Glyph::Paused, Glyph::Info, Glyph::BarOn, Glyph::BarOff,
-    Glyph::Terminal, Glyph::Plus,
+    Glyph::Terminal, Glyph::Plus, Glyph::ResizeGrip,
 ];
 
 /// The glyph in a specific `style`.
@@ -89,6 +91,7 @@ pub fn glyph_for(g: Glyph, style: IconStyle) -> &'static str {
             BarOff => "\u{00B7}",      // ·
             Terminal => ">",
             Plus => "+",
+            ResizeGrip => "\u{2518}", // ┘ (◢ is missing from the console fonts)
         },
         // ⓘ is missing from DejaVu Sans Mono (kmscon would draw tofu).
         IconStyle::Unicode if g == Info => "\u{2261}", // ≡
@@ -113,6 +116,7 @@ pub fn glyph_for(g: Glyph, style: IconStyle) -> &'static str {
             BarOff => "\u{25AF}",      // ▯
             Terminal => "\u{2328}",    // ⌨
             Plus => "+",
+            ResizeGrip => "\u{25E2}",  // ◢
         },
     }
 }

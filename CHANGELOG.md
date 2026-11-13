@@ -7,6 +7,7 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Added
+- The bottom right corner of every window shows a resize grip, `◢` (`┘` with the ascii icon style, since the console fonts lack `◢`). Dragging the right edge, the grip included, resizes the window.
 - Paste in the right-click menu: on the empty part of a file manager window or the desktop (Paste), and on a folder (Paste into folder). Copy and Cut are on the desktop's file menu too, and one clipboard serves the desktop and every file manager window on this machine. A name already there gets " copy", " copy 2"; a cut pasted into its own folder stays as it is; a folder is never pasted into itself. The file manager status line says what was copied or pasted.
 - Empty Trash: right-click on empty space in the file manager or on the desktop, shown when the Trash holds something. A confirmation names how many items go and that it can not be undone; it deletes the Trash's files and their records.
 - Right-click on the empty part of a file manager window opens a menu (Paste, New Folder, Open terminal here, Empty Trash); before, nothing happened.

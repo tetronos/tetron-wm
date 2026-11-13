@@ -101,6 +101,11 @@ fn render_window_draws_title_and_content() {
     assert!(titlerow.contains("btop"));
     // content 'h' should appear at inner (0,1): no left border
     assert_eq!(win_layer.buf.get(0, 1).unwrap().ch, 'h');
+    // The right edge is the border; its bottom cell is the resize grip.
+    let grip = tetron_wm::glyphs::ch(tetron_wm::glyphs::Glyph::ResizeGrip);
+    assert_eq!(win_layer.buf.get(23, 2).unwrap().ch, '│');
+    assert_eq!(win_layer.buf.get(23, 4).unwrap().ch, grip);
+    assert!(grip == '┘' || grip == '◢', "{grip}");
 }
 
 #[test]

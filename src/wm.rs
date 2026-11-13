@@ -351,6 +351,12 @@ pub fn render_window(win: &Window, content: &CellBuffer, focused: bool, shadows:
     for y in 1..r.h {
         buf.set(r.w - 1, y, Cell { ch: '│', fg: t.border, bg: Rgba::TRANSPARENT, attrs: Default::default() });
     }
+    // The bottom right corner shows the resize grip (the whole right edge
+    // resizes; the grip says so where a corner is expected).
+    if r.h >= 2 {
+        let grip = crate::glyphs::ch(crate::glyphs::Glyph::ResizeGrip);
+        buf.set(r.w - 1, r.h - 1, Cell { ch: grip, fg: t.border, bg: Rgba::TRANSPARENT, attrs: Default::default() });
+    }
 
     // Blit content into the inner rect starting at (0, 1).
     for cy in 0..content.height().min(r.h - 1) {
