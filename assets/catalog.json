@@ -70,6 +70,31 @@
    ]
   },
   {
+   "name": "Antigravity CLI",
+   "bin": "agy",
+   "category": "AI",
+   "description": "Google's terminal coding agent, the successor of Gemini CLI; reads AGENTS.md as its rules file.",
+   "homepage": "https://antigravity.google",
+   "recipe": {
+    "install": "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+    "method": "script",
+    "verified": false,
+    "os": [
+     "macos",
+     "linux"
+    ],
+    "requires_cwd": true,
+    "tip": "First run: start `agy` and sign in with your Google account."
+   },
+   "agent": {
+    "label": "Antigravity"
+   },
+   "tier": "optional",
+   "sources": [
+    "tetron"
+   ]
+  },
+  {
    "name": "Auggie",
    "bin": "auggie",
    "category": "AI",
@@ -118,6 +143,15 @@
     "requires_cwd": true,
     "tip": "First run: `claude` walks you through logging in with your Anthropic account (or set ANTHROPIC_API_KEY)."
    },
+   "agent": {
+    "label": "Claude Code",
+    "mcp": {
+     "args": [
+      "--mcp-config",
+      "{{MCP_JSON}}"
+     ]
+    }
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -139,6 +173,17 @@
      "windows"
     ],
     "requires_cwd": true
+   },
+   "agent": {
+    "label": "Codex",
+    "mcp": {
+     "args": [
+      "-c",
+      "mcp_servers.tetron-wm.command=\"{{MCP_BIN}}\"",
+      "-c",
+      "mcp_servers.tetron-wm.args=[\"mcp\"]"
+     ]
+    }
    },
    "tier": "optional",
    "sources": [
@@ -301,6 +346,9 @@
     ],
     "tip": "First run: `hermes model` in a shell to add providers and API keys (or `hermes setup --portal`). Config lives in ~/.hermes/config.yaml. Chat with `hermes --tui`."
    },
+   "agent": {
+    "label": "Hermes"
+   },
    "tier": "optional",
    "sources": [
     "tetron"
@@ -439,6 +487,13 @@
     "requires_cwd": true,
     "tip": "The agent of the ✦ Assistant (Settings > Assistant). First run: `opencode auth login` to pick a provider and add a key; local models via Ollama are supported. Settings > Updates keeps this copy current."
    },
+   "agent": {
+    "label": "opencode",
+    "mcp": {
+     "file": "opencode.json",
+     "template": "opencode"
+    }
+   },
    "pkg": {
     "pacman": "opencode",
     "brew": "opencode"
@@ -466,6 +521,31 @@
      "windows"
     ],
     "requires_cwd": true
+   },
+   "tier": "optional",
+   "sources": [
+    "tetron"
+   ]
+  },
+  {
+   "name": "pi",
+   "bin": "pi",
+   "category": "AI",
+   "description": "Minimal, extensible terminal coding agent: four core tools, many model providers, extensions and skills.",
+   "homepage": "https://github.com/badlogic/pi-mono",
+   "recipe": {
+    "install": "npm install -g @mariozechner/pi-coding-agent",
+    "method": "npm",
+    "verified": false,
+    "os": [
+     "macos",
+     "linux"
+    ],
+    "requires_cwd": true,
+    "tip": "First run: start `pi` and log in with /login, or set a provider API key in the environment."
+   },
+   "agent": {
+    "label": "pi"
    },
    "tier": "optional",
    "sources": [

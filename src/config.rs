@@ -1,5 +1,24 @@
 use serde::{Deserialize, Serialize};
 
+/// An `[[assistant_agent]]` table: an agent added by hand, or fields that
+/// override the catalog agent with the same `id` (WMAST-001).
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+pub struct AgentDef {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_files: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub env: std::collections::BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp: Option<crate::catalog::McpWiring>,
+}
+
 /// A single application entry in the config file.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct AppEntry {
@@ -185,14 +204,22 @@ pub struct Config {
     /// migration and never written back.
     #[serde(default, skip_serializing)]
     pub desktop_positions: std::collections::BTreeMap<String, (u16, u16)>,
-    /// Agent CLI for the ✦ assistant panel (default: `opencode`). The Assistant
-    /// settings switch flips this between the two supported agents (`opencode`
-    /// and `hermes`); a hand-edited value may name any binary or wrapper.
+    /// Agent the ✦ assistant runs (default: `opencode`): an agent id from the
+    /// catalog or `assistant_agent`, else a command line (WMAST-001).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub assistant_command: Option<String>,
     /// Extra arguments passed to the assistant CLI.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assistant_args: Vec<String>,
+    /// Agents added by hand, or overrides of catalog agents by `id`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub assistant_agent: Vec<AgentDef>,
+    /// Hand the agent the `tetron-wm mcp` desktop tools (WMAST-006).
+    #[serde(default)]
+    pub assistant_mcp: bool,
+    /// Folder the assistant clones and builds suite code in (default `~/code`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assistant_code_dir: Option<String>,
     /// How the ✦ assistant opens: "panel" (right-docked) or "window" (floating).
     #[serde(default = "default_assistant_mode")]
     pub assistant_mode: String,
@@ -356,6 +383,9 @@ impl Default for Config {
             desktop_positions: std::collections::BTreeMap::new(),
             assistant_command: None,
             assistant_args: Vec::new(),
+            assistant_agent: Vec::new(),
+            assistant_mcp: false,
+            assistant_code_dir: None,
             assistant_mode: default_assistant_mode(),
             update_branch: default_update_branch(),
             clipboard_history: true,

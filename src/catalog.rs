@@ -53,6 +53,43 @@ pub struct CatalogApp {
     /// (lists/repology.json) and lists/tetron.toml. Empty: no package known.
     #[serde(default)]
     pub pkg: Packages,
+    /// Set when this app is an agent CLI the ✦ Assistant can run (WMAST-001).
+    #[serde(default)]
+    pub agent: Option<AgentSpec>,
+}
+
+/// How the ✦ Assistant runs a catalogued agent CLI (the entry's `agent`
+/// table). Every field is optional so newer lists stay readable here.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+pub struct AgentSpec {
+    /// Name in Settings; the app's name when empty.
+    #[serde(default)]
+    pub label: String,
+    /// Command to run; the app's `bin` when empty.
+    #[serde(default)]
+    pub command: String,
+    /// Arguments it always gets.
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Other file names it reads its instructions from, linked to AGENTS.md.
+    #[serde(default)]
+    pub context_files: Vec<String>,
+    /// How it is told about `tetron-wm mcp` (WMAST-006).
+    #[serde(default)]
+    pub mcp: Option<McpWiring>,
+}
+
+/// Where an agent learns about the tetron-wm MCP server: a file in the
+/// assistant folder from a named template, or extra arguments in which
+/// `{{MCP_JSON}}` and `{{MCP_BIN}}` are filled.
+#[derive(Clone, Debug, Default, Deserialize, serde::Serialize, PartialEq)]
+pub struct McpWiring {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub file: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub template: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
 }
 
 /// An app's package name for each package manager the Store uses; an empty

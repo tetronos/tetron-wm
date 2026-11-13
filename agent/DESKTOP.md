@@ -45,3 +45,10 @@ Other things worth knowing when helping the user:
 - Updating tetron-wm is **Settings → Updates** (default channel downloads the
   latest prebuilt release; a "dev" channel builds the dev branch from source).
 - The version is in `Cargo.toml`; release notes are in `CHANGELOG.md`.
+
+## Desktop tools over MCP
+
+When the user turns on Settings → Assistant → Desktop tools (MCP), you also
+get `tetron-wm` MCP tools (list windows, read a window's text, launch, focus,
+close, tile, theme, notify, screenshot). Prefer them when present: they
+answer in structured form. Without them, use the `tetron-wm` commands above.

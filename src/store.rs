@@ -144,6 +144,13 @@ impl Store {
         self.query.pop();
         self.reset_list();
     }
+    /// Show the apps matching `q` in All (the Store opened for one app).
+    pub fn set_query(&mut self, q: &str) {
+        self.cat_index = 0;
+        self.query = q.to_string();
+        self.reset_list();
+    }
+
     fn reset_list(&mut self) {
         self.selected = 0;
         self.scroll = 0;

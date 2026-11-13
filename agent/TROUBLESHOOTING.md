@@ -27,17 +27,6 @@ copy it to their clipboard with `c`.
 
 ## Fixing tetron-wm itself
 
-The source is at {{REPO}}. To fix a bug:
-
-```sh
-git clone {{REPO}} && cd tetron-wm
-cargo build          # build
-cargo test           # 300+ tests must stay green
-```
-
-Make the fix, keep the existing code style, add a regression test, and open a
-pull request against that repository. The user installs your merged fix
-in-app via Settings → Updates: the **main** channel downloads the latest
-prebuilt release (fast), falling back to `cargo install --git {{REPO}}`; the
-**dev** channel always builds from source (`cargo install --git {{REPO}}
---branch dev`). Either way it reloads with apps intact.
+See "Working on the suite's code" below: clone into the code folder, fix on a
+branch with a regression test, run your own build, reload. Released fixes
+reach the user through Settings → Updates.

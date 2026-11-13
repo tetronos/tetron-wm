@@ -1394,6 +1394,7 @@ impl SessionCore {
                 }
             }
             Some(crate::settings::SettingsAction::RefreshSound) => self.refresh_sound_outputs(),
+            Some(crate::settings::SettingsAction::OpenStoreFor(app)) => self.open_store_for(&app),
             Some(crate::settings::SettingsAction::WaiterService(on)) => {
                 self.refresh_waiter = true;
                 self.hand_over(vec!["@waiter".to_string(), if on { "on" } else { "off" }.to_string()]);
@@ -4198,6 +4199,15 @@ or a remote-side error — its authorized_keys was left untouched)",
     }
 
     /// Open the store window, or focus it if it's already open.
+    /// Open the Store filtered to one app (Settings > Assistant > Agent on
+    /// an agent that is not installed).
+    fn open_store_for(&mut self, app: &str) {
+        self.open_store();
+        if let Some(WinContent::Store(st)) = self.store_win.and_then(|id| self.contents.get_mut(&id)) {
+            st.set_query(app);
+        }
+    }
+
     fn open_store(&mut self) {
         if let Some(id) = self.store_win {
             if self.contents.contains_key(&id) {
@@ -4295,30 +4305,36 @@ or a remote-side error — its authorized_keys was left untouched)",
         self.open_assistant();
     }
 
-    /// Spawn the assistant agent (opencode by default) in a persistent
-    /// right-side panel. The agent is a normal apphost app (survives
-    /// detach/reload); its briefing is stamped as `AGENTS.md` in a dedicated
-    /// working directory, which opencode reads on startup.
+    /// Spawn the assistant agent (`assistant_command`, opencode by default) in
+    /// a persistent right-side panel. The agent is a normal apphost app
+    /// (survives detach/reload); its briefing is stamped as `AGENTS.md` in a
+    /// dedicated working directory, which the agent reads on startup.
     fn open_assistant(&mut self) {
-        let Some((command, args)) =
-            crate::assistant::resolve_agent(self.cfg.assistant_command.as_deref(), &self.cfg.assistant_args)
-        else {
+        let Some((agent, command, mut args)) = crate::assistant::resolve(&self.cfg) else {
+            let a = crate::assistant::selected(&self.cfg);
             crate::dbg_log(&format!(
-                "assistant: '{}' not found (install it, or set assistant_command in config.toml)",
-                crate::assistant::DEFAULT_AGENT
+                "assistant: '{}' ({}) not installed; opening the Store (or set assistant_command in config.toml)",
+                a.label, a.command
             ));
-            // Point the user at the AI category instead of failing silently.
             self.open_store();
             return;
         };
         let Some(dir) = crate::assistant::workdir() else { return };
         let host = self.host_label.clone();
-        if let Err(e) = crate::assistant::write_briefing(&dir, &host, &self.systems) {
+        let code = crate::assistant::code_dir(&self.cfg);
+        if let Err(e) = crate::assistant::write_briefing(&dir, &host, &self.systems, &code) {
             crate::log_warn(&format!("assistant: briefing write failed: {e}"));
         }
+        crate::assistant::link_context(&dir, &agent);
+        let all = crate::assistant::agents(&self.cfg.assistant_agent);
+        let bin = crate::assistant::self_bin();
+        args.extend(crate::assistant::wire_mcp(&dir, &agent, &all, self.cfg.assistant_mcp, &bin));
         crate::dbg_log(&format!(
-            "assistant: starting '{command}' ({}) in {}",
+            "assistant: starting {} as '{command}' {:?} ({}, mcp {}) in {}",
+            agent.label,
+            args,
             self.cfg.assistant_mode,
+            if self.cfg.assistant_mcp { "on" } else { "off" },
             dir.display()
         ));
         // "panel": right-docked, full work height, 2/5 width (clamped readable).

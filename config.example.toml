@@ -121,11 +121,29 @@ show_hidden_dirs = false
 #filemanager_view = "list"
 
 ## ── Assistant (the ✦ panel) ───────────────────────────────────────────────
-## Agent CLI the assistant runs: "opencode" (default when unset) or "hermes", or
-## any binary or wrapper script.
+## Agent the assistant runs: an agent id ("opencode" when unset; Settings >
+## Assistant > Agent lists the agents the app catalog knows: opencode, hermes,
+## pi, codex, claude, agy, ...), or any command line.
 #assistant_command = "opencode"
 ## Extra arguments for the assistant CLI.
 assistant_args = []
+## Give the agent the tetron-wm desktop tools over MCP. The agent starts
+## `tetron-wm mcp` itself while it runs; nothing runs otherwise.
+assistant_mcp = false
+## Folder the assistant clones and builds suite code in.
+#assistant_code_dir = "~/code"
+## Add an agent by hand, or override a catalog agent field by field (same id).
+## Tables go at the end of the file (keys after a table header belong to it).
+## mcp: file + template ("json" or "opencode") written in the assistant folder,
+## or args where {{MCP_JSON}} and {{MCP_BIN}} are filled.
+#[[assistant_agent]]
+#id = "newthing"
+#label = "NewThing"
+#command = "newthing"
+#args = ["--tui"]
+#context_files = ["NEWTHING.md"]
+#env = { NEWTHING_MODEL = "local" }
+#mcp = { args = ["--mcp-config", "{{MCP_JSON}}"] }
 ## How it opens: "panel" (right-docked) or "window" (floating).
 assistant_mode = "panel"
 

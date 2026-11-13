@@ -29,14 +29,18 @@ SUITE = ROOT / "assets" / "suite-apps.txt"
 SCHEMA = 1
 IMPORTED = ["awesome-tuis"]
 REQUIRED = ["name", "bin", "category", "description", "homepage"]
-OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg", "set"]
+OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg", "set", "agent"]
 MANAGERS = ("apt", "dnf", "pacman", "brew")
 RECIPE_KEYS = {"install", "method", "verified", "os", "requires_cwd", "tip"}
+# The agent table of an AI coding agent the ✦ Assistant can run (WMAST-001).
+AGENT_KEYS = {"label", "command", "args", "context_files", "mcp"}
+MCP_KEYS = {"file", "template", "args"}
+MCP_TEMPLATES = {"json", "opencode"}
 TIERS = {"default", "recommended", "optional"}
 # Suite sizes (WMINST-001) and the catalog tier an app of each gets.
 SIZES = {"essentials": "default", "recommended": "recommended", "extras": "optional"}
 ORDER = ["name", "bin", "variants", "category", "description", "homepage", "cli", "needs_url",
-         "recipe", "pkg", "tier", "set", "sources"]
+         "recipe", "agent", "pkg", "tier", "set", "sources"]
 
 
 def fail(msg):
@@ -73,8 +77,28 @@ def check_ours(app, i):
         fail(f"{app['name']}: set must be one of {list(SIZES)}")
     if "recipe" in app and (set(app["recipe"]) - RECIPE_KEYS or "install" not in app["recipe"]):
         fail(f"{app['name']}: recipe needs install and only {sorted(RECIPE_KEYS)}")
+    if "agent" in app:
+        check_agent(app["name"], app["agent"])
     if "pkg" in app and (set(app["pkg"]) - set(MANAGERS) or not all(isinstance(v, str) for v in app["pkg"].values())):
         fail(f"{app['name']}: pkg takes only {list(MANAGERS)} as strings")
+
+
+def check_agent(name, ag):
+    """The agent table (WMAST-001): known keys, string lists, plain context file names."""
+    if set(ag) - AGENT_KEYS:
+        fail(f"{name}: agent takes only {sorted(AGENT_KEYS)}")
+    for k in ("args", "context_files"):
+        if not all(isinstance(v, str) for v in ag.get(k, [])):
+            fail(f"{name}: agent.{k} must be a list of strings")
+    if any("/" in f or f in ("", ".", "..", "AGENTS.md") for f in ag.get("context_files", [])):
+        fail(f"{name}: agent.context_files are plain file names other than AGENTS.md")
+    mcp = ag.get("mcp", {})
+    if set(mcp) - MCP_KEYS or ("file" in mcp) != ("template" in mcp):
+        fail(f"{name}: agent.mcp takes file with template, or args")
+    if "template" in mcp and mcp["template"] not in MCP_TEMPLATES:
+        fail(f"{name}: agent.mcp.template must be one of {sorted(MCP_TEMPLATES)}")
+    if ".." in mcp.get("file", "").split("/") or mcp.get("file", "").startswith("/"):
+        fail(f"{name}: agent.mcp.file is relative to the assistant folder")
 
 
 def merged_apps(lists=LISTS):
