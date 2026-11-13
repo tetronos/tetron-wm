@@ -116,6 +116,7 @@ pub enum SettingsAction {
 enum PickFor {
     Agent,
     Cwd,
+    Theme,
 }
 
 /// Picker key of the "Custom command…" row.
@@ -478,6 +479,7 @@ impl Settings {
                 match what {
                     PickFor::Agent => self.choose_agent(&key),
                     PickFor::Cwd => self.choose_cwd(&key),
+                    PickFor::Theme => self.cfg.theme = key,
                 }
             }
         }
@@ -503,6 +505,19 @@ impl Settings {
             Some(_) => "@other",
         };
         self.picker = Some((PickFor::Cwd, ListPicker::new("AI \u{203A} Working folder", items, cur)));
+    }
+
+    /// Appearance > Theme: every theme, built-in first, then theme files.
+    fn open_theme_picker(&mut self) {
+        use crate::listpicker::{ListPicker, PickItem};
+        let items = crate::theme::preset_names()
+            .into_iter()
+            .map(|n| {
+                let kind = if crate::theme::PRESETS.contains(&n.as_str()) { "built-in" } else { "theme file" };
+                PickItem { detail: kind.into(), label: n.clone(), key: n }
+            })
+            .collect();
+        self.picker = Some((PickFor::Theme, ListPicker::new("Appearance \u{203A} Theme", items, &self.cfg.theme)));
     }
 
     fn choose_cwd(&mut self, key: &str) {
@@ -801,6 +816,8 @@ impl Settings {
             (WINDOWS, 9) if self.waiter != crate::fullscreen::Service::Missing => {
                 self.action = Some(SettingsAction::WaiterService(self.waiter != crate::fullscreen::Service::Running));
             }
+            // Enter lists the themes (WMAST-002's pick list); Left/Right still step.
+            (APPEARANCE, 0) if dir == 0 => self.open_theme_picker(),
             (APPEARANCE, 0) => {
                 let presets = crate::theme::preset_names();
                 let cur_idx = presets.iter().position(|p| p == &self.cfg.theme).unwrap_or(0);
@@ -1204,6 +1221,15 @@ impl Settings {
         buf.write_str(cx, 1, SECTIONS[self.section], pal_accent(), pal_bg());
 
         match self.section {
+            // An open pick list (AI agent or working folder, theme) covers the rows.
+            _ if self.picker.is_some() => {
+                for x in cx..w {
+                    buf.set(x, 1, Cell { ch: ' ', fg: pal_fg(), bg: pal_bg(), attrs: Default::default() });
+                }
+                if let Some((_, p)) = self.picker.as_ref() {
+                    p.render(&mut buf, cx, w, h);
+                }
+            }
             WINDOWS => {
                 self.row(&mut buf, cx, 3, 0, "Drag-to-cell snapping", toggle_val(self.cfg.snapping_enabled));
                 self.row(&mut buf, cx, 4, 1, "Snap threshold (cells)", format!("\u{25C2} {} \u{25B8}", self.cfg.snap_threshold));
@@ -1222,7 +1248,7 @@ impl Settings {
                 self.row(&mut buf, cx, 12, 9, "Full screen helper service", waiter.into());
             }
             APPEARANCE => {
-                self.row(&mut buf, cx, 3, 0, "Theme", self.cfg.theme.clone());
+                self.row(&mut buf, cx, 3, 0, "Theme", format!("\u{25C2} {} \u{25B8} \u{25BE}", self.cfg.theme));
                 self.row(&mut buf, cx, 4, 1, "Wallpaper", toggle_val(self.cfg.wallpaper_enabled));
                 // Filename text box. While editing, show the live buffer with a
                 // cursor; otherwise the saved value (or a placeholder).
@@ -1288,14 +1314,6 @@ impl Settings {
                 }
             }
             APPS => self.render_apps(&mut buf, cx, w),
-            ASSISTANT if self.picker.is_some() => {
-                for x in cx..w {
-                    buf.set(x, 1, Cell { ch: ' ', fg: pal_fg(), bg: pal_bg(), attrs: Default::default() });
-                }
-                if let Some((_, p)) = self.picker.as_ref() {
-                    p.render(&mut buf, cx, w, h);
-                }
-            }
             ASSISTANT => {
                 let a = crate::assistant::selected(&self.cfg);
                 let agent_val = match self.text.as_ref().filter(|t| t.target == TextTarget::AgentCommand) {
@@ -2206,6 +2224,24 @@ mod tests {
         s.cancel_edit();
         assert!(s.picker.is_none());
         assert_eq!(s.config().assistant_command.as_deref(), Some("hermes"));
+    }
+
+    #[test]
+    fn theme_row_enter_opens_a_picker_and_arrows_still_step() {
+        let mut s = Settings::new(Config::default());
+        s.section = APPEARANCE;
+        s.sel = 0;
+        let start = s.config().theme.clone();
+        s.right();
+        assert_ne!(s.config().theme, start, "Right steps to the next theme");
+        s.toggle();
+        assert!(s.is_editing(), "Enter opens the list");
+        for c in "gruv".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().theme, "gruvbox");
+        assert!(s.picker.is_none());
     }
 
     #[test]

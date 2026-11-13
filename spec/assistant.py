@@ -26,6 +26,10 @@ class AgentsAreData(Requirement):
 class AgentPicker(Requirement):
     """REQUIREMENT-ID: WMAST-002
 
+    The pick list is one widget, also used by Settings > AI > Working folder
+    and Settings > Appearance > Theme (Enter lists every theme, built-in then
+    theme files; Left and Right still step through them).
+
     Settings > AI > Agent opens a picker list instead of cycling:
     installed agents first, then agents not installed (choosing one opens the
     Store), then "Custom command…", which opens a text box and stores the

@@ -6,7 +6,10 @@ fn toggle_changes_config() {
     let mut s = Settings::new(Config::default());
     // Theme is the first row of Appearance; window shadows are file-only.
     let before = s.config().theme.clone();
-    s.toggle(); // Appearance (first) / theme
+    s.toggle(); // Appearance (first) / theme: Enter opens the theme list
+    assert!(s.is_editing());
+    s.move_down();
+    s.toggle(); // choose the next theme
     assert_ne!(s.config().theme, before);
     assert!(!s.config().window_shadows, "shadows stay off: no Settings row");
     s.next_section(); // Windows

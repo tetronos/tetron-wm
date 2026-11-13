@@ -50,7 +50,7 @@ Keys below are leader sequences: press `Ctrl+Space`, release, then the key. The 
 
 ## Look and feel
 
-- **Themes.** Six built in (newmoon, midnight, nord, gruvbox, dracula, pastoral). Drop your own `*.toml` into `~/.config/tetron-wm/themes/`. Switch live in Settings → Appearance or with `tetron-wm theme NAME`.
+- **Themes.** Four built in (midnight, gruvbox, pastoral, windows) plus theme files: the suite installer and Settings → Appearance → Get more themes add the ones on GitHub, and your own `*.toml` go in `~/.config/tetron-wm/themes/`. Switch live in Settings → Appearance → Theme (Enter lists every theme, type to filter; Left/Right step) or with `tetron-wm theme NAME`.
 - **Terminal colors.** `terminal_bg` and `terminal_fg` decouple app colors from the desktop, for example a light desktop with dark terminals.
 - **Wallpaper.** Any image, rendered to colored cells with [chafa](https://hpjansson.org/chafa/), so it works on any terminal including a bare console.
 - **Icon style.** `auto` (the default) draws `ascii` glyphs on a bare Linux console, whose fonts lack most symbols, and `unicode` everywhere else. `nerd` and `emoji` are there for terminals with those fonts.
