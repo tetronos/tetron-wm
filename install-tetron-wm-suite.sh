@@ -731,6 +731,53 @@ install_uv_app() {
   log "installing $1: $uv tool install ${args[*]}"
   "$uv" tool install "${args[@]}" || warn "$1 did not install"
 }
+# tetron-browser is a package of the tetronos apt repo only. Where apt has no
+# candidate (the repo is added only by the deb method, WMINST-013) or on
+# another Linux, its release is installed instead (WMINST-014): the .deb on
+# Debian and Ubuntu, the zip under ~/.local elsewhere, each checked against
+# its .sha256. amd64 only, like the release.
+TB_RELEASES="${TETRON_BROWSER_RELEASES_URL:-https://github.com/tetronos/tetron-browser/releases}"
+tb_in_size() { apps_for "$SIZE" apps | cut -d: -f1 | grep -x tetron-browser >/dev/null; }
+tb_missing() { [ "$IS_LINUX" = 1 ] && [ "$(uname -m)" = x86_64 ] && tb_in_size && ! have_tool tetron-browser; }
+install_tetron_browser() {
+  local tag a tmp want got dest
+  tag="${TETRON_BROWSER_TAG:-}"
+  [ -n "$tag" ] || tag="$(curl -fsSI "https://github.com/tetronos/tetron-browser/releases/latest" 2>/dev/null \
+    | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}' | tail -1 | sed 's|.*/releases/tag/||')"
+  [ -n "$tag" ] || { warn "tetron-browser: could not find its latest release"; FAILED="$FAILED tetron-browser"; return 1; }
+  if deb_host; then
+    a="$(fetch "$TB_RELEASES/expanded_assets/$tag" 2>/dev/null | grep -o 'tetron-browser_[^"/<> ]*_amd64\.deb' | head -1 || true)"
+  else
+    a=tetron-browser.linux-amd64.zip
+  fi
+  [ -n "$a" ] || { warn "tetron-browser: release $tag has no .deb"; FAILED="$FAILED tetron-browser"; return 1; }
+  tmp="$(mktemp -d)"
+  log "tetron-browser: downloading $a ($tag; apt has no tetron-browser here)"
+  if ! fetch "$TB_RELEASES/download/$tag/$a" > "$tmp/$a" || ! fetch "$TB_RELEASES/download/$tag/$a.sha256" > "$tmp/$a.sha256"; then
+    warn "tetron-browser: download failed"; rm -rf "$tmp"; FAILED="$FAILED tetron-browser"; return 1
+  fi
+  want="$(cut -d' ' -f1 < "$tmp/$a.sha256")"; got="$(sha256sum "$tmp/$a" | cut -d' ' -f1)"
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    warn "tetron-browser: checksum mismatch for $a; not installed"; rm -rf "$tmp"; FAILED="$FAILED tetron-browser"; return 1
+  fi
+  if deb_host; then
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$tmp/$a" || { warn "tetron-browser: apt could not install $a"; FAILED="$FAILED tetron-browser"; }
+  else
+    # ~/.local/share/tetron-browser holds the unpacked release; ~/.local/bin/tetron-browser links to it.
+    dest="$HOME/.local/share/tetron-browser"
+    rm -rf "$dest.new"; mkdir -p "$dest.new" "$HOME/.local/bin"
+    if python3 -I -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])' "$tmp/$a" "$dest.new" 2>/dev/null \
+      && chmod +x "$dest.new"/*/tetron-browser 2>/dev/null; then
+      rm -rf "$dest"; mv "$dest.new" "$dest"
+      ln -sf "$(ls -d "$dest"/*/tetron-browser | head -1)" "$HOME/.local/bin/tetron-browser"
+      log "tetron-browser: installed to $dest (run: tetron-browser)"
+    else
+      rm -rf "$dest.new"; warn "tetron-browser: could not unpack $a (needs python3)"; FAILED="$FAILED tetron-browser"
+    fi
+  fi
+  rm -rf "$tmp"
+}
+
 install_croft() {
   [ "$IS_LINUX" = 1 ] || { warn "croft: Linux builds only here; see https://github.com/vitali87/croft"; return 0; }
   local f tmp; f="croft-$(uname -m)-unknown-linux-musl"; tmp="$(mktemp -d)"
@@ -1215,6 +1262,7 @@ main() {
     shown="$apps"
     { fresh_via_script || fresh_via_brew; } && want_script fresh && shown="${shown:+$shown }fresh"
     uv_via_script && shown="${shown:+$shown }uv"
+    tb_missing && ! printf '%s\n' $apps | grep -x tetron-browser >/dev/null && shown="${shown:+$shown }tetron-browser"
     local cast; cast="$(cast_tools_missing)"
     { want_script catt || want_script casttui; } && [ -n "$cast" ] && shown="${shown:+$shown }$cast"
     want_script nerd-font && nerd_font_missing && shown="${shown:+$shown }nerd-font"
@@ -1272,6 +1320,7 @@ main() {
       [ "$(pm_col)" = 2 ] && [ -n "$apps" ] && apt_update_once
       pm_install "$apps"
     fi
+    tb_missing && install_tetron_browser
     want_script fresh && { fresh_via_script && { apt_first fresh-editor || install_fresh; }; fresh_via_brew && { brew install fresh-editor || warn "fresh did not install"; }; }
     uv_via_script && install_uv
     want_script casttui && ! have_tool casttui && { apt_first casttui || true; }

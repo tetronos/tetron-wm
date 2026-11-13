@@ -498,3 +498,19 @@ class InstallMethodChoice(Requirement):
     `--uninstall --purge` on a diverted host removes the own binary and
     the diversion before removing the packages.
     """
+
+
+class TetronBrowserFromRelease(Requirement):
+    """REQUIREMENT-ID: WMINST-014
+
+    Depends on WMINST-002 and WMINST-013. tetron-browser, in the desktop
+    set, is a package of the tetronos apt repository only, which is added
+    by the deb method alone. When the suite script installs a size with
+    it and it is still missing afterwards on Linux x86_64 (apt had no
+    candidate, or another distribution), the script installs the latest
+    tetron-browser release: the .deb with apt on Debian and Ubuntu, else
+    the zip unpacked into `~/.local/share/tetron-browser` with
+    `~/.local/bin/tetron-browser` linked to it; each checked against its
+    .sha256 first. A failure names tetron-browser in the final problems
+    (exit 1) instead of passing silently. `--dry-run` lists it.
+    """

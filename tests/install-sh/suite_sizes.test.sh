@@ -66,6 +66,7 @@ run fedora:latest '
 out="$(plan)"; ok "fedora: dnf names from the list" "echo \"\$out\" | grep -q \"method=binary\" && echo \"\$out\" | grep -q \"fuse-sshfs\" && echo \"\$out\" | grep -q \"vim-enhanced\" && echo \"\$out\" | grep -q \"dejavu-sans-mono-fonts\""
 ok "essentials size plans opencode (the Assistant agent)" "echo \"\$out\" | grep -q \" opencode\""
 ok "fedora essentials: fbida (View full screen images)" "echo \"\$out\" | grep -q fbida"
+[ "$(uname -m)" = x86_64 ] && ok "fedora essentials: tetron-browser from its release (no distribution has it)" "echo \"\$out\" | grep -q \" tetron-browser\""
 ok "fedora essentials: git, bind-utils; no recommended app" "echo \"\$out\" | grep -q \" git \" && echo \"\$out\" | grep -q bind-utils && ! echo \"\$out\" | grep -q ShellCheck"
 out="$(plan --no-scripts)"; ok "--no-scripts: packages only, no opencode, no fresh" "echo \"\$out\" | grep -q fbida && ! echo \"\$out\" | grep -q \" opencode\" && ! echo \"\$out\" | grep -q \" fresh\""
 out="$(plan --size recommended)"; ok "fedora recommended: dnf names of the recommended set" "echo \"\$out\" | grep -q ShellCheck && echo \"\$out\" | grep -q ffmpeg-free && ! echo \"\$out\" | grep -q lazygit"
