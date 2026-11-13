@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.8] — 2026-11-13
+
 ### Added
 - The ✦ Assistant runs any agent CLI. Agents are data: an app catalog entry with an `agent` table (the Store's Update list brings new ones without a release), or `[[assistant_agent]]` tables in `config.toml`, which also override a catalog agent field by field. The catalog knows opencode (default), Hermes, pi, Codex, Claude Code and Antigravity CLI (`agy`); pi and Antigravity CLI are new Store entries (recipes not yet checked in a VM).
 - Settings > AI > Agent opens a pick list (installed agents, then the others, which open the Store, then Custom command…) with type-to-filter and scrolling, instead of cycling between opencode and hermes.
