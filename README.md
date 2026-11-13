@@ -25,7 +25,7 @@ Prebuilt binary for Linux (x86_64, aarch64) and macOS (Apple silicon, Intel). No
 curl -fsSL https://tetronos.github.io/tetron-wm/install.sh | bash
 ```
 
-It asks how much to install (minimal: tetron-wm only; desktop: plus the tools its features use, the default; extras: plus git) and what kind of machine this is, then installs. On Debian and Ubuntu it uses the `.deb` packages once a release carries them, so apt manages tetron-wm and the apps. Every way to install, what each size brings, and how to update and remove: [docs/INSTALL_tetron-wm_methods_and_sizes.md](docs/INSTALL_tetron-wm_methods_and_sizes.md).
+It asks how much to install (minimal: tetron-wm only; desktop: plus the tools its features use, the default; extras: plus git) and what kind of machine this is, then installs. On Debian and Ubuntu it uses the `.deb` packages once a release carries them, so apt manages tetron-wm and the apps. Every way to install, what each size brings, and how to update and remove: [docs/INSTALL_tetron-wm_methods_and_sizes.md](docs/INSTALL_tetron-wm_methods_and_sizes.md). How the Store, Settings > General > Apps and the suite installer install apps, step by step: [docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md](docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md).
 
 Only tetron-wm, nothing else (the suite installer, or Settings > General > Apps, adds the apps later). It installs to `/usr/local/bin` with `sudo`; for your home instead:
 
