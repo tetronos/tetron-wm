@@ -490,11 +490,13 @@ present() {
     return 1 ;;
   esac
   case "$1" in
-    consolefonts) ls /usr/share/consolefonts/* /usr/lib/kbd/consolefonts/* >/dev/null 2>&1 ;;
+    consolefonts) # either folder (Debian and Ubuntu, or kbd); ls fails when one is absent
+      local d; for d in /usr/share/consolefonts /usr/lib/kbd/consolefonts; do
+        [ -n "$(ls -A "$d" 2>/dev/null)" ] && return 0; done; return 1 ;;
     font=*)
       if have fc-list; then fc-list "${1#font=}" 2>/dev/null | grep -q .
       else ls /usr/share/fonts/*/*/DejaVuSansMono.ttf /usr/share/fonts/*/DejaVuSansMono.ttf >/dev/null 2>&1; fi ;;
-    *) have "$1" ;;
+    *) have_tool "$1" ;;
   esac
 }
 
@@ -541,12 +543,40 @@ pm_install() {  # $1 = space-separated packages
   [ -n "$pkgs" ] || return 0
   log "installing: $pkgs"
   # shellcheck disable=SC2086
+  pm_run $pkgs && return 0
+  # A failed batch may still have installed most packages (apt fails when one
+  # package does not configure), so judge by what is installed: retry the
+  # rest one by one and name only those still missing (WMINST-015).
+  local p bad=""
+  log "the package manager reported an error; checking each package"
+  for p in $pkgs; do
+    pm_has "$p" && continue
+    pm_run "$p" >/dev/null 2>&1 || true
+    pm_has "$p" || bad="$bad $p"
+  done
+  [ -z "$bad" ] || warn "did not install:$bad (see docs/DEPENDENCIES_tetron-wm_recommended_installs.md)"
+}
+# pm_has PKG: the package manager lists PKG as installed.
+pm_has() {
   case "$(pm_col)" in
-    2) $SUDO apt-get install -y $pkgs ;;
-    3) $SUDO dnf install -y $pkgs ;;
-    4) $SUDO pacman -S --needed --noconfirm $pkgs ;;
-    5) brew install $pkgs ;;
-  esac || warn "some packages did not install: $pkgs (see docs/DEPENDENCIES_tetron-wm_recommended_installs.md)"
+    2) [ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = installed ] ;;
+    3) rpm -q "$1" >/dev/null 2>&1 ;;
+    4) pacman -Q "$1" >/dev/null 2>&1 ;;
+    5) brew list --versions "$1" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+# apt asks debconf questions (console-setup's character set, for example)
+# only when someone can answer: never with --yes or without a terminal.
+apt_env() { if [ "$ASSUME_YES" = 1 ] || [ ! -t 0 ]; then echo DEBIAN_FRONTEND=noninteractive; else echo DEBIAN_FRONTEND="${DEBIAN_FRONTEND:-dialog}"; fi; }
+pm_run() {
+  case "$(pm_col)" in
+    2) $SUDO env "$(apt_env)" apt-get install -y "$@" ;;
+    3) $SUDO dnf install -y "$@" ;;
+    4) $SUDO pacman -S --needed --noconfirm "$@" ;;
+    5) brew install "$@" ;;
+    *) return 1 ;;
+  esac
 }
 
 # gpm needs a mouse device: without one (headless servers, many VMs) Debian's
@@ -776,6 +806,87 @@ install_tetron_browser() {
     fi
   fi
   rm -rf "$tmp"
+}
+
+# Release fallbacks (WMINST-015): a member of the size that is still missing
+# after the package manager ran (Ubuntu 24.04 lacks several Debian 13 apps)
+# comes from its GitHub release, as listed in [[release]] of lists/tetron.toml:
+# a .deb with apt (Debian and Ubuntu only), or a .tar.gz whose check command
+# goes to ~/.local/bin. Each asset is checked against the SHA256 digest GitHub
+# lists for it. Then brew, when installed, for what is still missing; the rest
+# is named at the end.
+GH_API="${TETRON_WM_GH_API:-https://api.github.com}"
+release_arch() { case "$(uname -m)" in x86_64|amd64) echo amd64 ;; aarch64|arm64) echo arm64 ;; esac; }
+# asset_digest REPO GLOB: "name url sha256" of the latest release's asset matching GLOB.
+asset_digest() {
+  local re; re="$(printf '%s' "$2" | sed 's/[.]/\\./g; s/[*]/[^"]*/g')"
+  fetch "$GH_API/repos/$1/releases/latest" 2>/dev/null | tr ',' '\n' | awk -v re="^$re\$" '
+    /"name":/ { n = $0; sub(/.*"name": *"/, "", n); sub(/".*/, "", n); keep = (n ~ re) }
+    keep && /"digest":/ { d = $0; sub(/.*"sha256:/, "", d); sub(/".*/, "", d) }
+    keep && /"browser_download_url":/ { u = $0; sub(/.*"browser_download_url": *"/, "", u); sub(/".*/, "", u); print n, u, d; exit }'
+}
+install_from_release() {  # $1 check, $2 repo, $3 asset glob
+  local name url want tmp got bin
+  read -r name url want <<EOF_ASSET
+$(asset_digest "$2" "$3")
+EOF_ASSET
+  [ -n "$url" ] || { warn "$1: no release asset $3 in $2"; return 1; }
+  [ -n "$want" ] || { warn "$1: GitHub lists no checksum for $name; not installed"; return 1; }
+  case "$name" in *.deb) deb_host || return 1 ;; esac
+  tmp="$(mktemp -d)"
+  log "$1: from its release ($2, $name)"
+  if ! fetch "$url" > "$tmp/$name"; then warn "$1: download failed"; rm -rf "$tmp"; return 1; fi
+  got="$(sha256sum "$tmp/$name" | cut -d' ' -f1)"
+  if [ "$got" != "$want" ]; then warn "$1: checksum mismatch for $name; not installed"; rm -rf "$tmp"; return 1; fi
+  case "$name" in
+    *.deb) $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$tmp/$name" || { rm -rf "$tmp"; return 1; } ;;
+    *.tar.gz)
+      mkdir -p "$tmp/x" "$HOME/.local/bin"
+      tar -xzf "$tmp/$name" -C "$tmp/x" || { rm -rf "$tmp"; return 1; }
+      bin="$(find "$tmp/x" -type f -name "$1" | head -1)"
+      [ -n "$bin" ] || { warn "$1: no $1 in $name"; rm -rf "$tmp"; return 1; }
+      install -m 755 "$bin" "$HOME/.local/bin/$1" ;;
+    *) rm -rf "$tmp"; return 1 ;;
+  esac
+  rm -rf "$tmp"
+}
+# The size's members still missing that this system should have (a package
+# name here, or a release to fall back on), as "check brew-name" lines.
+still_missing() {
+  local l rel check a b c d brew name col
+  l="$(apps_for "$SIZE" apps)"
+  no_mouse && l="$(printf '%s\n' "$l" | grep -v '^gpm:' || true)"
+  is_graphical && l="$l
+$(apps_for "$SIZE" gui)"
+  rel="$(apps_for "$SIZE" release | cut -d: -f1)"
+  col="$(pm_col)"
+  printf '%s\n' "$l" | while IFS=: read -r check a b c brew; do
+    [ -n "$check" ] || continue
+    case "$col" in 2) name="$a" ;; 3) name="$b" ;; 4) name="$c" ;; 5) name="$brew" ;; *) name="" ;; esac
+    [ -n "$name" ] || printf '%s\n' "$rel" | grep -x "$check" >/dev/null || continue
+    present "$check" || echo "$check ${brew:-}"
+  done
+}
+install_fallbacks() {
+  [ "$IS_LINUX" = 1 ] || return 0
+  local arch line size grp check repo a64 r64 asset brew left=""
+  arch="$(release_arch)"
+  apps_for "$SIZE" release | while IFS=: read -r check repo a64 r64; do
+    present "$check" && continue
+    asset="$a64"; [ "$arch" = arm64 ] && asset="$r64"
+    [ -n "$asset" ] && [ -n "$arch" ] && { install_from_release "$check" "$repo" "$asset" || true; }
+  done
+  while read -r check brew; do
+    [ -n "$check" ] || continue
+    if have brew && [ -n "$brew" ] && brew install "$brew" >/dev/null 2>&1 && present "$check"; then
+      log "$check: installed with brew"
+    else
+      left="$left $check"
+    fi
+  done <<EOF_LEFT
+$(still_missing)
+EOF_LEFT
+  [ -z "$left" ] || warn "not installed (no package here, no release to fall back on):$left. The Store can install some of them through Homebrew."
 }
 
 install_croft() {
@@ -1321,6 +1432,7 @@ main() {
       pm_install "$apps"
     fi
     tb_missing && install_tetron_browser
+    install_fallbacks
     want_script fresh && { fresh_via_script && { apt_first fresh-editor || install_fresh; }; fresh_via_brew && { brew install fresh-editor || warn "fresh did not install"; }; }
     uv_via_script && install_uv
     want_script casttui && ! have_tool casttui && { apt_first casttui || true; }

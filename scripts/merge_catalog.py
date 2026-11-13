@@ -51,7 +51,7 @@ def suite_sets(text):
         if not line or line.startswith("#"):
             continue
         f = line.split(":")
-        if f[0] not in rank or len(f) < 3 or f[1] == "services":
+        if f[0] not in rank or len(f) < 3 or f[1] in ("services", "release"):
             continue
         names = [f[2]] if f[1] == "script" else [f[2]] + [n for n in f[3:] if n]
         for n in names:

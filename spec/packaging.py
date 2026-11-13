@@ -514,3 +514,25 @@ class TetronBrowserFromRelease(Requirement):
     .sha256 first. A failure names tetron-browser in the final problems
     (exit 1) instead of passing silently. `--dry-run` lists it.
     """
+
+
+class SuiteAppsFallBackAndReportByState(Requirement):
+    """REQUIREMENT-ID: WMINST-015
+
+    Depends on WMINST-002 and WMINST-014. A member of the chosen app
+    collection that is still missing after the package manager ran (the
+    distribution has no package of that name, for example Ubuntu 24.04
+    lacks fastfetch, glow, xh and lazygit) is installed from the GitHub
+    release named for it in `[[release]]` of `lists/tetron.toml`: a .deb
+    with apt on Debian and Ubuntu, or a .tar.gz whose command goes to
+    `~/.local/bin`. The asset must match the SHA256 digest GitHub lists for
+    it, or it is not installed. Then brew, when installed, for what is
+    still missing. Members missing after that are named in one line.
+    Presence counts `~/.local/bin`, `/usr/sbin` and `/sbin` as well as
+    PATH. A failed package batch is judged by what the package manager
+    lists as installed, not by its exit status: the packages not installed
+    are retried one by one and only those still missing are named. With
+    `--yes`, or without a terminal on stdin, apt runs with
+    `DEBIAN_FRONTEND=noninteractive`, so no debconf question (console-setup
+    asks one) blocks or fails the batch. A second run installs nothing.
+    """

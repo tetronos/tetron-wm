@@ -46,8 +46,11 @@ class Generated(unittest.TestCase):
     def test_line_shape(self):
         for r in self.rows:
             self.assertIn(r[0], ("essentials", "recommended", "extras"))
-            self.assertEqual(len(r), 3 if r[1] == "script" else 7, r)
-            if r[1] != "script":
+            self.assertEqual(len(r), {"script": 3, "release": 6}.get(r[1], 7), r)
+            if r[1] == "release":
+                self.assertIn(r[2], {x[2] for x in self.rows if x[1] in ("apps", "gui")}, "a release falls back for a listed member")
+                self.assertIn("/", r[3])
+            elif r[1] != "script":
                 self.assertIn(r[1], ("apps", "gui", "services"))
 
     def test_the_desktop_tools_stay_in_tetron_wm_desktop(self):
