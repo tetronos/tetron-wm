@@ -98,6 +98,8 @@ impl Tab {
 /// Per-folder state lives on the active `Tab`; widget-global state stays here.
 pub struct FileManager<F: FsOps = StdFs> {
     fs: F,
+    /// The sidebar's Code entry (`assistant_code_dir`); `~/code` when unset.
+    code_dir: Option<PathBuf>,
     tabs: Vec<Tab>,
     active: usize,
     clipboard: Option<Clipboard>,
@@ -149,6 +151,7 @@ impl<F: FsOps> FileManager<F> {
     pub fn with_fs(fs: F, cwd: PathBuf, handlers: BTreeMap<String, String>) -> Self {
         let mut me = Self {
             fs,
+            code_dir: None,
             tabs: vec![Tab::new(cwd)],
             active: 0,
             clipboard: None,
@@ -1033,11 +1036,17 @@ pub enum Target {
 }
 
 impl<F: FsOps> FileManager<F> {
+    /// Point the sidebar's Code entry at `dir` (WMAST-005).
+    pub fn set_code_dir(&mut self, dir: PathBuf) {
+        self.code_dir = Some(dir);
+    }
+
     /// Sidebar shortcut destinations (label, path), home-relative.
     fn sidebar(&self) -> Vec<(String, PathBuf)> {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
         [
             ("Home", home.clone()),
+            ("Code", self.code_dir.clone().unwrap_or_else(|| home.join("code"))),
             ("Desktop", home.join("Desktop")),
             ("Documents", home.join("Documents")),
             ("Downloads", home.join("Downloads")),
@@ -1426,6 +1435,18 @@ mod tests {
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    #[test]
+    fn sidebar_lists_code_after_home_at_the_code_dir() {
+        let d = tmp("code");
+        let mut fm = FileManager::new(d.clone(), BTreeMap::new());
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(fm.sidebar()[1], ("Code".to_string(), home.join("code")));
+        fm.set_code_dir(d.join("src"));
+        assert_eq!(fm.sidebar()[1], ("Code".to_string(), d.join("src")));
+        assert_eq!(fm.sidebar()[0].0, "Home");
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

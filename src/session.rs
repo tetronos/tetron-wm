@@ -4569,10 +4569,9 @@ or a remote-side error — its authorized_keys was left untouched)",
         let rect = Rect::new((self.w - w) / 2, 2, w, h);
         let id = self.wm.add_window("Files".into(), rect);
         self.app_keys.insert(id, "Files".into());
-        self.contents.insert(
-            id,
-            WinContent::FileManager(crate::filemanager::DynFileManager::new_local(root, self.cfg.default_apps.clone())),
-        );
+        let mut fm = crate::filemanager::DynFileManager::new_local(root, self.cfg.default_apps.clone());
+        fm.set_code_dir(crate::assistant::code_dir(&self.cfg));
+        self.contents.insert(id, WinContent::FileManager(fm));
         self.titles.push((id, "Files".into()));
         self.filemanager_win = Some(id);
         self.refresh_fm_thumbnails();

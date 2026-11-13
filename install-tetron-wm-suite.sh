@@ -363,6 +363,8 @@ seed_config() {
   local cfg="$HOME/.config/tetron-wm"
   log "setting up $cfg (config.toml, themes/)…"
   mkdir -p "$cfg/themes"
+  # The code folder of the ✦ Assistant and the Files sidebar (WMAST-005).
+  [ -e "$HOME/code" ] || { mkdir -p "$HOME/code" && log "created $HOME/code (the Assistant's code folder)"; }
   if [ -f "$cfg/config.toml" ]; then
     log "config.toml already exists — leaving it untouched"
   else

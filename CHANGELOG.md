@@ -10,6 +10,7 @@ carry user-visible feature work and the occasional breaking config change.
 - The ✦ Assistant runs any agent CLI. Agents are data: an app catalog entry with an `agent` table (the Store's Update list brings new ones without a release), or `[[assistant_agent]]` tables in `config.toml`, which also override a catalog agent field by field. The catalog knows opencode (default), Hermes, pi, Codex, Claude Code and Antigravity CLI (`agy`); pi and Antigravity CLI are new Store entries (recipes not yet checked in a VM).
 - Settings > Assistant > Agent opens a pick list (installed agents, then the others, which open the Store, then Custom command…) with type-to-filter and scrolling, instead of cycling between opencode and hermes.
 - The Assistant briefing (`AGENTS.md`) gains the tetron suite (shipped parts, what is installed here) and how to work on its code: clone into `assistant_code_dir` (default `~/code`), read the repository's own `AGENTS.md`, spec first, branch, test, install an own build with `install.sh` and reload. An agent that reads another file name gets it as a link to `AGENTS.md` (`context_files`).
+- Files lists Code (`~/code`, or `assistant_code_dir`) in its sidebar after Home; `install.sh` and the suite installer create `~/code` when it is missing.
 
 ### Changed
 - `assistant_command` holds an agent id; a value that is no id runs as a command line split on spaces. Saved values (`opencode`, `hermes`, a wrapper path) keep working.
