@@ -23,6 +23,7 @@ carry user-visible feature work and the occasional breaking config change.
 - The suite installer records `method` as `deb`, `binary` or `own` in `suite-state` (`raw` before).
 
 ### Fixed
+- Colours an app redefines with OSC 4 now show: pyradio themes (and other curses apps that call init_color) changed nothing in a tetron-wm window, because the window kept the standard palette; OSC 104 resets them.
 - The no-sudo install command in the README and `install.sh` set `TETRON_WM_BIN_DIR` for curl instead of the script; it now reads `curl … | TETRON_WM_BIN_DIR="$HOME/.local/bin" sh`.
 
 ## [0.15.6] — 2026-11-08

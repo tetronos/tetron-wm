@@ -352,6 +352,9 @@ impl AppInstance {
         let ghist = grid.total_lines() as i32 - gscreen; // scrollback depth
         let mut buf = CellBuffer::new(self.cols as i32, self.rows as i32);
         let th = crate::theme::current(); // default fg/bg follow the active theme
+        // Palette entries the app redefined (OSC 4, e.g. pyradio's themes,
+        // which curses sets with init_color); OSC 104 clears them again.
+        let set = palette_overrides(t.colors());
         for y in 0..self.rows as i32 {
             let line = y - off;
             // Outside the grid's line range -> leave the row blank.
@@ -371,8 +374,8 @@ impl AppInstance {
                     y,
                     Cell {
                         ch,
-                        fg: resolve_color(cell.fg, th.text, &th.ansi),
-                        bg: resolve_color(cell.bg, th.window_bg, &th.ansi),
+                        fg: resolve_color(cell.fg, th.text, &th.ansi, &set),
+                        bg: resolve_color(cell.bg, th.window_bg, &th.ansi, &set),
                         attrs: CellAttrs {
                             bold: flags.contains(Flags::BOLD),
                             italic: flags.contains(Flags::ITALIC),
@@ -580,12 +583,23 @@ fn query_color(index: usize, th: &crate::theme::Theme) -> Rgba {
     }
 }
 
-/// Resolve an alacritty cell color into our [`Rgba`].
-fn resolve_color(c: AColor, default: Rgba, ansi: &[Rgba; 16]) -> Rgba {
+/// The palette entries 0-255 the app set with OSC 4 (None: as drawn by default).
+type Overrides = [Option<Rgba>; 256];
+
+fn palette_overrides(colors: &alacritty_terminal::term::color::Colors) -> Overrides {
+    std::array::from_fn(|i| colors[i].map(|c| Rgba::rgb(c.r, c.g, c.b)))
+}
+
+/// Resolve an alacritty cell color into our [`Rgba`]: a palette entry the app
+/// redefined (`set`, OSC 4) wins over the theme's table and the xterm palette.
+fn resolve_color(c: AColor, default: Rgba, ansi: &[Rgba; 16], set: &Overrides) -> Rgba {
     match c {
         AColor::Spec(rgb) => Rgba::rgb(rgb.r, rgb.g, rgb.b),
-        AColor::Indexed(i) => idx_to_rgb(i, ansi),
-        AColor::Named(n) => named_to_rgb(n, default, ansi),
+        AColor::Indexed(i) => set[i as usize].unwrap_or_else(|| idx_to_rgb(i, ansi)),
+        AColor::Named(n) => match set.get(n as usize).copied().flatten() {
+            Some(c) => c,
+            None => named_to_rgb(n, default, ansi),
+        },
     }
 }
 
@@ -650,13 +664,36 @@ mod tests {
         let mut ansi = crate::theme::DEFAULT_ANSI;
         ansi[1] = Rgba::rgb(1, 2, 3);
         let d = Rgba::rgb(9, 9, 9);
-        assert_eq!(resolve_color(AColor::Named(NamedColor::Red), d, &ansi), Rgba::rgb(1, 2, 3));
-        assert_eq!(resolve_color(AColor::Indexed(1), d, &ansi), Rgba::rgb(1, 2, 3));
+        let none = [None; 256];
+        assert_eq!(resolve_color(AColor::Named(NamedColor::Red), d, &ansi, &none), Rgba::rgb(1, 2, 3));
+        assert_eq!(resolve_color(AColor::Indexed(1), d, &ansi, &none), Rgba::rgb(1, 2, 3));
         // The 6x6x6 cube and grey ramp are not part of the table.
-        assert_eq!(resolve_color(AColor::Indexed(196), d, &ansi), Rgba::rgb(255, 0, 0));
+        assert_eq!(resolve_color(AColor::Indexed(196), d, &ansi, &none), Rgba::rgb(255, 0, 0));
         let mut th = crate::theme::Theme::midnight();
         th.ansi = ansi;
         assert_eq!(query_color(1, &th), Rgba::rgb(1, 2, 3));
+    }
+
+    /// pyradio's themes: curses init_color sends OSC 4, which redefines a
+    /// palette entry; cells in that colour must show the new value, and OSC 104
+    /// puts the palette back.
+    #[test]
+    fn osc4_redefined_palette_entries_colour_the_cells() {
+        #[derive(Clone)]
+        struct Quiet;
+        impl EventListener for Quiet {}
+        let mut term = Term::new(Config::default(), &TermSize::new(10, 2), Quiet);
+        let mut p: Processor<StdSyncHandler> = Processor::new();
+        p.advance(&mut term, b"\x1b]4;20;rgb:12/34/56\x1b\\\x1b]4;3;rgb:aa/bb/cc\x07\x1b[38;5;20mA\x1b[33mB");
+        let set = palette_overrides(term.colors());
+        let th = crate::theme::Theme::midnight();
+        let g = term.grid();
+        let fg = |x: usize| resolve_color(g[Line(0)][Column(x)].fg, th.text, &th.ansi, &set);
+        assert_eq!(fg(0), Rgba::rgb(0x12, 0x34, 0x56), "indexed colour 20 as redefined");
+        assert_eq!(fg(1), Rgba::rgb(0xaa, 0xbb, 0xcc), "named yellow (3) as redefined");
+        p.advance(&mut term, b"\x1b]104\x07");
+        let set = palette_overrides(term.colors());
+        assert_eq!(set[20], None, "OSC 104 resets the palette");
     }
 
     /// An OSC 11 background query reaches `PtyResponder` as `ColorRequest(257)`
