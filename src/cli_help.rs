@@ -37,8 +37,12 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("desktop_scrim", "#000000c8", "icon label backdrop over wallpaper; none/off disables"),
     ("desktop_pins", "[]", "[[desktop_pins]] pinned desktop shortcuts"),
     ("desktop_positions", "{}", "legacy: now in ~/.local/share/tetron-wm/state.toml"),
-    ("assistant_command", "opencode", "agent CLI for the assistant (opencode | hermes | any)"),
+    ("assistant_command", "opencode", "assistant agent: an agent id (Settings > AI lists them) or a command line"),
     ("assistant_args", "[]", "extra arguments for the assistant CLI"),
+    ("assistant_agent", "[]", "[[assistant_agent]] agents added by hand, or catalog agents overridden by id"),
+    ("assistant_mcp", "false", "give the assistant the tetron-wm mcp desktop tools"),
+    ("assistant_code_dir", "~/code", "folder the assistant clones and builds suite code in"),
+    ("assistant_cwd", "", "where the AI agent starts: unset = assistant_code_dir, ask, ai (the AI folder), or a path"),
     ("assistant_mode", "panel", "assistant layout: panel | window"),
     ("update_branch", "main", "updater channel: main (release) | dev (source build)"),
     ("clipboard_history", "true", "record everything copied; browse from the menubar clipboard segment"),
@@ -122,6 +126,10 @@ COMMANDS:\n\
 \x20                       file is there (never overwrites); config example prints it.\n\
 \x20                       In the app: Settings > General > Config file (open, create, reset\n\
 \x20                       keeping config.toml.bak, reload)\n\
+\x20 mcp                   MCP server over stdio (desktop tools for an AI agent: windows,\n\
+\x20                       launch, tile, theme, screenshot). The agent starts it; with\n\
+\x20                       assistant_mcp = true the AI agent is told to start it\n\
+\x20                       (Settings > AI > Desktop tools)\n\
 \x20 theme <name>          switch theme\n\
 \x20 theme --list          list built-in and file themes. Theme files are read from\n\
 \x20                       <config dir>/themes, ~/.local/share/tetron-wm/themes, then\n\

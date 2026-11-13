@@ -415,6 +415,13 @@ else
   rm -rf "$tmpb"
 fi
 
+# The code folder the ✦ Assistant clones and builds suite code in, also the
+# Files sidebar's Code entry (WMAST-005). Created only when missing, never as
+# root (a root run would leave a folder the user can not write).
+if [ "$(id -u)" -ne 0 ] && [ -n "${HOME:-}" ] && [ ! -e "$HOME/code" ]; then
+  mkdir -p "$HOME/code" && echo "tetron-wm: created $HOME/code (the Assistant's code folder)"
+fi
+
 # tetron-wm only: the apps its features use come with the suite script's sizes
 # (minimal, essentials, recommended, extras), the same sets as the size debs. The suite script calls this with TETRON_WM_SKIP_DEPS=1
 # and installs them itself, so the pointer is only for a direct run.

@@ -20,7 +20,7 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "Assistant", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
@@ -52,7 +52,7 @@ const DEFAULT_APP_ROLES: &[(&str, &str)] = &[
 
 /// An action the session must perform on behalf of the settings panel
 /// (these touch the network / spawn processes, so the panel only requests them).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SettingsAction {
     /// Restart the app server (closes all apps) — shown only after a compat
     /// warning flagged the running apphost as too old for this binary.
@@ -107,7 +107,21 @@ pub enum SettingsAction {
     /// General > Apps: compute the confirmation's download size off the loop
     /// (the packages come from [`Settings::apps_download_pkgs`]).
     AppsDownloadSize,
+    /// Assistant > Agent: open the Store on this app (an agent not installed).
+    OpenStoreFor(String),
 }
+
+/// What the open pick list chooses (WMAST-002).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PickFor {
+    Agent,
+    Cwd,
+}
+
+/// Picker key of the "Custom command…" row.
+const PICK_CUSTOM: &str = "@custom";
+/// Picker key prefix of an agent that is not installed.
+const PICK_INSTALL: &str = "@install:";
 
 /// Terminal color presets: (name, background, foreground). `None` = follow the
 /// desktop theme.
@@ -133,6 +147,10 @@ enum TextTarget {
     LauncherLabel,
     TermBg,
     TermFg,
+    /// AI → Agent → Custom command… (a command line).
+    AgentCommand,
+    /// AI → Working folder → Other folder… (a path).
+    AiCwd,
 }
 
 /// The open text box: its target, the in-progress text, and whether the last
@@ -215,6 +233,8 @@ pub struct Settings {
     have_curl: bool,
     /// The Apps dialog, while open (WMINST-011).
     apps_dlg: Option<crate::appsdlg::AppsDlg>,
+    /// The pick list, while open, and what it sets.
+    picker: Option<(PickFor, crate::listpicker::ListPicker)>,
 }
 
 /// "apt package, size essentials" for Settings > About.
@@ -237,7 +257,7 @@ impl Settings {
             sound: None, outputs: Vec::new(), in_sidebar: false, wallpaper_note: None,
             waiter: crate::fullscreen::service_state(), brightness: crate::brightness::read_pct(), cfg_exists: config_file_exists(), reset_armed: false,
             themes_status: String::new(), themes_busy: false, install_info: install_info(),
-            apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_dlg: None, have_curl: crate::catalog::is_installed("curl"),
+            apps_size: crate::packaging::installed_size(), apps_missing: Vec::new(), apps_dlg: None, picker: None, have_curl: crate::catalog::is_installed("curl"),
         }.with_wallpaper_note()
     }
 
@@ -317,6 +337,12 @@ impl Settings {
     /// it steps the volume (`lines` > 0 = wheel up = louder). Returns whether
     /// the wheel was used here.
     pub fn wheel_at(&mut self, local: Point, lines: i32) -> bool {
+        if let Some((_, p)) = self.picker.as_mut() {
+            if lines != 0 {
+                p.scroll_by(lines);
+            }
+            return lines != 0;
+        }
         if self.section != SOUND || local.y != 3 || local.x < SIDEBAR_W || lines == 0 {
             return false;
         }
@@ -376,7 +402,7 @@ impl Settings {
     /// Whether the Apps section's text-entry form is currently open (the client
     /// forwards typed characters only in this state).
     pub fn is_editing(&self) -> bool {
-        self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some()
+        self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() || self.picker.is_some()
     }
 
     /// Open the Apps dialog: reads the missing apps (font checks run fc-list)
@@ -421,6 +447,90 @@ impl Settings {
         }
     }
 
+    /// Assistant > Agent: installed agents, then the others (Store), then
+    /// Custom command… (WMAST-002).
+    fn open_agent_picker(&mut self) {
+        use crate::listpicker::{ListPicker, PickItem};
+        crate::catalog::refresh_installed();
+        let (have, miss): (Vec<_>, Vec<_>) =
+            crate::assistant::agents(&self.cfg.assistant_agent).into_iter().partition(|a| a.installed());
+        let mut items: Vec<PickItem> =
+            have.into_iter().map(|a| PickItem { detail: a.command.clone(), label: a.label, key: a.id }).collect();
+        items.extend(miss.into_iter().map(|a| PickItem {
+            detail: "not installed: Enter opens the Store".into(),
+            label: a.label,
+            key: format!("{PICK_INSTALL}{}", a.id),
+        }));
+        items.push(PickItem { label: "Custom command\u{2026}".into(), detail: "any command line".into(), key: PICK_CUSTOM.into() });
+        let cur = crate::assistant::selected(&self.cfg).id;
+        self.picker = Some((PickFor::Agent, ListPicker::new("AI \u{203A} Agent", items, &cur)));
+    }
+
+    fn pick_outcome(&mut self, o: crate::listpicker::Pick) {
+        use crate::listpicker::Pick;
+        let Some((what, _)) = self.picker.as_ref() else { return };
+        let what = *what;
+        match o {
+            Pick::None => {}
+            Pick::Close => self.picker = None,
+            Pick::Chosen(key) => {
+                self.picker = None;
+                match what {
+                    PickFor::Agent => self.choose_agent(&key),
+                    PickFor::Cwd => self.choose_cwd(&key),
+                }
+            }
+        }
+    }
+
+    /// AI > Working folder: the code folder, ask each launch, the AI folder,
+    /// or another folder (WMAST-007).
+    fn open_cwd_picker(&mut self) {
+        use crate::listpicker::{ListPicker, PickItem};
+        let code = crate::assistant::tilde(&crate::assistant::code_dir(&self.cfg));
+        let ai = crate::assistant::workdir().map(|d| crate::assistant::tilde(&d)).unwrap_or_default();
+        let item = |label: &str, detail: String, key: &str| PickItem { label: label.into(), detail, key: key.into() };
+        let items = vec![
+            item("Code folder", format!("{code} (default)"), "@code"),
+            item("Ask each launch", "pick a folder when the agent starts".into(), "ask"),
+            item("AI folder", format!("{ai}, where AGENTS.md is"), "ai"),
+            item("Other folder\u{2026}", "type a path".into(), "@other"),
+        ];
+        let cur = match self.cfg.assistant_cwd.as_deref() {
+            None => "@code",
+            Some("ask") => "ask",
+            Some("ai") => "ai",
+            Some(_) => "@other",
+        };
+        self.picker = Some((PickFor::Cwd, ListPicker::new("AI \u{203A} Working folder", items, cur)));
+    }
+
+    fn choose_cwd(&mut self, key: &str) {
+        match key {
+            "@code" => self.cfg.assistant_cwd = None,
+            "@other" => {
+                let buf = self.cfg.assistant_cwd.clone().filter(|c| c != "ask" && c != "ai").unwrap_or_default();
+                self.text = Some(TextEdit { target: TextTarget::AiCwd, buf, error: false, fresh: false });
+            }
+            k => self.cfg.assistant_cwd = Some(k.to_string()),
+        }
+    }
+
+    fn choose_agent(&mut self, key: &str) {
+        if key == PICK_CUSTOM {
+            let a = crate::assistant::selected(&self.cfg);
+            let buf = if a.app.is_none() && a.label.starts_with("custom: ") { a.id } else { String::new() };
+            self.text = Some(TextEdit { target: TextTarget::AgentCommand, buf, error: false, fresh: false });
+            return;
+        }
+        let id = key.strip_prefix(PICK_INSTALL).unwrap_or(key);
+        self.cfg.assistant_command = Some(id.to_string());
+        if key.starts_with(PICK_INSTALL) {
+            let app = crate::assistant::selected(&self.cfg).app.unwrap_or_else(|| id.to_string());
+            self.action = Some(SettingsAction::OpenStoreFor(app));
+        }
+    }
+
     /// The packages whose download size the Apps confirmation shows.
     pub fn apps_download_pkgs(&self) -> Vec<String> {
         self.apps_dlg.as_ref().map(|d| d.download_pkgs()).unwrap_or_default()
@@ -441,7 +551,7 @@ impl Settings {
             UPDATES => if self.apphost_outdated { 4 } else { 3 }, // check, install, branch [, restart apphost]
             APPS => self.cfg.launcher.len() + 1,  // custom apps + "＋ Add app…"
             DEFAULT_APPS => DEFAULT_APP_ROLES.len(),
-            ASSISTANT => 2,                            // assistant: open-as mode, agent
+            ASSISTANT => 4,                            // AI: open-as mode, agent, working folder, MCP
             CLIPBOARD => 10,                           // clipboard: history, disk, selections, size, shims, osc52 read, fake display, expiry, max item, clear
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
@@ -454,7 +564,7 @@ impl Settings {
     /// Tab / Shift+Tab: move keyboard focus between the section list and the
     /// rows. Ignored while a text box or the add form is open.
     pub fn toggle_pane(&mut self) {
-        if self.edit.is_none() && self.text.is_none() && self.apps_dlg.is_none() {
+        if self.edit.is_none() && self.text.is_none() && self.apps_dlg.is_none() && self.picker.is_none() {
             self.in_sidebar = !self.in_sidebar;
         }
     }
@@ -466,6 +576,10 @@ impl Settings {
 
     pub fn move_up(&mut self) {
         self.reset_armed = false;
+        if let Some((_, p)) = self.picker.as_mut() {
+            p.up();
+            return;
+        }
         if let Some(d) = self.apps_dlg.as_mut() {
             d.up();
             return;
@@ -487,6 +601,10 @@ impl Settings {
     }
     pub fn move_down(&mut self) {
         self.reset_armed = false;
+        if let Some((_, p)) = self.picker.as_mut() {
+            p.down();
+            return;
+        }
         if let Some(d) = self.apps_dlg.as_mut() {
             d.down();
             return;
@@ -509,13 +627,13 @@ impl Settings {
         }
     }
     pub fn prev_section(&mut self) {
-        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() {
+        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() || self.picker.is_some() {
             return; // don't leave a half-typed form via arrow keys
         }
         self.enter_section((self.section + SECTIONS.len() - 1) % SECTIONS.len());
     }
     pub fn next_section(&mut self) {
-        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() {
+        if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() || self.picker.is_some() {
             return;
         }
         self.enter_section((self.section + 1) % SECTIONS.len());
@@ -524,6 +642,10 @@ impl Settings {
     /// Append a character to the active text field (Apps add form, or the
     /// Appearance → Wallpaper filename box).
     pub fn type_char(&mut self, c: char) {
+        if let Some((_, p)) = self.picker.as_mut() {
+            p.type_char(c);
+            return;
+        }
         if let Some(d) = self.apps_dlg.as_mut() {
             // Space ticks the box or chooses, like Enter, on the choice list.
             if c == ' ' {
@@ -569,6 +691,10 @@ impl Settings {
 
     /// Delete the last character of the active text field.
     pub fn backspace(&mut self) {
+        if let Some((_, p)) = self.picker.as_mut() {
+            p.backspace();
+            return;
+        }
         if let Some(e) = self.edit.as_mut() {
             match e.field {
                 0 => { e.name.pop(); }
@@ -587,6 +713,11 @@ impl Settings {
     /// Abandon the active text field without saving (Apps add form or the
     /// wallpaper filename box).
     pub fn cancel_edit(&mut self) {
+        if let Some((_, p)) = self.picker.as_mut() {
+            let o = p.esc();
+            self.pick_outcome(o);
+            return;
+        }
         if let Some(d) = self.apps_dlg.as_mut() {
             let o = d.esc();
             self.apps_outcome(o);
@@ -617,6 +748,11 @@ impl Settings {
             if dir >= 0 {
                 self.in_sidebar = false;
             }
+            return;
+        }
+        if let Some((_, p)) = self.picker.as_mut() {
+            let o = if dir == 0 { p.enter() } else { crate::listpicker::Pick::None };
+            self.pick_outcome(o);
             return;
         }
         if let Some(d) = self.apps_dlg.as_mut() {
@@ -731,22 +867,9 @@ impl Settings {
                 self.cfg.assistant_mode =
                     if self.cfg.assistant_mode == "panel" { "window".into() } else { "panel".into() };
             }
-            (ASSISTANT, 1) => {
-                // Switch the agent between the supported CLIs (opencode ⇄ hermes),
-                // stored in `assistant_command`.
-                let agents = crate::assistant::AGENTS;
-                let cur = self
-                    .cfg
-                    .assistant_command
-                    .as_deref()
-                    .and_then(|c| agents.iter().position(|&a| a == c))
-                    .unwrap_or(0);
-                let next = match dir {
-                    -1 => (cur + agents.len() - 1) % agents.len(),
-                    _ => (cur + 1) % agents.len(),
-                };
-                self.cfg.assistant_command = Some(agents[next].to_string());
-            }
+            (ASSISTANT, 1) if dir == 0 => self.open_agent_picker(),
+            (ASSISTANT, 2) if dir == 0 => self.open_cwd_picker(),
+            (ASSISTANT, 3) => self.cfg.assistant_mcp = flip(self.cfg.assistant_mcp, dir),
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -954,6 +1077,14 @@ impl Settings {
                     s.chars().filter(|c| !c.is_control()).take(crate::chrome::LABEL_CHARS).collect()
                 };
             }
+            // Empty goes back to the default agent.
+            TextTarget::AgentCommand => {
+                self.cfg.assistant_command = (!s.is_empty()).then_some(s);
+            }
+            // Empty goes back to the code folder.
+            TextTarget::AiCwd => {
+                self.cfg.assistant_cwd = (!s.is_empty()).then_some(s);
+            }
             TextTarget::TermBg | TextTarget::TermFg => {
                 let val = if s.is_empty() {
                     None
@@ -975,6 +1106,11 @@ impl Settings {
 
     /// Handle a content-local click; returns `true` if a setting changed.
     pub fn handle_click(&mut self, p: Point, _w: i32, h: i32) -> bool {
+        if let Some((_, pk)) = self.picker.as_mut() {
+            let o = pk.click(p.x - SIDEBAR_W - 2, p.y, h);
+            self.pick_outcome(o);
+            return true;
+        }
         if let Some(d) = self.apps_dlg.as_mut() {
             let o = d.click(p.x - SIDEBAR_W - 2, p.y, h);
             self.apps_outcome(o);
@@ -990,7 +1126,7 @@ impl Settings {
         if let Some(t) = self.text.as_ref() {
             // The wallpaper name commits on click-away; a half-typed color is
             // discarded instead (committing it would stage a wrong color).
-            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel) {
+            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd) {
                 self.commit_text();
                 return true;
             }
@@ -1152,16 +1288,41 @@ impl Settings {
                 }
             }
             APPS => self.render_apps(&mut buf, cx, w),
+            ASSISTANT if self.picker.is_some() => {
+                for x in cx..w {
+                    buf.set(x, 1, Cell { ch: ' ', fg: pal_fg(), bg: pal_bg(), attrs: Default::default() });
+                }
+                if let Some((_, p)) = self.picker.as_ref() {
+                    p.render(&mut buf, cx, w, h);
+                }
+            }
             ASSISTANT => {
-                // Agent switches between opencode and hermes; a hand-edited
-                // assistant_command may name any binary, shown as-is.
-                let agent = self.cfg.assistant_command.as_deref().unwrap_or(crate::assistant::DEFAULT_AGENT);
-                let mark = if crate::assistant::agent_available(agent) { "" } else { " (not installed)" };
+                let a = crate::assistant::selected(&self.cfg);
+                let agent_val = match self.text.as_ref().filter(|t| t.target == TextTarget::AgentCommand) {
+                    Some(t) => format!("{}\u{2588}", t.buf),
+                    None if a.installed() => format!("{} \u{25BE}", a.label),
+                    None => format!("{} (not installed) \u{25BE}", a.label),
+                };
+                let cwd_val = match self.text.as_ref().filter(|t| t.target == TextTarget::AiCwd) {
+                    Some(t) => format!("{}\u{2588}", t.buf),
+                    None => format!("{} \u{25BE}", crate::assistant::cwd_label(&self.cfg)),
+                };
+                let mcp_val = match (self.cfg.assistant_mcp, a.mcp.is_some()) {
+                    (true, false) => "on (this agent has no MCP entry)".to_string(),
+                    (on, _) => toggle_val(on),
+                };
                 self.row(&mut buf, cx, 3, 0, "Open as", format!("\u{25C2} {} \u{25B8}", self.cfg.assistant_mode));
-                self.row(&mut buf, cx, 4, 1, "Agent", format!("\u{25C2} {agent} \u{25B8}{mark}"));
-                buf.write_str(cx, 6, &format!("The {} menubar button opens the assistant.", crate::glyphs::get(crate::glyphs::Glyph::Assistant)), pal_dim(), pal_bg());
-                buf.write_str(cx, 7, "Its briefing pack: ~/.local/share/tetron-wm/assistant", pal_dim(), pal_bg());
-                buf.write_str(cx, 8, "Extra args: assistant_args in config.toml.", pal_dim(), pal_bg());
+                self.row(&mut buf, cx, 4, 1, "Agent", agent_val);
+                self.row(&mut buf, cx, 5, 2, "Working folder", cwd_val);
+                self.row(&mut buf, cx, 6, 3, "Desktop tools (MCP)", mcp_val);
+                let away = crate::assistant::cwd_choice(&self.cfg) != crate::assistant::Cwd::Ai;
+                if away && a.briefing.is_none() {
+                    buf.write_str(cx, 7, &format!("{} reads the briefing only in the AI folder.", a.label), pal_accent(), pal_bg());
+                }
+                buf.write_str(cx, 8, &format!("The {} menubar button opens the AI agent.", crate::glyphs::get(crate::glyphs::Glyph::Assistant)), pal_dim(), pal_bg());
+                buf.write_str(cx, 9, "Enter on Agent or Working folder lists the choices;", pal_dim(), pal_bg());
+                buf.write_str(cx, 10, "more agents: [[assistant_agent]] in config.toml.", pal_dim(), pal_bg());
+                buf.write_str(cx, 11, "MCP: the agent starts tetron-wm mcp itself.", pal_dim(), pal_bg());
             }
             DEFAULT_APPS => {
                 for (i, (key, label)) in DEFAULT_APP_ROLES.iter().enumerate() {
@@ -2025,18 +2186,78 @@ mod tests {
     }
 
     #[test]
-    fn assistant_section_switches_agent_between_opencode_and_hermes() {
+    fn assistant_agent_row_opens_a_picker() {
         let mut s = Settings::new(Config::default());
         s.section = ASSISTANT;
-        assert_eq!(SECTIONS[s.section], "Assistant");
+        assert_eq!(SECTIONS[s.section], "AI");
         s.sel = 1; // the Agent row
         assert!(s.config().assistant_command.is_none(), "unset defaults to opencode");
-        s.toggle(); // opencode -> hermes
+        s.toggle();
+        assert!(s.is_editing(), "the picker takes the keys");
+        // Filter to Hermes and choose it (installed or not, it is chosen).
+        for c in "hermes".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert!(s.picker.is_none());
         assert_eq!(s.config().assistant_command.as_deref(), Some("hermes"));
-        s.toggle(); // hermes -> opencode
-        assert_eq!(s.config().assistant_command.as_deref(), Some("opencode"));
-        s.left(); // wraps backward to hermes
+        // Esc on an open picker closes it without a change.
+        s.toggle();
+        s.cancel_edit();
+        assert!(s.picker.is_none());
         assert_eq!(s.config().assistant_command.as_deref(), Some("hermes"));
+    }
+
+    #[test]
+    fn ai_working_folder_picker() {
+        let mut s = Settings::new(Config::default());
+        s.section = ASSISTANT;
+        s.sel = 2;
+        assert!(s.config().assistant_cwd.is_none(), "default: the code folder");
+        s.toggle();
+        for c in "ask".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().assistant_cwd.as_deref(), Some("ask"));
+        s.toggle();
+        for c in "other".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        for c in "~/src".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().assistant_cwd.as_deref(), Some("~/src"));
+        s.toggle();
+        for c in "code".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert!(s.config().assistant_cwd.is_none());
+    }
+
+    #[test]
+    fn assistant_custom_command_and_mcp_row() {
+        let mut s = Settings::new(Config::default());
+        s.section = ASSISTANT;
+        s.sel = 1;
+        s.toggle();
+        for c in "custom".chars() {
+            s.type_char(c);
+        }
+        s.toggle(); // Custom command… opens the text box
+        assert!(s.picker.is_none() && s.text.is_some());
+        for c in "my-agent --x".chars() {
+            s.type_char(c);
+        }
+        s.toggle();
+        assert_eq!(s.config().assistant_command.as_deref(), Some("my-agent --x"));
+        s.sel = 3;
+        assert!(!s.config().assistant_mcp, "MCP is off by default");
+        s.toggle();
+        assert!(s.config().assistant_mcp);
     }
 
     fn to_sound(s: &mut Settings) {
@@ -2134,7 +2355,7 @@ mod tests {
         assert_eq!(SECTIONS[s.section], "Appearance");
         assert_eq!(SECTIONS[GENERAL], "General");
         assert_eq!(SECTIONS.last(), Some(&"About"));
-        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "Assistant"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
+        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "AI"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
             assert_eq!(SECTIONS[i], name);
         }
     }

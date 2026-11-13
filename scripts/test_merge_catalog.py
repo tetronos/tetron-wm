@@ -75,6 +75,18 @@ class Merge(unittest.TestCase):
             with self.subTest(ours=ours), self.assertRaises(SystemExit):
                 self.merged([app("x", "x")], ours)
 
+    def test_agent_table_carried_and_checked(self):
+        """WMAST-001: an [app.agent] table reaches the catalog; bad keys fail."""
+        ok = '[[app]]\nname = "htop"\n[app.agent]\nlabel = "H"\nmcp = { file = "x.json", template = "json" }\n'
+        _, a = self.merged([app("htop", "htop")], ok)
+        self.assertEqual(a["htop"]["agent"], {"label": "H", "mcp": {"file": "x.json", "template": "json"}})
+        for bad in ('nope = 1', 'context_files = ["a/b.md"]', 'context_files = ["AGENTS.md"]',
+                    'mcp = { file = "x.json" }', 'mcp = { file = "/etc/x", template = "json" }',
+                    'mcp = { file = "x", template = "yaml" }', 'args = [1]',
+                    'briefing = { env = { A = 1 } }', 'briefing = { nope = "x" }'):
+            with self.assertRaises(SystemExit, msg=bad):
+                self.merged([app("htop", "htop")], f'[[app]]\nname = "htop"\n[app.agent]\n{bad}\n')
+
     def test_committed_catalog_is_current(self):
         self.assertEqual(mc.merge(), mc.OUT.read_text(encoding="utf-8"))
 

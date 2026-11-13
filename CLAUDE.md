@@ -127,17 +127,18 @@ real terminal              composites frames, routes input    survives UI reload
 
 ## The AI assistant (✦)
 
-`src/assistant.rs` + the `agent/` folder. `agent/*.md` is the single source
-of truth for everything the in-app agent is told — embedded via
-`include_str!`, stamped into `~/.local/share/tetron-wm/assistant/` at launch as
-`AGENTS.md`, the context file the assistant reads on startup. tetron-wm
-standardises on the **opencode** CLI (`DEFAULT_AGENT`), with **hermes** as a
-supported alternative (`AGENTS`) — Settings → Assistant switches between the
-two, stored in `assistant_command`, which can also point the panel at any
-other binary by hand. There is no per-framework branching beyond that
-switch — opencode is model-agnostic and MCP-extensible, so broader
-OS/computer-use control is added via MCP servers in opencode's own config
-rather than by adding frameworks here.
+`src/assistant.rs` + the `agent/` folder (Settings section and window: AI).
+`agent/*.md` is the single source of truth for everything the in-app agent is
+told — embedded via `include_str!`, stamped into
+`~/.local/share/tetron-wm/assistant/` (the AI folder) at launch as `AGENTS.md`.
+Agents are data, never code: catalog entries with an `[app.agent]` table in
+`lists/tetron.toml` plus `[[assistant_agent]]` config tables, merged by id
+(`assistant::agents`); only `DEFAULT_AGENT` (opencode) is named in Rust. Each
+agent's `briefing` and `mcp` wiring (file from a template in the AI folder,
+args, env) says how it gets the pack outside the AI folder and the
+`tetron-wm mcp` server (`src/mcp.rs`, off by default); nothing is ever written
+into the agent's working folder (`assistant_cwd`, default `~/code`). Add a new
+agent CLI by editing the list, not the code.
 
 ## Tests
 

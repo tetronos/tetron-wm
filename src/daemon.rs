@@ -124,7 +124,7 @@ pub fn run() -> std::io::Result<()> {
     // Honour a one-shot UI reopen hint (e.g. reopen Settings → Updates after an
     // in-app update reloaded the frontend).
     core.reopen_ui_from_hint();
-    status.windows.store(core.window_count(), std::sync::atomic::Ordering::Relaxed);
+    status.publish(core.window_count(), || core.window_titles());
     let mut comp = Compositor::new(w, h);
 
     // Connections are accepted on a thread and handed over as events, so a new
@@ -325,7 +325,7 @@ fn serve_client(
     let next = serve_client_inner(core, comp, client, ctl, ctl_queue, conns, status);
     // On takeover the next client re-sets this at once.
     status.attached.store(false, Relaxed);
-    status.windows.store(core.window_count(), Relaxed);
+    status.publish(core.window_count(), || core.window_titles());
     next
 }
 
@@ -438,7 +438,7 @@ fn serve_client_inner(
         }
 
         core.reap_dead();
-        status.windows.store(core.window_count(), std::sync::atomic::Ordering::Relaxed);
+        status.publish(core.window_count(), || core.window_titles());
         core.pump_app_events();
         core.refresh_app_graphics();
         core.sync_app_meta();
