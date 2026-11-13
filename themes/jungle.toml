@@ -1,0 +1,57 @@
+name = "jungle"
+# base = "midnight"   # unset fields inherit from this built-in
+appearance = "dark"
+
+# Classic early-2000s Steam VGUI palette: muted army olive windows, darker
+# inset list panels, crisp off-white text, gold selection/section headers,
+# and subtle 3D bevel borders.
+desktop_bg  = "#3e4637"
+window_bg   = "#4c5844"
+title_focus = "#5a6a50"
+title_blur  = "#434e3c"
+title_fg    = "#ffffff"
+border      = "#808c78"
+shadow      = "#1b201780"
+ctrl_fg     = "#d8ded3"
+close_fg    = "#c4b550"
+menubar_bg  = "#434e3c"
+dock_bg     = "#3e4637"
+text        = "#eff3ec"
+dim         = "#a3ad9c"
+accent      = "#c4b550"
+active_bg   = "#958831"
+success     = "#7fa668"
+error       = "#c85a32"
+accent_fg   = "#1e231a"
+icon_fg     = "#eff3ec"
+
+# The 16 colours hosted apps see (ls --color, htop, git): retro military
+# olive, warm gold, and muted phosphor tones that read cleanly on #4c5844.
+[ansi]
+black          = "#282e23"
+red            = "#c85a32"
+green          = "#7fa668"
+yellow         = "#c4b550"
+blue           = "#6b8e9b"
+magenta        = "#a6768a"
+cyan           = "#6fa396"
+white          = "#d8ded3"
+bright_black   = "#687460"
+bright_red     = "#e0734a"
+bright_green   = "#9bc482"
+bright_yellow  = "#dfd06b"
+bright_blue    = "#88aebc"
+bright_magenta = "#c292a6"
+bright_cyan    = "#8bc2b4"
+bright_white   = "#ffffff"
+
+# 16-colour console (bare Linux VT): dark green/olive tones with gold/yellow
+# highlights and bright white text.
+[vt16]
+desktop_bg  = 0
+window_bg   = 2
+title_focus = 2
+title_fg    = 15
+active_bg   = 3
+text        = 15
+

@@ -1,0 +1,57 @@
+name = "glacier"
+# base = "midnight"   # unset fields inherit from this built-in
+appearance = "light"
+
+# Pastel glacial blues: icy pale blue windows (not pure white), soft sky
+# desktop, crisp cerulean focused title bar and highlights, deep arctic navy
+# text. Its picture is glacier.jpg: textured pastel blue glacial ice ridges.
+desktop_bg  = "#97d0e7"
+window_bg   = "#d1eaf7"
+title_focus = "#2b6e8c"
+title_blur  = "#b5e4f6"
+title_fg    = "#f2faff"
+border      = "#2b6e8c"
+shadow      = "#122b3a40"
+ctrl_fg     = "#d1eaf7"
+close_fg    = "#b83b48"
+menubar_bg  = "#b5e4f6"
+dock_bg     = "#b5e4f6"
+text        = "#122b3a"
+dim         = "#3b5d73"
+accent      = "#1f5a75"
+active_bg   = "#aad8eb"
+success     = "#1e6656"
+error       = "#b83b48"
+accent_fg   = "#f2faff"
+icon_fg     = "#f2faff"   # labels sit on the dark desktop_scrim over the picture
+
+# The 16 colours hosted apps see (ls --color, htop, git): deep arctic and
+# mineral tones that read clearly on #d1eaf7.
+[ansi]
+black          = "#122b3a"
+red            = "#b83b48"
+green          = "#1e6656"
+yellow         = "#7d5814"
+blue           = "#1f5a75"
+magenta        = "#66427a"
+cyan           = "#176373"
+white          = "#7ea3b8"
+bright_black   = "#3b5d73"
+bright_red     = "#d14957"
+bright_green   = "#28806c"
+bright_yellow  = "#996d1b"
+bright_blue    = "#2b7596"
+bright_magenta = "#7e5496"
+bright_cyan    = "#217c8f"
+bright_white   = "#f2faff"
+
+# 16-colour console (bare Linux VT): cyan/blue desktop and focused title, light
+# grey windows with black text, cyan selection.
+[vt16]
+desktop_bg  = 6
+window_bg   = 7
+title_focus = 4
+title_fg    = 15
+active_bg   = 6
+text        = 0
+

@@ -1,0 +1,57 @@
+name = "blush"
+# base = "midnight"   # unset fields inherit from this built-in
+appearance = "light"
+
+# Playful paper-cut sky blues and coral pinks: crisp cloud-white windows,
+# bright cartoon sky desktop, deep cerulean title bars and borders, charcoal
+# ink text, and soft blush-pink selection highlights from the monster's smile.
+desktop_bg  = "#85cef2"
+window_bg   = "#edf8fe"
+title_focus = "#226f96"
+title_blur  = "#bae5fa"
+title_fg    = "#ffffff"
+border      = "#226f96"
+shadow      = "#1f242938"
+ctrl_fg     = "#edf8fe"
+close_fg    = "#d95b66"
+menubar_bg  = "#bae5fa"
+dock_bg     = "#bae5fa"
+text        = "#1f2429"
+dim         = "#486578"
+accent      = "#1f688f"
+active_bg   = "#f7c6cc"
+success     = "#1d705e"
+error       = "#c94a57"
+accent_fg   = "#ffffff"
+icon_fg     = "#ffffff"   # labels sit on the dark desktop_scrim over the picture
+
+# The 16 colours hosted apps see (ls --color, htop, git): crisp ink, coral,
+# and sky tones tuned for high legibility on #edf8fe.
+[ansi]
+black          = "#1f2429"
+red            = "#c94a57"
+green          = "#1d705e"
+yellow         = "#8a5c14"
+blue           = "#1f688f"
+magenta        = "#8f446e"
+cyan           = "#166d80"
+white          = "#7fa8bf"
+bright_black   = "#486578"
+bright_red     = "#e6737d"
+bright_green   = "#278c76"
+bright_yellow  = "#ab741b"
+bright_blue    = "#2c84b3"
+bright_magenta = "#b3598b"
+bright_cyan    = "#1f8ba3"
+bright_white   = "#ffffff"
+
+# 16-colour console (bare Linux VT): cyan/blue desktop and focused title, light
+# grey windows with black text, cyan selection.
+[vt16]
+desktop_bg  = 6
+window_bg   = 7
+title_focus = 4
+title_fg    = 15
+active_bg   = 6
+text        = 0
+

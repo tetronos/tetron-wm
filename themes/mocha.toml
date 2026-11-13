@@ -2,10 +2,10 @@ name = "mocha"
 # base = "midnight"   # unset fields inherit from this built-in
 appearance = "light"
 
-# Coffee browns: tan windows and terminal (not white), caramel desktop, brown
-# highlights (deep brown focused title bar and border, caramel selection, dark
-# brown accent), dark text. Its picture is mocha.jpg: latte art (a milk-foam
-# rosetta) in a cup, on a dark chocolate glow.
+# Between cocoa and latte: tan windows and terminal (not white), caramel desktop,
+# brown highlights (deep brown focused title bar and border, caramel selection,
+# dark brown accent), dark text. Its picture is mocha.jpg: latte art (a milk-foam
+# rosetta) in a cup, on cocoa's dark glow.
 desktop_bg  = "#b8936a"
 window_bg   = "#dcbc96"
 title_focus = "#723d08"
