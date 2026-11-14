@@ -112,13 +112,28 @@ class PrebuiltReleaseLink(Requirement):
     the Store shows the link `https://github.com/<owner>/<repo>/releases/latest`
     in its details, and every install window for it (a recipe, a package or
     the best-effort chain) ends by naming that link next to the homepage,
-    so a user whose install failed can download the binary by hand. In the
-    Store, Alt+O or a click on that line copies the link to the clipboard
-    (which reaches the real terminal by OSC 52) and, when a terminal web
-    browser is installed (tetron-browser, w3m, lynx, links, elinks: the first
-    found), opens it there in a new window; the Store's status line says
-    which. The link
+    so a user whose install failed can download the binary by hand. The link
     is built only from a homepage whose owner and repository are plain names
     (letters, digits, `.`, `_`, `-`). Absent `releases` means false, so
     older catalogs and binaries are unaffected.
+    """
+
+
+class StoreAppMenu(Requirement):
+    """REQUIREMENT-ID: WMCAT-007
+
+    Depends on WMCAT-006. In the Store, a right-click on an app's row (which
+    selects it) or on its details, or Alt+O for the selected app, opens a menu
+    (the shared right-click menu of `src/contextmenu.rs`, drawn and hit-tested
+    like the title bar menu, driven by the same arrow, Enter and Esc keys):
+    Install (Launch when installed), Open project page, Copy project link,
+    and for an app with a releases page Open releases page and Copy releases
+    link. A left click on the project link or the "Prebuilt" line in the
+    details opens the menu of that link alone (Open, Copy). Copy puts the link
+    in the clipboard, which reaches the real terminal by OSC 52. Open runs the
+    first installed terminal web browser (tetron-browser, w3m, lynx, links,
+    elinks) with the link as its argument in a new window; with none
+    installed the Open entries are left out. The Store's status line says
+    what was done. The install-method choice (one entry per way an app can be
+    installed here) is meant to join this menu.
     """

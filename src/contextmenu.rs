@@ -75,6 +75,12 @@ pub enum MenuAction {
     MoveWindow,
     RenameWindow,
     CloseWindow,
+    /// Store (WMCAT-007): install the app, or launch it when installed (true).
+    StoreInstall(bool),
+    /// Store: open a link (label, URL) in a terminal web browser.
+    OpenLink(String, String),
+    /// Store: copy a link (label, URL) to the clipboard.
+    CopyLink(String, String),
 }
 
 impl MenuAction {
@@ -116,6 +122,8 @@ impl MenuAction {
             MenuAction::MoveWindow => "Move".into(),
             MenuAction::RenameWindow => "Rename".into(),
             MenuAction::CloseWindow => "Close".into(),
+            MenuAction::StoreInstall(installed) => if *installed { "Launch" } else { "Install" }.into(),
+            MenuAction::OpenLink(label, _) | MenuAction::CopyLink(label, _) => label.clone(),
         }
     }
 }
@@ -230,6 +238,42 @@ pub fn actions_for(surface: Surface, target: Target, can: Abilities) -> Vec<Menu
 pub fn window_actions() -> Vec<MenuAction> {
     use MenuAction as A;
     vec![A::Minimize, A::Maximize, A::MoveWindow, A::RenameWindow, A::CloseWindow]
+}
+
+/// Which links a Store menu offers (WMCAT-007).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StoreLinks {
+    /// The whole app menu: install, the project link, the releases link.
+    App,
+    /// Only the project link (a click on it in the details).
+    Project,
+    /// Only the releases link (a click on the "Prebuilt" line).
+    Releases,
+}
+
+/// The Store menu for `app`: Install or Launch (App only), then Open and Copy
+/// for each link offered. Open entries only when `browser` (one is installed).
+pub fn store_actions(app: &crate::catalog::CatalogApp, links: StoreLinks, installed: bool, browser: bool) -> Vec<MenuAction> {
+    use MenuAction as A;
+    let mut v = Vec::new();
+    if links == StoreLinks::App {
+        v.push(A::StoreInstall(installed));
+    }
+    let mut add = |what: &str, url: String| {
+        if browser {
+            v.push(A::OpenLink(format!("Open {what} page"), url.clone()));
+        }
+        v.push(A::CopyLink(format!("Copy {what} link"), url));
+    };
+    if links != StoreLinks::Releases && !app.homepage.is_empty() {
+        add("project", app.homepage.clone());
+    }
+    if links != StoreLinks::Project {
+        if let Some(u) = crate::catalog::releases_url(app) {
+            add("releases", u);
+        }
+    }
+    v
 }
 
 /// The "Send to…" choices: one per saved Systems entry.
@@ -819,5 +863,27 @@ mod tests {
         let row: String = (r.x + 2..r.x + 6).map(|x| buf.get(x, r.y + 1).unwrap().ch).collect();
         assert_eq!(row, "Open");
     }
-}
 
+    /// WMCAT-007: the app menu is Install/Launch, then Open and Copy per link;
+    /// a link menu has only its link; Open entries need a browser.
+    #[test]
+    fn store_actions_per_links_and_browser() {
+        let app: crate::catalog::CatalogApp = serde_json::from_str(
+            r#"{"name":"demo","bin":"demo","category":"X","description":"d","homepage":"https://github.com/o/demo","releases":true}"#,
+        )
+        .unwrap();
+        let rel = "https://github.com/o/demo/releases/latest".to_string();
+        let home = app.homepage.clone();
+        let labels = |v: Vec<MenuAction>| v.iter().map(|a| a.label()).collect::<Vec<_>>();
+        assert_eq!(
+            labels(store_actions(&app, StoreLinks::App, false, true)),
+            ["Install", "Open project page", "Copy project link", "Open releases page", "Copy releases link"]
+        );
+        assert_eq!(store_actions(&app, StoreLinks::Releases, true, false), vec![MenuAction::CopyLink("Copy releases link".into(), rel)]);
+        assert_eq!(
+            store_actions(&app, StoreLinks::Project, true, true),
+            vec![MenuAction::OpenLink("Open project page".into(), home.clone()), MenuAction::CopyLink("Copy project link".into(), home)]
+        );
+        assert_eq!(labels(store_actions(&app, StoreLinks::App, true, false))[0], "Launch");
+    }
+}

@@ -1406,10 +1406,11 @@ fn cli_launch_of_a_builtin_opens_the_builtin_window() {
     core.shutdown();
 }
 
-/// WMCAT-006: Alt+O in the Store copies the selected app's releases page to
-/// the clipboard (a terminal browser, when installed, opens it too).
+/// WMCAT-007: Alt+O opens the Store menu of the selected app; it is driven
+/// by the menu keys, and "Copy releases link" puts the link in the clipboard.
 #[test]
-fn store_open_releases_copies_the_link() {
+fn store_menu_copies_the_releases_link() {
+    use tetron_wm::session::MenuKey;
     let app = tetron_wm::catalog::catalog().iter().find(|a| tetron_wm::catalog::releases_url(a).is_some() && a.name.len() > 5).expect("an app with releases");
     let mut core = SessionCore::new(120, 40, Config::default());
     core.apply(ClientMsg::OpenStore);
@@ -1417,8 +1418,14 @@ fn store_open_releases_copies_the_link() {
         core.apply(ClientMsg::StoreChar(c));
     }
     let _ = core.take_clipboard();
-    core.apply(ClientMsg::StoreOpenReleases);
+    core.apply(ClientMsg::StoreMenu);
+    assert!(core.desktop_menu_open(), "the client routes arrows to the menu");
+    // Install, [Open project], Copy project, [Open releases], Copy releases:
+    // Up from the first entry wraps to the last.
+    core.apply(ClientMsg::DesktopMenuKey(MenuKey::Up));
+    core.apply(ClientMsg::DesktopMenuKey(MenuKey::Enter));
+    assert!(!core.desktop_menu_open());
     let got = core.take_clipboard().expect("link copied");
-    assert!(got.ends_with("/releases/latest") && got.starts_with("https://github.com/"), "{got}");
+    assert_eq!(Some(got), tetron_wm::catalog::releases_url(app));
     core.shutdown();
 }

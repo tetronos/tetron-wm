@@ -52,10 +52,13 @@ fn click_selects_category_and_row() {
     assert_eq!(s.handle_click(Point::new(20, 2), 96, 22), tetron_wm::store::StoreClick::Activate);
 }
 
-/// WMCAT-006: the "Prebuilt" line is drawn and clickable only for an app with
-/// a releases page, on the same row render and hit-test share.
+/// WMCAT-006/007: the "Prebuilt" line is drawn only for an app with a
+/// releases page; a click on it or on the project link opens that link's
+/// menu, on the rows render and hit-test share; a right-click on a row
+/// selects it and opens the app menu.
 #[test]
-fn prebuilt_line_click_opens_releases() {
+fn link_lines_and_right_click_open_menus() {
+    use tetron_wm::contextmenu::StoreLinks;
     use tetron_wm::geometry::Point;
     use tetron_wm::store::StoreClick;
     let (w, h) = (110, 30);
@@ -64,13 +67,20 @@ fn prebuilt_line_click_opens_releases() {
     let mut s = Store::new();
     for c in with.name.chars() { s.type_char(c); }
     assert_eq!(s.selected_app().map(|a| a.name.as_str()), Some(with.name.as_str()));
-    let y = (0..h).find(|&y| row(&s, y).contains("Prebuilt (Alt+O): https://github.com/")).expect("prebuilt line");
-    let x = (0..w).find(|&x| s.render(w, h).get(x, y).map(|c| c.ch) == Some('P')).unwrap();
-    assert_eq!(s.handle_click(Point::new(x + 2, y), w, h), StoreClick::OpenReleases);
+    let dx = tetron_wm::store::details_x() + 2;
+    let y = (0..h).find(|&y| row(&s, y).contains("Prebuilt: https://github.com/")).expect("prebuilt line");
+    assert_eq!(s.handle_click(Point::new(dx, y), w, h), StoreClick::Menu(StoreLinks::Releases));
+    let y = (0..h).find(|&y| row(&s, y).contains(&format!(" {} ", with.homepage)) || row(&s, y).trim_end().ends_with(&with.homepage)).expect("homepage line");
+    assert_eq!(s.handle_click(Point::new(dx, y), w, h), StoreClick::Menu(StoreLinks::Project));
+    // Right-click: a list row selects it; the sidebar does nothing.
+    let mut s = Store::new();
+    assert!(s.right_click(Point::new(20, 3), w, h));
+    assert_eq!(s.selected_app().map(|a| a.name.clone()), s.filtered().get(1).map(|a| a.name.clone()));
+    assert!(!s.right_click(Point::new(2, 3), w, h));
     let without = tetron_wm::catalog::catalog().iter().find(|a| !a.releases && a.name.len() > 5 && !a.name.contains(' ')).unwrap();
     let mut s = Store::new();
     for c in without.name.chars() { s.type_char(c); }
     if s.selected_app().map(|a| a.releases) == Some(false) {
-        assert_eq!(s.handle_click(Point::new(x + 2, y), w, h), StoreClick::None);
+        assert!(!(0..h).any(|y| row(&s, y).contains("Prebuilt:")));
     }
 }

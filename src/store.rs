@@ -38,8 +38,8 @@ pub enum StoreClick {
     Activate,
     /// Fetch the catalog ([`crate::listfetch`]).
     UpdateList,
-    /// Copy and open the selected app's releases page (WMCAT-006).
-    OpenReleases,
+    /// Open the Store menu of the selected app with these links (WMCAT-007).
+    Menu(crate::contextmenu::StoreLinks),
 }
 
 /// State of the store browser.
@@ -253,9 +253,9 @@ impl Store {
             }
             // Prebuilt binaries (WMCAT-006), above the homepage.
             if let Some(url) = catalog::releases_url(app) {
-                buf.write_str(dx + 1, prebuilt_row(h), truncate(&format!("Prebuilt (Alt+O): {url}"), dw as usize - 2), pal_dim(), pal_panel());
+                buf.write_str(dx + 1, prebuilt_row(h), truncate(&format!("Prebuilt: {url}"), dw as usize - 2), pal_dim(), pal_panel());
             }
-            buf.write_str(dx + 1, h - 4, truncate(&app.homepage, dw as usize - 2), pal_dim(), pal_panel());
+            buf.write_str(dx + 1, homepage_row(h), truncate(&app.homepage, dw as usize - 2), pal_dim(), pal_panel());
             // Verified-recipe badge.
             if let Some(r) = catalog::recipe(&app.name) {
                 if r.verified {
@@ -264,7 +264,7 @@ impl Store {
             }
             // Action hint.
             let installed = catalog::is_installed(&app.bin);
-            let action = if installed { "[ Enter: Launch ]" } else { "[ Enter: Install ]" };
+            let action = if installed { "[ Enter: Launch ]  Alt+O: more" } else { "[ Enter: Install ]  Alt+O: more" };
             let acol = if installed { green() } else { pal_accent() };
             buf.write_str(dx + 1, h - 2, action, acol, pal_panel());
         }
@@ -311,9 +311,32 @@ impl Store {
             return StoreClick::Activate;
         }
         if p.x >= dx && p.y == prebuilt_row(h) && self.selected_app().and_then(catalog::releases_url).is_some() {
-            return StoreClick::OpenReleases;
+            return StoreClick::Menu(crate::contextmenu::StoreLinks::Releases);
+        }
+        if p.x >= dx && p.y == homepage_row(h) && self.selected_app().is_some() {
+            return StoreClick::Menu(crate::contextmenu::StoreLinks::Project);
         }
         StoreClick::None
+    }
+
+    /// A right-click at content-local `p` (WMCAT-007): on an app row it
+    /// selects that app, on the details it keeps the selection; either way
+    /// the app menu opens (true). Elsewhere nothing (false).
+    pub fn right_click(&mut self, p: Point, w: i32, h: i32) -> bool {
+        let list_x = SIDEBAR_W + 1;
+        if p.y < 2 || p.x < list_x {
+            return false;
+        }
+        if p.x < list_x + LIST_W {
+            let rows = (h - 2).max(0) as usize;
+            let idx = self.scroll_for(rows) + (p.y - 2) as usize;
+            if idx >= self.filtered().len() {
+                return false;
+            }
+            self.selected = idx;
+        }
+        let _ = w;
+        self.selected_app().is_some()
     }
 
     /// Scroll offset that keeps the selection visible given `rows` visible lines.
@@ -410,10 +433,18 @@ echo 'Close this window (x) when finished.'; exec \"$SHELL\"",
     sh
 }
 
-/// The detail pane row of the "Prebuilt" link in a `h`-row Store, shared by
-/// render and hit-test so they can not drift.
+/// The content-local column where the detail pane starts.
+pub fn details_x() -> i32 {
+    SIDEBAR_W + 1 + LIST_W + 1
+}
+
+/// The detail pane rows of the "Prebuilt" link and the project link in a
+/// `h`-row Store, shared by render and hit-test so they can not drift.
 fn prebuilt_row(h: i32) -> i32 {
     h - 5
+}
+fn homepage_row(h: i32) -> i32 {
+    h - 4
 }
 
 /// Shell lines naming the releases page (WMCAT-006), or nothing.
