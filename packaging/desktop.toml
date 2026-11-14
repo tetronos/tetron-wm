@@ -4,8 +4,8 @@
 # `apt install tetron-wm-desktop` installs tetron-wm plus the tools its
 # features use, because apt installs Recommends by default. Each name exists
 # in Debian 12 and 13 and Ubuntu 22.04 and 24.04, except tetron-browser
-# (amd64), which comes from the tetronos apt repo; apt skips it where that
-# repo is not configured.
+# (amd64) and tetron-appstore, which come from the tetronos apt repo; apt
+# skips them where that repo is not configured.
 # Tools Debian does not package (fresh, casttui, catt, uv, opencode,
 # a symbols Nerd Font) stay with install-tetron-wm-suite.sh
 # (the [[script]] entries of lists/tetron.toml).
@@ -16,7 +16,8 @@ Installs tetron-wm together with the programs that its features call:
 image wallpapers and previews (chafa), video and audio (mpv), full
 screen images on the framebuffer (fbi), PDF pages
 (poppler-utils), web browsers (tetron-browser from the tetronos apt repo,
-and the text browser w3m), the CPU monitor the tray opens
+and the text browser w3m), the app store (tetron-appstore, from the
+tetronos apt repo), the CPU monitor the tray opens
 (htop), battery status (upower), the console mouse (gpm), clipboard sync
 (xclip, wl-clipboard), sound (alsa-utils), remote systems and their files
 (openssh-client, sshpass, sshfs), archives (7zip, unzip), encryption
@@ -61,6 +62,7 @@ recommends = [
   "mc",
   "vim",
   "tetron-browser",
+  "tetron-appstore",
   "fbi",
 ]
 # btop is a Recommends of tetron-wm-recommended, so not a Suggests here.
