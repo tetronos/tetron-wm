@@ -937,33 +937,59 @@ fn send(stream: &mut UnixStream, msg: &ClientMsg) -> std::io::Result<()> {
 
 /// Encode a key into the bytes forwarded to the focused PTY app.
 fn encode_key(code: KeyCode, mods: KeyModifiers, app_cursor: bool) -> Vec<u8> {
-    // Cursor keys (arrows + Home/End) have two encodings: the CSI form
-    // `ESC [ x` in normal mode, and the SS3 form `ESC O x` when the focused app
-    // enabled application cursor-key mode (DECCKM). Apps that read xterm
-    // terminfo bind only the application form (mc's kcuu1 = `\EOA`), so sending
-    // the CSI form leaves their arrow keys dead. `app_cursor` is the focused
-    // app's DECCKM state, relayed from the emulator via `Flags::app_cursor`.
-    let seq = |c: u8| -> Vec<u8> {
-        if app_cursor { vec![0x1b, b'O', c] } else { vec![0x1b, b'[', c] }
+    // xterm's encoding, which apps' terminfo (xterm-256color) expects. Cursor
+    // keys (arrows + Home/End) have two encodings: the CSI form `ESC [ x` in
+    // normal mode, and the SS3 form `ESC O x` when the focused app enabled
+    // application cursor-key mode (DECCKM). Apps that read xterm terminfo bind
+    // only the application form (mc's kcuu1 = `\EOA`), so sending the CSI form
+    // leaves their arrow keys dead. `app_cursor` is the focused app's DECCKM
+    // state, relayed from the emulator via `Flags::app_cursor`.
+    //
+    // With Shift, Alt or Ctrl, cursor keys, F1-F4 and the `~` keys carry the
+    // modifier parameter (`ESC [ 1 ; m A`, `ESC [ 5 ; m ~`, m = 1 + shift
+    // + 2 alt + 4 ctrl). Alt on a character or Enter/Backspace/Tab/Esc sends
+    // ESC first (xterm's metaSendsEscape), so Alt+letter shortcuts reach apps.
+    let alt = mods.contains(KeyModifiers::ALT);
+    let m = 1 + u8::from(mods.contains(KeyModifiers::SHIFT)) + 2 * u8::from(alt) + 4 * u8::from(mods.contains(KeyModifiers::CONTROL));
+    let csi = |rest: String| -> Vec<u8> { format!("\x1b[{rest}").into_bytes() };
+    // A cursor key or F1-F4: SS3/CSI letter, or `CSI 1;m letter` with modifiers.
+    let letter = |c: char, ss3: bool| -> Vec<u8> {
+        if m > 1 {
+            csi(format!("1;{m}{c}"))
+        } else if ss3 {
+            format!("\x1bO{c}").into_bytes()
+        } else {
+            csi(c.to_string())
+        }
     };
+    // A `CSI n ~` key, `CSI n;m ~` with modifiers.
+    let tilde = |n: u8| -> Vec<u8> { if m > 1 { csi(format!("{n};{m}~")) } else { csi(format!("{n}~")) } };
+    let meta = |b: Vec<u8>| -> Vec<u8> { if alt { [vec![0x1b], b].concat() } else { b } };
     match code {
         KeyCode::Char(c) => {
             if mods.contains(KeyModifiers::CONTROL) {
-                vec![(c.to_ascii_uppercase() as u8).wrapping_sub(0x40)]
+                meta(vec![(c.to_ascii_uppercase() as u8).wrapping_sub(0x40)])
             } else {
-                c.to_string().into_bytes()
+                meta(c.to_string().into_bytes())
             }
         }
-        KeyCode::Enter => vec![b'\r'],
-        KeyCode::Backspace => vec![0x7f],
-        KeyCode::Tab => vec![b'\t'],
-        KeyCode::Esc => vec![0x1b],
-        KeyCode::Up => seq(b'A'),
-        KeyCode::Down => seq(b'B'),
-        KeyCode::Right => seq(b'C'),
-        KeyCode::Left => seq(b'D'),
-        KeyCode::Home => seq(b'H'),
-        KeyCode::End => seq(b'F'),
+        KeyCode::Enter => meta(vec![b'\r']),
+        KeyCode::Backspace => meta(vec![0x7f]),
+        KeyCode::Tab => meta(vec![b'\t']),
+        KeyCode::BackTab => csi("Z".into()),
+        KeyCode::Esc => meta(vec![0x1b]),
+        KeyCode::Up => letter('A', app_cursor),
+        KeyCode::Down => letter('B', app_cursor),
+        KeyCode::Right => letter('C', app_cursor),
+        KeyCode::Left => letter('D', app_cursor),
+        KeyCode::Home => letter('H', app_cursor),
+        KeyCode::End => letter('F', app_cursor),
+        KeyCode::Insert => tilde(2),
+        KeyCode::Delete => tilde(3),
+        KeyCode::PageUp => tilde(5),
+        KeyCode::PageDown => tilde(6),
+        KeyCode::F(n @ 1..=4) => letter((b'P' + n - 1) as char, true),
+        KeyCode::F(n @ 5..=12) => tilde([15, 17, 18, 19, 20, 21, 23, 24][(n - 5) as usize]),
         _ => vec![],
     }
 }
@@ -971,6 +997,33 @@ fn encode_key(code: KeyCode, mods: KeyModifiers, app_cursor: bool) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// xterm key encoding to apps: Alt sends ESC first, modified cursor/F/~
+    /// keys carry the modifier parameter, and the keys that sent nothing
+    /// (PageUp/Down, Insert, Delete, Shift+Tab, F1-F12) send their sequences.
+    #[test]
+    fn encode_key_follows_xterm() {
+        let k = |c, m| encode_key(c, m, false);
+        let (n, a, s, c) = (KeyModifiers::NONE, KeyModifiers::ALT, KeyModifiers::SHIFT, KeyModifiers::CONTROL);
+        assert_eq!(k(KeyCode::Char('o'), n), b"o");
+        assert_eq!(k(KeyCode::Char('o'), a), b"\x1bo");
+        assert_eq!(k(KeyCode::Char('c'), c), [3]);
+        assert_eq!(k(KeyCode::Char('c'), c | a), [0x1b, 3]);
+        assert_eq!(k(KeyCode::Enter, a), b"\x1b\r");
+        assert_eq!(k(KeyCode::Up, n), b"\x1b[A");
+        assert_eq!(encode_key(KeyCode::Up, n, true), b"\x1bOA");
+        assert_eq!(k(KeyCode::Up, a), b"\x1b[1;3A");
+        assert_eq!(k(KeyCode::Right, c | s), b"\x1b[1;6C");
+        assert_eq!(k(KeyCode::PageUp, n), b"\x1b[5~");
+        assert_eq!(k(KeyCode::PageDown, c), b"\x1b[6;5~");
+        assert_eq!(k(KeyCode::Delete, n), b"\x1b[3~");
+        assert_eq!(k(KeyCode::Insert, n), b"\x1b[2~");
+        assert_eq!(k(KeyCode::BackTab, s), b"\x1b[Z");
+        assert_eq!(k(KeyCode::F(1), n), b"\x1bOP");
+        assert_eq!(k(KeyCode::F(5), n), b"\x1b[15~");
+        assert_eq!(k(KeyCode::F(10), n), b"\x1b[21~");
+        assert_eq!(k(KeyCode::F(12), s), b"\x1b[24;2~");
+    }
     use crate::geometry::Rect;
     use crate::protocol::ImagePlacement;
 
