@@ -132,6 +132,7 @@ Common first changes:
 | Less memory per window                   | `scrollback = 2000` (lines kept per window; default 10000)                                                                 |
 | Mono (no color), or fewer colors       | Settings → Appearance → Colors, or `colors = "mono"` (also `"16"`, `"256"`, `"truecolor"`)                                  |
 | Images always drawn as characters        | `image_viewer = "cells"` (default `"auto"` uses Kitty graphics where the terminal has them)                                 |
+| The built-in Store, not tetron-appstore  | `store_app = ""`                                                                                                            |
 
 ## Bare console (no X11 or Wayland)
 

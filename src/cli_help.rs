@@ -190,6 +190,12 @@ IMAGE VIEWER (images and PDFs; image_viewer = auto | graphics | cells):\n\
 \x20 m graphics/cells, i info line, f full screen (plain console), Esc or q closes.\n\
 \x20 A PDF shows one page at a time (pdftoppm); n p turn pages. Open with... also offers\n\
 \x20 its text in a pager (pdftotext), tdf and timg; full screen on a console uses fbgs.\n\n\
+STORE (leader S, or the launcher):\n\
+\x20 The Store is tetron-appstore (store_app), its own program in a window named Store; it\n\
+\x20 works in any terminal too. Type to search (from:trove, from:awesome, from:tetron show one\n\
+\x20 list), Enter installs or launches, Alt+O or a right click opens the app menu (open or\n\
+\x20 copy the project and prebuilt-binaries links), F5 updates the list. Without it\n\
+\x20 (store_app = \"\" or not installed) tetron-wm opens its built-in Store.\n\n\
 LAUNCHER SYSTEM SECTION (click the top-left button):\n\
 \x20 Systems  switch to a saved remote machine over ssh\n\
 \x20 Detach   leave; apps keep running        Reload  restart the UI, apps keep running\n\

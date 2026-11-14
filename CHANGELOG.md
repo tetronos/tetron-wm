@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.9] — 2026-11-14
+
 ### Changed (breaking)
 - The Store is now tetron-appstore, the Store as its own program (https://github.com/tetronos/tetron-appstore): leader `S`, the launcher's Store, Settings and the tray open it in a window named "Store", focus it when it is open, and start it for one app when asked. The new config key `store_app` (default `tetron-appstore`) names the program; `store_app = ""`, or the program not being installed, opens tetron-wm's built-in Store as before.
 
