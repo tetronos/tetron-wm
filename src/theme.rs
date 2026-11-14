@@ -613,6 +613,40 @@ fn parse_theme_toml(text: &str) -> Result<(Option<String>, Theme), String> {
     Ok(tf.into_theme())
 }
 
+/// The Store roles of the current theme as JSON (`{"bg": "#rrggbb", …}`), for
+/// tetron-appstore (WMCAT-009).
+pub fn store_colors_json() -> String {
+    let t = current();
+    let hex = |c: Rgba| format!("#{:02x}{:02x}{:02x}", c.r, c.g, c.b);
+    format!(
+        "{{\"bg\":\"{}\",\"fg\":\"{}\",\"dim\":\"{}\",\"sel\":\"{}\",\"accent\":\"{}\",\"panel\":\"{}\",\"success\":\"{}\"}}\n",
+        hex(t.window_bg), hex(t.text), hex(t.dim), hex(t.active_bg), hex(t.accent), hex(t.menubar_bg), hex(t.success)
+    )
+}
+
+/// Write [`store_colors_json`] to `$XDG_STATE_HOME/tetron-wm/theme-colors.json`
+/// (atomic rename) when it differs from what was last written. The daemon
+/// calls this every tick, so every way a theme changes reaches the file.
+pub fn export_store_colors() {
+    static LAST: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+    let json = store_colors_json();
+    let mut last = LAST.lock().unwrap();
+    if *last == json {
+        return;
+    }
+    *last = json.clone();
+    // Same rule as tetron-appstore reads it, on every OS (dirs::state_dir
+    // has none on macOS).
+    let xdg = std::env::var_os("XDG_STATE_HOME").filter(|v| !v.is_empty()).map(std::path::PathBuf::from).filter(|p| p.is_absolute());
+    let Some(dir) = xdg.or_else(|| dirs::home_dir().map(|h| h.join(".local/state"))).map(|d| d.join("tetron-wm")) else { return };
+    let path = dir.join("theme-colors.json");
+    let part = dir.join("theme-colors.json.part");
+    let r = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&part, &json)).and_then(|_| std::fs::rename(&part, &path));
+    if let Err(e) = r {
+        crate::log_warn(&format!("theme: could not write {}: {e}", path.display()));
+    }
+}
+
 /// `#rrggbb`, or `#rrggbbaa` when the color carries alpha.
 pub fn to_hex(c: Rgba) -> String {
     if c.a == 255 {
@@ -1424,6 +1458,16 @@ mod depth_tests {
                 assert!(luminance(bg) < 0.2, "{name}");
             }
             assert!(luminance(t.dim) < 0.3 && luminance(t.text) >= 0.3, "{name}: dim must read as dim");
+        }
+    }
+
+    /// WMCAT-009: the Store colours file carries the seven roles as #rrggbb.
+    #[test]
+    fn store_colors_json_has_the_seven_roles() {
+        let v: serde_json::Value = serde_json::from_str(&store_colors_json()).unwrap();
+        for k in ["bg", "fg", "dim", "sel", "accent", "panel", "success"] {
+            let h = v[k].as_str().unwrap_or_else(|| panic!("{k}"));
+            assert!(h.len() == 7 && h.starts_with('#'), "{k}: {h}");
         }
     }
 }

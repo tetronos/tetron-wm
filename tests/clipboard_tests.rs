@@ -16,7 +16,7 @@ fn pump_until(core: &mut SessionCore, mut done: impl FnMut(&SessionCore) -> bool
 }
 
 fn launch(core: &mut SessionCore, script: &str) {
-    core.apply(ClientMsg::Launch { name: "t".into(), command: "sh".into(), args: vec!["-c".into(), script.into()] });
+    core.apply(ClientMsg::Launch { name: "t".into(), command: "sh".into(), args: vec!["-c".into(), script.into()], cwd_prompt: false });
 }
 
 #[test]
@@ -353,7 +353,7 @@ fn select_mode_selects_text_out_of_w3m() {
     let page = std::env::temp_dir().join(format!("twm-w3m-{}.html", std::process::id()));
     std::fs::write(&page, "<html><body><p>Copy this sentence from the web</p></body></html>").unwrap();
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![page.display().to_string()] });
+    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![page.display().to_string()], cwd_prompt: false });
     std::thread::sleep(Duration::from_millis(1500));
     let mouse_captured = core.app_mouse_area().is_some();
     core.apply(ClientMsg::ToggleSelectMode);
@@ -377,17 +377,17 @@ fn bare_w3m_launch_gets_the_web_home_page() {
         return;
     }
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![] });
+    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![], cwd_prompt: false });
     let (_cmd, args) = core.focused_app_launch_cmd_for_test().expect("launched");
     assert_eq!(args, vec!["https://lite.duckduckgo.com/lite/".to_string()]);
     core.shutdown();
     // An explicit URL, and an empty web_home, are left alone.
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec!["file:///x".into()] });
+    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec!["file:///x".into()], cwd_prompt: false });
     assert_eq!(core.focused_app_launch_cmd_for_test().unwrap().1, vec!["file:///x".to_string()]);
     core.shutdown();
     let mut core = SessionCore::new(100, 30, Config { web_home: String::new(), ..Config::default() });
-    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![] });
+    core.apply(ClientMsg::Launch { name: "w3m".into(), command: "w3m".into(), args: vec![], cwd_prompt: false });
     assert!(core.focused_app_launch_cmd_for_test().unwrap().1.is_empty());
     core.shutdown();
 }

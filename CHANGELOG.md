@@ -7,6 +7,7 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Changed
+- For the standalone Store (tetron-appstore): tetron-wm writes the active theme's colours to `~/.local/state/tetron-wm/theme-colors.json` when they change, reloads the shared catalog within a second when another program's Update list replaced it (launcher and Store follow), and `Launch` messages take an optional `cwd_prompt` to ask for a working folder first, as the launcher does for coding agents.
 - The catalog code (catalog, lookups, installed-app scan, install commands, toolchains) is a library crate of its own, `crates/tetron-catalog`, in a Cargo workspace, so tetron-wm and the coming standalone Store share one copy. No change for users. Tests now always use the built-in catalog, never one you downloaded with Update list.
 - `scripts/match_brew.py` uses a Homebrew formula only when it points at the app's own GitHub repository, so a different program with the same name is never installed.
 

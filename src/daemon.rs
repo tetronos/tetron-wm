@@ -103,6 +103,7 @@ pub fn run() -> std::io::Result<()> {
                 name: app.name.clone(),
                 command: app.command.clone(),
                 args: app.args.clone(),
+                cwd_prompt: false,
             });
         }
     } else {
@@ -448,6 +449,8 @@ fn serve_client_inner(
         core.poll_themes();
         core.poll_apps_download();
         core.poll_lists();
+        core.poll_catalog_file();
+        crate::theme::export_store_colors();
         core.poll_update_check();
         core.tick_screensaver();
         core.refresh_activity();

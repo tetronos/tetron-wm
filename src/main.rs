@@ -129,7 +129,7 @@ fn main() -> std::io::Result<()> {
             };
             let args: Vec<String> = rest.collect();
             let name = command.rsplit('/').next().unwrap_or(&command).to_string();
-            ctl(&tetron_wm::session::ClientMsg::Launch { name, command, args })
+            ctl(&tetron_wm::session::ClientMsg::Launch { name, command, args, cwd_prompt: false })
         }
         Some("screenshot") => {
             let path = match rest.first() {

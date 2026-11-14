@@ -243,6 +243,46 @@ fn log(msg: &str) {
 /// (a few hundred KB per Update list press) so `&'static` borrows stay valid.
 static ACTIVE: std::sync::RwLock<Option<&'static Catalog>> = std::sync::RwLock::new(None);
 
+/// The modification time of [`cache_path`] when the catalog in use was read
+/// or written, and when [`reload_if_changed`] last looked.
+static SEEN: std::sync::Mutex<(Option<std::time::SystemTime>, Option<std::time::Instant>)> = std::sync::Mutex::new((None, None));
+
+fn cache_mtime() -> Option<std::time::SystemTime> {
+    cache_path().and_then(|p| std::fs::metadata(p).ok()).and_then(|m| m.modified().ok())
+}
+
+/// Re-read the catalog when another program (the standalone Store's Update
+/// list) replaced [`cache_path`] since it was read; looks at most once a
+/// second. True when the catalog in use changed (WMCAT-009).
+pub fn reload_if_changed() -> bool {
+    if cfg!(any(test, feature = "builtin-only")) {
+        return false;
+    }
+    let mut seen = SEEN.lock().unwrap();
+    if seen.1.is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(1)) {
+        return false;
+    }
+    seen.1 = Some(std::time::Instant::now());
+    let now = cache_mtime();
+    if now.is_none() || now == seen.0 {
+        return false;
+    }
+    seen.0 = now;
+    drop(seen);
+    match cache_path().and_then(|p| std::fs::read_to_string(p).ok()).map(|t| parse(&t)) {
+        Some(Ok(c)) => {
+            log(&format!("catalog: reloaded {} apps from the shared copy", c.apps.len()));
+            *ACTIVE.write().unwrap() = Some(Box::leak(Box::new(c)));
+            true
+        }
+        Some(Err(e)) => {
+            log(&format!("catalog: changed shared copy not used ({e})"));
+            false
+        }
+        None => false,
+    }
+}
+
 fn builtin() -> Catalog {
     parse(CATALOG_JSON).expect("the built-in catalog passes its own checks")
 }
@@ -264,6 +304,7 @@ fn active() -> &'static Catalog {
     };
     let c: &'static Catalog = Box::leak(Box::new(c));
     *ACTIVE.write().unwrap() = Some(c);
+    SEEN.lock().unwrap().0 = cache_mtime();
     c
 }
 
@@ -279,6 +320,7 @@ pub fn install(text: &str) -> Result<usize, String> {
     std::fs::write(&part, text).and_then(|_| std::fs::rename(&part, &path)).map_err(|e| format!("could not save {}: {e}", path.display()))?;
     let n = c.apps.len();
     *ACTIVE.write().unwrap() = Some(Box::leak(Box::new(c)));
+    SEEN.lock().unwrap().0 = cache_mtime();
     Ok(n)
 }
 
