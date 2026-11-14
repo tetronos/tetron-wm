@@ -7,6 +7,7 @@ carry user-visible feature work and the occasional breaking config change.
 ## [Unreleased]
 
 ### Changed
+- The catalog code (catalog, lookups, installed-app scan, install commands, toolchains) is a library crate of its own, `crates/tetron-catalog`, in a Cargo workspace, so tetron-wm and the coming standalone Store share one copy. No change for users. Tests now always use the built-in catalog, never one you downloaded with Update list.
 - `scripts/match_brew.py` uses a Homebrew formula only when it points at the app's own GitHub repository, so a different program with the same name is never installed.
 
 ### Added

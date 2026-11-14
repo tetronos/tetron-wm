@@ -1,0 +1,17 @@
+[package]
+name = "tetron-catalog"
+version = "0.15.8"
+edition = "2021"
+rust-version = "1.95"
+description = "The tetron app catalog: types, the built-in copy, lookups, install commands"
+license = "MIT"
+publish = false
+
+[features]
+# Ignore a downloaded catalog (tests: tetron-wm turns it on as a dev-dependency).
+builtin-only = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.150"
+dirs = "5"

@@ -64,7 +64,6 @@ pub mod mouse;
 pub mod gpm;
 pub mod badge;
 pub mod service;
-pub mod toolchain;
 pub mod systems;
 pub mod calendar;
 pub mod logsview;
@@ -135,6 +134,8 @@ pub fn log_error(msg: &str) {
 /// one log — truncating here is what made update failures invisible (the new
 /// daemon wiped the evidence). Rotation keeps the files bounded.
 pub fn dbg_init() {
+    // The shared catalog crate logs here too (WMCAT-008).
+    tetron_catalog::set_logger(dbg_log);
     // Route every panic into the debug log before the default handler runs. The
     // daemon/apphost stderr is not captured (the console is torn down on exit),
     // so without this a panic leaves no trace — which is exactly why an earlier
