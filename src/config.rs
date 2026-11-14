@@ -87,6 +87,10 @@ pub struct Config {
     /// Open new app windows maximized (filling the work area).
     #[serde(default)]
     pub launch_maximized: bool,
+    /// The Store program (WMCAT-011), run in a window named "Store". Empty, or
+    /// a command that is not installed: the built-in Store.
+    #[serde(default = "default_store_app")]
+    pub store_app: String,
     /// Full screen video, images and PDFs (right-click items, the viewer `f` key).
     /// Off skips the `/dev/fb0`, DRM and waiter probes and hides the items.
     #[serde(default = "default_true")]
@@ -361,6 +365,7 @@ impl Default for Config {
             tile_gap: 0,
             auto_tile: false,
             launch_maximized: false,
+            store_app: default_store_app(),
             fullscreen: true,
             theme: "midnight".into(),
             theme_dir: None,
@@ -444,6 +449,10 @@ fn default_desktop_pins() -> Vec<AppEntry> {
 fn default_dock_badges() -> std::collections::BTreeMap<String, String> {
     [("claude", "orange"), ("kilo", "yellow")]
         .iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+}
+
+fn default_store_app() -> String {
+    "tetron-appstore".into()
 }
 
 fn default_theme() -> String { "midnight".into() }

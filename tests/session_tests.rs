@@ -60,7 +60,7 @@ fn spotlight_launches_selected_app() {
 
 #[test]
 fn open_store_creates_focused_store_window() {
-    let mut core = SessionCore::new(120, 40, Config::default());
+    let mut core = SessionCore::new(120, 40, builtin_store());
     assert!(!core.focused_is_store());
     core.apply(ClientMsg::OpenStore);
     assert!(core.focused_is_store());
@@ -1415,7 +1415,7 @@ fn cli_launch_of_a_builtin_opens_the_builtin_window() {
 fn store_menu_copies_the_releases_link() {
     use tetron_wm::session::MenuKey;
     let app = tetron_wm::catalog::catalog().iter().find(|a| tetron_wm::catalog::releases_url(a).is_some() && a.name.len() > 5).expect("an app with releases");
-    let mut core = SessionCore::new(120, 40, Config::default());
+    let mut core = SessionCore::new(120, 40, builtin_store());
     core.apply(ClientMsg::OpenStore);
     for c in app.name.chars() {
         core.apply(ClientMsg::StoreChar(c));
@@ -1446,3 +1446,34 @@ fn launch_with_cwd_prompt_asks_for_a_folder() {
     assert!(matches!(old, ClientMsg::Launch { cwd_prompt: false, .. }));
     core.shutdown();
 }
+
+/// The built-in Store (`store_app = ""`), whatever is installed here (WMCAT-011).
+fn builtin_store() -> Config {
+    Config { store_app: String::new(), ..Config::default() }
+}
+
+/// WMCAT-011: with `store_app` installed, the Store opens as that program in
+/// a window named "Store"; opening it again focuses it; opening it for one
+/// app replaces it. A missing program falls back to the built-in Store.
+#[test]
+fn store_opens_the_store_app_once_and_falls_back() {
+    let mut core = SessionCore::new(120, 40, Config { store_app: "sh".into(), ..Config::default() });
+    core.apply(ClientMsg::OpenStore);
+    let id = core.store_app_window().expect("a Store app window");
+    assert!(!core.focused_is_store(), "the program, not the built-in Store");
+    assert_eq!(core.window_count(), 1);
+    core.apply(ClientMsg::OpenStore);
+    assert_eq!((core.window_count(), core.store_app_window()), (1, Some(id)), "focused, not opened twice");
+    core.shutdown();
+
+    let mut core = SessionCore::new(120, 40, Config { store_app: "no-such-store-xyz".into(), ..Config::default() });
+    core.apply(ClientMsg::OpenStore);
+    assert!(core.focused_is_store() && core.store_app_window().is_none(), "built-in when the program is missing");
+    core.shutdown();
+
+    let mut core = SessionCore::new(120, 40, builtin_store());
+    core.apply(ClientMsg::OpenStore);
+    assert!(core.focused_is_store() && core.store_app_window().is_none(), "built-in when store_app is empty");
+    core.shutdown();
+}
+

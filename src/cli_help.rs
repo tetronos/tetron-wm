@@ -13,6 +13,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("tile_gap", "0", "cells of gutter between tiled windows"),
     ("auto_tile", "false", "auto-arrange all windows into the grid"),
     ("launch_maximized", "false", "open new app windows maximized"),
+    ("store_app", "tetron-appstore", "the Store program; \"\" or not installed = the built-in Store"),
     ("theme", "midnight", "built-in (midnight, gruvbox, pastoral, windows) or themes/<name>.toml stem (nord, dracula, dawn, newmoon, contrast, mocha, hotdog, dorfic: suite installer --themes)"),
     ("theme_dir", "<config>/themes", "directory of *.toml theme files"),
     ("terminal_bg", "theme", "terminal default background (#rrggbb or name)"),

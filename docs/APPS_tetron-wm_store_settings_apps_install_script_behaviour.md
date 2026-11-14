@@ -33,6 +33,8 @@ One line per entry, `:` separated:
 
 ## 2. The Store
 
+The Store is the program in `store_app` (default `tetron-appstore`, https://github.com/tetronos/tetron-appstore, in the desktop set), run in a window named "Store" (WMCAT-011): opening it again focuses that window; opening it for one app (Settings, the tray) starts it for that app. It shares the catalog below, follows the tetron-wm theme, and opens installs, apps and links in tetron-wm windows. When `store_app` is empty or not installed, tetron-wm opens its built-in Store, described here.
+
 Opened from the launcher. Source: `src/store.rs`, `crates/tetron-catalog/` (catalog, install command, toolchains; WMCAT-008), `src/catalog.rs` (launcher entries), `src/session.rs` (`store_activate`), `src/listfetch.rs`.
 
 - **List shown:** every app in the catalog in use, filtered by category and by the search text (name or description). An app whose recipe names operating systems other than this one, and that has no package for this one, is hidden.

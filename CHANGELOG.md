@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed (breaking)
+- The Store is now tetron-appstore, the Store as its own program (https://github.com/tetronos/tetron-appstore): leader `S`, the launcher's Store, Settings and the tray open it in a window named "Store", focus it when it is open, and start it for one app when asked. The new config key `store_app` (default `tetron-appstore`) names the program; `store_app = ""`, or the program not being installed, opens tetron-wm's built-in Store as before.
+
 ### Fixed
 - Apps in windows now get Alt+letter (ESC first, as xterm sends it), so their Alt shortcuts work; before, Alt was dropped and the plain letter arrived. PageUp, PageDown, Insert, Delete, Shift+Tab and F1 to F12 now reach apps (they sent nothing), and arrows or F-keys with Shift, Alt or Ctrl carry the modifier as xterm does.
 
