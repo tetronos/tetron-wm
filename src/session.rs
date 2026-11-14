@@ -112,7 +112,7 @@ use crate::apphost::{AppHost, AppId, LocalAppHost};
 use crate::launcher::Launcher;
 use crate::settings::Settings;
 use crate::activity::Activity;
-use crate::store::{self, Store};
+use crate::store::Store;
 use crate::window::WindowId;
 use crate::wm::{WindowManager, render_window};
 use std::collections::HashMap;
@@ -5103,7 +5103,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             // Run the install visibly, then drop into a shell so the output (and
             // any errors) stay on screen. Closing the window triggers a $PATH
             // re-scan + launcher rebuild (see `reap_dead`).
-            let cmd = store::install_command(app);
+            let cmd = crate::catalog::install::install_command(app);
             let wrapped = format!(
                 "{cmd}; echo; echo '── install finished — close this window (x) to refresh ──'; exec \"$SHELL\""
             );

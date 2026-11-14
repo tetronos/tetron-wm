@@ -34,7 +34,8 @@ class RecipesInTheCatalog(Requirement):
 
     The install recipe is a field of its catalog entry (`recipe`: install,
     method, verified, os, requires_cwd, tip); there is no separate recipes
-    file. `src/catalog.rs` reads one document: `{"schema": N, "apps": [...],
+    file. The `tetron-catalog` crate (`crates/tetron-catalog`, WMCAT-008)
+    reads one document: `{"schema": N, "apps": [...],
     "suite_apps": "..."}`. A schema this binary does not know is refused.
     """
 
@@ -136,4 +137,25 @@ class StoreAppMenu(Requirement):
     installed the Open entries are left out. The Store's status line says
     what was done. The install-method choice (one entry per way an app can be
     installed here) is meant to join this menu.
+    """
+
+
+class CatalogLibrary(Requirement):
+    """REQUIREMENT-ID: WMCAT-008
+
+    The catalog code is a library crate of its own, `tetron-catalog` in
+    `crates/tetron-catalog` (a Cargo workspace member), so tetron-wm and the
+    standalone Store (tetron-appstore) use one copy. It holds the catalog
+    types, parsing and the built-in copy (`assets/catalog.json`), the cached
+    Update list copy and its checks, lookups (recipe, category, CLI, URL),
+    the `$PATH` scan of installed apps, the releases link (WMCAT-006), the
+    toolchain preambles and the Store install command (WMCAT-005). It depends
+    on nothing in tetron-wm: it logs through a function tetron-wm hands it at
+    start (`set_logger`), and finds its data folder from `XDG_DATA_HOME` or
+    `~/.local/share` itself. tetron-wm keeps what is its own: launcher
+    entries from installed apps, the Update list fetch (WMCAT-004, through
+    `run_capped`) and the Store window. The crate's `builtin-only` feature
+    ignores a downloaded catalog; tetron-wm turns it on for its tests only
+    (a dev-dependency), so no test reads the user's downloaded copy.
+    Behaviour for users is unchanged.
     """
