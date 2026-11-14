@@ -198,3 +198,21 @@ class ListedBy(Requirement):
     tetron-wm's built-in Store, which phase 3 removes, does not.
     """
 
+
+class StoreOpensTheApp(Requirement):
+    """REQUIREMENT-ID: WMCAT-011
+
+    Depends on WMCAT-009. tetron-wm opens the Store as the standalone
+    program: every way to open it (leader S, the launcher's Store entry and
+    `@store`, `tetron-wm msg '"OpenStore"'`, the assistant when its agent is
+    missing, Settings and the tray opening it for one app) runs the command in
+    the config key `store_app` (default `tetron-appstore`) in a window named
+    "Store", with the app's name as its argument when opened for one app.
+    With a Store window of that program open, opening the Store focuses it
+    instead of starting a second one; opening it for one app replaces it with
+    one started for that app (a running program can not be handed a search).
+    When `store_app` is empty, or its command is not installed, the built-in
+    Store opens as before, so no one is left without a Store. Every choice is
+    logged.
+    """
+

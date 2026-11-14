@@ -2238,15 +2238,7 @@ impl SessionCore {
             }
             I::OpenStoreSearch(query) => {
                 self.tray.close();
-                self.open_store();
-                if let Some(store) = self.store_win.and_then(|id| match self.contents.get_mut(&id) {
-                    Some(WinContent::Store(st)) => Some(st),
-                    _ => None,
-                }) {
-                    for c in query.chars() {
-                        store.type_char(c);
-                    }
-                }
+                self.open_store_for(&query);
                 return;
             }
             I::CopyText(text) => {
@@ -4293,17 +4285,68 @@ or a remote-side error — its authorized_keys was left untouched)",
         self.apphost.set_colors(&self.cfg.theme, Some(&rbg), Some(&rfg), Some(&ansi));
     }
 
-    /// Open the store window, or focus it if it's already open.
-    /// Open the Store filtered to one app (Settings > AI > Agent on
-    /// an agent that is not installed).
+    /// Open the Store filtered to one app (Settings > AI > Agent on an agent
+    /// that is not installed, the tray's "Get … (Store)" items).
     fn open_store_for(&mut self, app: &str) {
-        self.open_store();
+        if self.open_store_app(Some(app)) {
+            return;
+        }
+        self.open_builtin_store();
         if let Some(WinContent::Store(st)) = self.store_win.and_then(|id| self.contents.get_mut(&id)) {
             st.set_query(app);
         }
     }
 
+    /// Open the Store, or focus it if it is already open (WMCAT-011): the
+    /// `store_app` program when it is installed, else the built-in one.
     fn open_store(&mut self) {
+        if !self.open_store_app(None) {
+            self.open_builtin_store();
+        }
+    }
+
+    /// The window of a running Store program (WMCAT-011): an app window named
+    /// "Store" (the built-in Store's window holds no app).
+    pub fn store_app_window(&self) -> Option<WindowId> {
+        self.app_keys
+            .iter()
+            .find(|(id, k)| k.as_str() == "Store" && matches!(self.contents.get(id), Some(WinContent::App(_))))
+            .map(|(id, _)| *id)
+    }
+
+    /// Open the `store_app` program in a window named "Store", for `query`
+    /// when given (WMCAT-011). False when it is not set or not installed, so
+    /// the caller opens the built-in Store.
+    fn open_store_app(&mut self, query: Option<&str>) -> bool {
+        let cmd = self.cfg.store_app.trim().to_string();
+        if cmd.is_empty() {
+            return false;
+        }
+        if !crate::catalog::is_installed(&cmd) {
+            crate::dbg_log(&format!("store: '{cmd}' (store_app) is not installed; opening the built-in Store"));
+            return false;
+        }
+        match (self.store_app_window(), query) {
+            (Some(id), None) => {
+                crate::dbg_log(&format!("store: focusing the open {cmd} window"));
+                self.wm.raise(id);
+                self.focus_window(id);
+                return true;
+            }
+            (Some(id), Some(q)) => {
+                crate::dbg_log(&format!("store: replacing the open {cmd} window with one for '{q}'"));
+                self.close(id);
+            }
+            (None, _) => {}
+        }
+        let args: Vec<String> = query.map(|q| vec![q.to_string()]).unwrap_or_default();
+        crate::dbg_log(&format!("store: opening {cmd} {}", args.join(" ")));
+        self.launch("Store".into(), cmd, args);
+        true
+    }
+
+    /// tetron-wm's built-in Store window, focused when already open.
+    fn open_builtin_store(&mut self) {
         if let Some(id) = self.store_win {
             if self.contents.contains_key(&id) {
                 self.wm.unminimize(id);
