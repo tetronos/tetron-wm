@@ -1,6 +1,6 @@
 [package]
 name = "tetron-catalog"
-version = "0.15.8"
+version = "0.15.9"
 edition = "2021"
 rust-version = "1.95"
 description = "The tetron app catalog: types, the built-in copy, lookups, install commands"
