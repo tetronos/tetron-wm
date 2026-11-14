@@ -167,7 +167,8 @@ class StandaloneStoreHooks(Requirement):
     Depends on WMCAT-008. What tetron-wm gives the standalone Store
     (tetron-appstore) so it feels the same inside tetron-wm:
     - Theme: the daemon writes the active theme's Store colours (bg, fg, dim,
-      sel, accent, panel, success as `#rrggbb`) to
+      sel, accent, panel, success as `#rrggbb`) and the check mark of the
+      icon style in use (`check`; the font may lack ✓) to
       `$XDG_STATE_HOME/tetron-wm/theme-colors.json` (default
       `~/.local/state`, on every OS) whenever they change, by atomic rename;
       the Store re-reads it when its modification time changes.

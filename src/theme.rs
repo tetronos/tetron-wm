@@ -613,15 +613,18 @@ fn parse_theme_toml(text: &str) -> Result<(Option<String>, Theme), String> {
     Ok(tf.into_theme())
 }
 
-/// The Store roles of the current theme as JSON (`{"bg": "#rrggbb", …}`), for
-/// tetron-appstore (WMCAT-009).
+/// The Store roles of the current theme as JSON (`{"bg": "#rrggbb", …}`) and
+/// the check mark of the icon style in use, for tetron-appstore (WMCAT-009).
 pub fn store_colors_json() -> String {
     let t = current();
     let hex = |c: Rgba| format!("#{:02x}{:02x}{:02x}", c.r, c.g, c.b);
-    format!(
-        "{{\"bg\":\"{}\",\"fg\":\"{}\",\"dim\":\"{}\",\"sel\":\"{}\",\"accent\":\"{}\",\"panel\":\"{}\",\"success\":\"{}\"}}\n",
-        hex(t.window_bg), hex(t.text), hex(t.dim), hex(t.active_bg), hex(t.accent), hex(t.menubar_bg), hex(t.success)
-    )
+    let v = serde_json::json!({
+        "bg": hex(t.window_bg), "fg": hex(t.text), "dim": hex(t.dim), "sel": hex(t.active_bg),
+        "accent": hex(t.accent), "panel": hex(t.menubar_bg), "success": hex(t.success),
+        // The installed/verified mark in the icon style in use (the font may lack ✓).
+        "check": crate::glyphs::get(crate::glyphs::Glyph::Check),
+    });
+    format!("{v}\n")
 }
 
 /// Write [`store_colors_json`] to `$XDG_STATE_HOME/tetron-wm/theme-colors.json`
@@ -1469,5 +1472,6 @@ mod depth_tests {
             let h = v[k].as_str().unwrap_or_else(|| panic!("{k}"));
             assert!(h.len() == 7 && h.starts_with('#'), "{k}: {h}");
         }
+        assert!(!v["check"].as_str().unwrap_or("").is_empty());
     }
 }
