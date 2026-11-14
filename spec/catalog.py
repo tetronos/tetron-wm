@@ -159,3 +159,42 @@ class CatalogLibrary(Requirement):
     (a dev-dependency), so no test reads the user's downloaded copy.
     Behaviour for users is unchanged.
     """
+
+
+class StandaloneStoreHooks(Requirement):
+    """REQUIREMENT-ID: WMCAT-009
+
+    Depends on WMCAT-008. What tetron-wm gives the standalone Store
+    (tetron-appstore) so it feels the same inside tetron-wm:
+    - Theme: the daemon writes the active theme's Store colours (bg, fg, dim,
+      sel, accent, panel, success as `#rrggbb`) and the check mark of the
+      icon style in use (`check`; the font may lack ✓) to
+      `$XDG_STATE_HOME/tetron-wm/theme-colors.json` (default
+      `~/.local/state`, on every OS) whenever they change, by atomic rename;
+      the Store re-reads it when its modification time changes.
+    - Launch: `ClientMsg::Launch` takes an optional `cwd_prompt`; when true,
+      tetron-wm asks for a working folder first, as its launcher does for
+      coding agents. The Store opens installs (window title `install: <app>`,
+      so closing it rescans installed apps), apps and links with
+      `tetron-wm msg`.
+    - Catalog: when the shared catalog file (`cache_path`, which the Store's
+      Update list writes) changes, the daemon re-reads it within a second
+      (`reload_if_changed`), rebuilds the launcher and refreshes an open
+      built-in Store.
+    """
+
+
+class ListedBy(Requirement):
+    """REQUIREMENT-ID: WMCAT-010
+
+    Depends on WMCAT-001. The Store says which lists an app came from: its
+    details show "Listed by:" with the imported lists that have it, in merge
+    order (awesome-tuis, Terminal Trove), or "tetron" when only our own list
+    has it (our list annotates nearly every app, so it is not named
+    otherwise). Typing `from:NAME` in the search shows only the apps whose
+    shown lists match NAME (any case, any part, so `from:trove` works), and
+    combines with the other words typed. The catalog's `sources` field carries
+    the lists; a catalog without it shows no line. Shown by tetron-appstore;
+    tetron-wm's built-in Store, which phase 3 removes, does not.
+    """
+

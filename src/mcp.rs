@@ -62,7 +62,7 @@ fn call(name: &str, args: &Value) -> Result<String, String> {
             let argv: Vec<String> = args.get("args").and_then(Value::as_array)
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
             let name = command.rsplit('/').next().unwrap_or(&command).to_string();
-            send(&ClientMsg::Launch { name, command: command.clone(), args: argv }, &format!("launched {command}"))
+            send(&ClientMsg::Launch { name, command: command.clone(), args: argv, cwd_prompt: false }, &format!("launched {command}"))
         }
         "tile" => send(&ClientMsg::TileAll, "tiled"),
         "focus_next" => send(&ClientMsg::FocusNext, "focused the next window"),

@@ -52,6 +52,10 @@ pub struct CatalogApp {
     /// The smallest suite size that brings it (`essentials`, `recommended`, `extras`), if any.
     #[serde(default)]
     pub set: Option<String>,
+    /// The lists the app came from (`awesome-tuis`, `terminaltrove`, `tetron`
+    /// for our own list), in merge order; see [`listed_by`].
+    #[serde(default)]
+    pub sources: Vec<String>,
     /// The GitHub repository's latest release has downloadable assets
     /// (WMCAT-006, from lists/releases.json); the Store links its page.
     #[serde(default)]
@@ -243,6 +247,46 @@ fn log(msg: &str) {
 /// (a few hundred KB per Update list press) so `&'static` borrows stay valid.
 static ACTIVE: std::sync::RwLock<Option<&'static Catalog>> = std::sync::RwLock::new(None);
 
+/// The modification time of [`cache_path`] when the catalog in use was read
+/// or written, and when [`reload_if_changed`] last looked.
+static SEEN: std::sync::Mutex<(Option<std::time::SystemTime>, Option<std::time::Instant>)> = std::sync::Mutex::new((None, None));
+
+fn cache_mtime() -> Option<std::time::SystemTime> {
+    cache_path().and_then(|p| std::fs::metadata(p).ok()).and_then(|m| m.modified().ok())
+}
+
+/// Re-read the catalog when another program (the standalone Store's Update
+/// list) replaced [`cache_path`] since it was read; looks at most once a
+/// second. True when the catalog in use changed (WMCAT-009).
+pub fn reload_if_changed() -> bool {
+    if cfg!(any(test, feature = "builtin-only")) {
+        return false;
+    }
+    let mut seen = SEEN.lock().unwrap();
+    if seen.1.is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(1)) {
+        return false;
+    }
+    seen.1 = Some(std::time::Instant::now());
+    let now = cache_mtime();
+    if now.is_none() || now == seen.0 {
+        return false;
+    }
+    seen.0 = now;
+    drop(seen);
+    match cache_path().and_then(|p| std::fs::read_to_string(p).ok()).map(|t| parse(&t)) {
+        Some(Ok(c)) => {
+            log(&format!("catalog: reloaded {} apps from the shared copy", c.apps.len()));
+            *ACTIVE.write().unwrap() = Some(Box::leak(Box::new(c)));
+            true
+        }
+        Some(Err(e)) => {
+            log(&format!("catalog: changed shared copy not used ({e})"));
+            false
+        }
+        None => false,
+    }
+}
+
 fn builtin() -> Catalog {
     parse(CATALOG_JSON).expect("the built-in catalog passes its own checks")
 }
@@ -264,6 +308,7 @@ fn active() -> &'static Catalog {
     };
     let c: &'static Catalog = Box::leak(Box::new(c));
     *ACTIVE.write().unwrap() = Some(c);
+    SEEN.lock().unwrap().0 = cache_mtime();
     c
 }
 
@@ -279,6 +324,7 @@ pub fn install(text: &str) -> Result<usize, String> {
     std::fs::write(&part, text).and_then(|_| std::fs::rename(&part, &path)).map_err(|e| format!("could not save {}: {e}", path.display()))?;
     let n = c.apps.len();
     *ACTIVE.write().unwrap() = Some(Box::leak(Box::new(c)));
+    SEEN.lock().unwrap().0 = cache_mtime();
     Ok(n)
 }
 
@@ -294,6 +340,28 @@ pub fn current_os() -> &'static str {
 
 /// Whether an app is applicable to the current OS (true unless its recipe lists
 /// operating systems that exclude this one and no package for this OS exists).
+/// The lists an app is shown as coming from (WMCAT-010), as display names:
+/// the imported lists it is on, in merge order; "tetron" only when no
+/// imported list has it (our own list annotates nearly every app, with
+/// recipes and fixes, so naming it everywhere would say nothing).
+pub fn listed_by(app: &CatalogApp) -> Vec<&'static str> {
+    let mut v = Vec::new();
+    for s in &app.sources {
+        let name = match s.as_str() {
+            "awesome-tuis" => "awesome-tuis",
+            "terminaltrove" => "Terminal Trove",
+            _ => continue,
+        };
+        if !v.contains(&name) {
+            v.push(name);
+        }
+    }
+    if v.is_empty() && app.sources.iter().any(|s| s == "tetron") {
+        v.push("tetron");
+    }
+    v
+}
+
 /// Terminal web browsers that open a URL given as their argument, in the
 /// order the Store tries them for a releases page (WMCAT-006).
 pub const WEB_BROWSERS: [&str; 5] = ["tetron-browser", "w3m", "lynx", "links", "elinks"];
@@ -527,5 +595,20 @@ mod tests {
         assert!(parse(r#"[{"name":"old bare list"}]"#).unwrap_err().contains("schema"));
         let c = parse(&doc(SCHEMA, app, suite)).unwrap();
         assert_eq!((c.apps[0].tier.as_str(), c.apps[0].set.is_none()), ("optional", true));
+    }
+
+    /// WMCAT-010: imported lists by display name, deduplicated, in merge
+    /// order; tetron only for an app no imported list has.
+    #[test]
+    fn listed_by_names_imported_lists_and_tetron_only_alone() {
+        let app = |src: &str| -> CatalogApp {
+            serde_json::from_str(&format!(r#"{{"name":"x","bin":"x","category":"c","description":"d","homepage":"h","sources":{src}}}"#)).unwrap()
+        };
+        assert_eq!(listed_by(&app(r#"["awesome-tuis","terminaltrove","tetron","tetron"]"#)), ["awesome-tuis", "Terminal Trove"]);
+        assert_eq!(listed_by(&app(r#"["terminaltrove","tetron"]"#)), ["Terminal Trove"]);
+        assert_eq!(listed_by(&app(r#"["tetron"]"#)), ["tetron"]);
+        assert!(listed_by(&app("[]")).is_empty(), "older catalogs carry no sources");
+        let n = catalog().iter().filter(|a| listed_by(a) == ["tetron"]).count();
+        assert!(n > 10 && n < 100, "our own additions: {n}");
     }
 }

@@ -6,7 +6,12 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Fixed
+- Apps in windows now get Alt+letter (ESC first, as xterm sends it), so their Alt shortcuts work; before, Alt was dropped and the plain letter arrived. PageUp, PageDown, Insert, Delete, Shift+Tab and F1 to F12 now reach apps (they sent nothing), and arrows or F-keys with Shift, Alt or Ctrl carry the modifier as xterm does.
+
 ### Changed
+- The shared catalog crate reads each app's `sources` and names the lists it came from (`listed_by`: awesome-tuis, Terminal Trove, or tetron for our own additions), for tetron-appstore's "Listed by" line and `from:` search.
+- For the standalone Store (tetron-appstore): tetron-wm writes the active theme's colours to `~/.local/state/tetron-wm/theme-colors.json` when they change, reloads the shared catalog within a second when another program's Update list replaced it (launcher and Store follow), and `Launch` messages take an optional `cwd_prompt` to ask for a working folder first, as the launcher does for coding agents.
 - The catalog code (catalog, lookups, installed-app scan, install commands, toolchains) is a library crate of its own, `crates/tetron-catalog`, in a Cargo workspace, so tetron-wm and the coming standalone Store share one copy. No change for users. Tests now always use the built-in catalog, never one you downloaded with Update list.
 - `scripts/match_brew.py` uses a Homebrew formula only when it points at the app's own GitHub repository, so a different program with the same name is never installed.
 

@@ -6,7 +6,7 @@ use tetron_wm::geometry::Point;
 #[test]
 fn launching_app_creates_window_and_dock_entry() {
     let mut core = SessionCore::new(80, 24, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: false });
     let frame = core.build_frame();
     // a window layer + menubar + dock present
     assert!(frame.layers.len() >= 3);
@@ -17,8 +17,8 @@ fn launching_app_creates_window_and_dock_entry() {
 #[test]
 fn click_dock_focuses_window() {
     let mut core = SessionCore::new(80, 24, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(),"sleep 2".into()] });
-    core.apply(ClientMsg::Launch { name: "b".into(), command: "sh".into(), args: vec!["-c".into(),"sleep 2".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(),"sleep 2".into()], cwd_prompt: false });
+    core.apply(ClientMsg::Launch { name: "b".into(), command: "sh".into(), args: vec!["-c".into(),"sleep 2".into()], cwd_prompt: false });
     // dock_regions returns (pill_index, Rect); apps "a" and "b" each get their own pill
     let items = core.dock_items_for_test();
     let regions = core.dock_regions();
@@ -334,7 +334,7 @@ fn desktop_image_icon_emits_thumbnail_placement() {
 fn app_graphics_placement_is_emitted_in_frame() {
     // Drive an AppInstance's GraphicsState directly, then assert build_frame emits it.
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "sh".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "sh".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     // Inject a placement+image into the launched app's graphics state via a test helper.
     let png = {
         let i = image::RgbaImage::from_pixel(2, 2, image::Rgba([1, 2, 3, 255]));
@@ -355,7 +355,7 @@ fn restore_rebuilds_app_window_from_meta() {
     // owns the app. We approximate this by reusing the same core: drop its window
     // mapping, then restore.
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.sync_app_meta();
     let before = core.window_count();
     assert_eq!(before, 1);
@@ -371,7 +371,7 @@ fn restore_rebuilds_app_window_from_meta() {
 #[test]
 fn sync_app_meta_records_window_state() {
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.sync_app_meta();
     // The app's meta is now populated (non-empty) for restore.
     assert!(core.app_meta_count_for_test() > 0);
@@ -408,7 +408,7 @@ fn mode_toggle_switches_view() {
 fn simple_mode_renders_focused_app_fullscreen_without_desktop() {
     use tetron_wm::chrome::menubar_mode_region;
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::MouseDown(Point::new(menubar_mode_region().x, 0)));
     assert!(core.simple_mode());
     let frame = core.build_frame();
@@ -422,7 +422,7 @@ fn simple_mode_renders_focused_app_fullscreen_without_desktop() {
 #[test]
 fn app_mouse_area_none_without_mouse_mode() {
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     // A bare shell hasn't enabled mouse reporting → no app area, passthrough off.
     assert!(core.app_mouse_area().is_none());
     core.shutdown();
@@ -439,7 +439,7 @@ fn tray_popover_click_launches_over_a_covering_window() {
     use tetron_wm::tray::SegmentKind;
     let cfg = Config { launch_maximized: true, ..Config::default() };
     let mut core = SessionCore::new(120, 40, cfg);
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     assert_eq!(core.window_count(), 1);
     let rect = core
         .tray_openterm_rect_for_test(SegmentKind::Tetron)
@@ -454,7 +454,7 @@ fn app_mouse_area_suppressed_while_launcher_open() {
     // An open overlay (the Go launcher) must take the mouse — even over a focused
     // app — so clicking an app in the menu is never swallowed by passthrough.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::ToggleMenu); // open the Go launcher
     assert!(core.launcher_open());
     assert!(core.app_mouse_area().is_none(), "no app passthrough area while the launcher is open");
@@ -464,7 +464,7 @@ fn app_mouse_area_suppressed_while_launcher_open() {
 #[test]
 fn two_same_app_windows_group_in_dock() {
     let mut core = SessionCore::new(120, 40, Config::default());
-    let launch = |c: &mut SessionCore| c.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    let launch = |c: &mut SessionCore| c.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     launch(&mut core);
     assert_eq!(core.dock_pill_count_for_test(), 1); // one window → one pill
     launch(&mut core);
@@ -476,13 +476,13 @@ fn two_same_app_windows_group_in_dock() {
 #[test]
 fn rename_changes_label_not_grouping() {
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::RenameFocused);
     for c in "appname".chars() { core.apply(ClientMsg::RenameChar(c)); }
     core.apply(ClientMsg::RenameCommit);
     assert_eq!(core.focused_label_for_test(), "appname");
     // a second Claude still groups with the renamed one (same app_key)
-    core.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "Claude".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     assert_eq!(core.dock_pill_count_for_test(), 1);
     core.shutdown();
 }
@@ -492,7 +492,7 @@ fn clicking_titlebar_does_not_move_tiled_window() {
     // Regression: a plain click on a tiled window's titlebar (e.g. to rename it)
     // must NOT untile/move the window — only a real drag should.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::SendToCell(1)); // tile into a grid cell
     let before = core.focused_window_rect_for_test().unwrap();
     // Click (down then up at the SAME titlebar point — no drag motion).
@@ -509,7 +509,7 @@ fn double_click_titlebar_full_sequence_keeps_tiled_window_put() {
     // Faithful repro of a real double-click on a tiled window's titlebar with
     // all-motion mouse: Down, Drag(same p), Up, Double, Up.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::SendToCell(1));
     let before = core.focused_window_rect_for_test().unwrap();
     let p = Point::new(before.x + 2, before.y);
@@ -529,7 +529,7 @@ fn spurious_teleport_drag_does_not_fling_window() {
     // >half the screen (a click at the top yielded a drag to the bottom),
     // flinging the window off-screen. Such teleports must be ignored.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::SendToCell(1));
     let before = core.focused_window_rect_for_test().unwrap();
     let p = Point::new(before.x + 2, before.y);
@@ -552,7 +552,7 @@ fn fast_vertical_drag_moves_the_window() {
     // the over-broad magnitude-only filter that froze fast drags / biased them to
     // one direction.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::SendToCell(1));
     let before = core.focused_window_rect_for_test().unwrap();
     let p = Point::new(before.x + 2, before.y);
@@ -571,7 +571,7 @@ fn bare_move_during_drag_ends_it() {
     // (a real drag only arrives as Drag events). The drag must end, not keep the
     // window stuck to the pointer.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     core.apply(ClientMsg::SendToCell(1));
     let before = core.focused_window_rect_for_test().unwrap();
     let p = Point::new(before.x + 2, before.y);
@@ -627,6 +627,7 @@ fn closing_app_window_requires_confirmation() {
         name: "shell".into(),
         command: "sh".into(),
         args: vec!["-c".into(), "sleep 5".into()],
+        cwd_prompt: false,
     });
     assert_eq!(core.window_count(), 1);
     let r = core.focused_window_rect_for_test().unwrap();
@@ -676,7 +677,7 @@ fn dock_right_click_ignored_while_another_overlay_is_open() {
     // context menu underneath it: its click-capture runs before the launcher's,
     // so a hidden menu would silently eat the next click.
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     let before = core.focused_window_rect_for_test().unwrap();
     let items = core.dock_items_for_test();
     let (_, pill) = tetron_wm::chrome::menubar_taskbar_regions(120, &items, &[])[0];
@@ -706,7 +707,7 @@ fn dock_ctx_menu_drops_down_from_taskbar() {
 fn dock_right_click_reset_centres_at_half_size() {
     use tetron_wm::session::dock_ctx_row_rect;
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     let items = core.dock_items_for_test();
     let (_, pill) = tetron_wm::chrome::menubar_taskbar_regions(120, &items, &[])[0];
     core.apply(ClientMsg::MouseRightDown(Point::new(pill.x, 0)));
@@ -723,7 +724,7 @@ fn dock_right_click_reset_centres_at_half_size() {
 fn dock_right_click_elsewhere_dismisses_without_acting() {
     use tetron_wm::session::dock_ctx_row_rect;
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()] });
+    core.apply(ClientMsg::Launch { name: "shell".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 5".into()], cwd_prompt: false });
     let before = core.focused_window_rect_for_test().unwrap();
     let items = core.dock_items_for_test();
     let (_, pill) = tetron_wm::chrome::menubar_taskbar_regions(120, &items, &[])[0];
@@ -871,6 +872,7 @@ fn bare_cli_launch_via_client_msg_wraps_in_shell() {
         name: "gum".into(),
         command: "gum".into(),
         args: vec![],
+        cwd_prompt: false,
     });
     let (cmd, args) = core.focused_app_launch_cmd_for_test().expect("app launched");
     assert_eq!(cmd, "sh");
@@ -893,6 +895,7 @@ fn cli_launch_with_args_via_client_msg_runs_bare() {
         name: "gum".into(),
         command: "true".into(),
         args: vec!["choose".into(), "a".into()],
+        cwd_prompt: false,
     });
     let (cmd, args) = core.focused_app_launch_cmd_for_test().expect("app launched");
     assert_eq!(cmd, "true");
@@ -919,7 +922,7 @@ fn clicking_the_taskbar_overflow_marker_lists_the_hidden_windows() {
     // pills, so a "…+N" marker appears. Clicking it must list the hidden windows.
     let mut core = SessionCore::new(60, 24, Config::default());
     for i in 1..=8 {
-        core.apply(ClientMsg::Launch { name: format!("win{i}"), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()] });
+        core.apply(ClientMsg::Launch { name: format!("win{i}"), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()], cwd_prompt: false });
     }
     assert!(!core.dock_popup_open_for_test());
     // Find the marker on the menubar row.
@@ -1081,7 +1084,7 @@ fn help_is_a_window_that_stays_open_while_you_use_everything_else() {
     assert!(core.help_open());
     // With another window focused, ToggleHelp refocuses it (no second copy);
     // from inside the help window, ToggleHelp closes it.
-    core.apply(ClientMsg::Launch { name: "sh".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()] });
+    core.apply(ClientMsg::Launch { name: "sh".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()], cwd_prompt: false });
     assert!(!core.focused_is_help());
     core.apply(ClientMsg::ToggleHelp);
     assert!(core.focused_is_help());
@@ -1127,7 +1130,7 @@ fn frame_has_lit_cells(core: &SessionCore) -> bool {
 fn screensaver_covers_everything_and_hides_cursor_and_images() {
     use tetron_wm::screensaver::SaverMode::*;
     let mut core = SessionCore::new(80, 24, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 3".into()], cwd_prompt: false });
     assert!(core.build_frame().layers.len() > 1, "a normal desktop has several layers");
     assert!(!core.screensaver_active());
 
@@ -1248,7 +1251,7 @@ fn pointer_follows_mouse_passed_through_to_an_app() {
 fn three_windows(core: &mut SessionCore) -> Vec<tetron_wm::window::WindowId> {
     let mut ids = Vec::new();
     for n in ["a", "b", "c"] {
-        core.apply(ClientMsg::Launch { name: n.into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()] });
+        core.apply(ClientMsg::Launch { name: n.into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: false });
         ids.push(core.focused().unwrap());
     }
     ids
@@ -1319,7 +1322,7 @@ fn window_picker_lists_all_and_restores_the_pick() {
 #[test]
 fn move_mode_moves_resizes_and_esc_undoes() {
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: false });
     let start = core.focused_window_rect_for_test().unwrap();
     core.apply(ClientMsg::MoveModeStart);
     assert!(core.move_mode_open());
@@ -1342,7 +1345,7 @@ fn move_mode_moves_resizes_and_esc_undoes() {
 #[test]
 fn move_mode_enter_keeps_and_restores_maximized_on_esc() {
     let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()] });
+    core.apply(ClientMsg::Launch { name: "a".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: false });
     let start = core.focused_window_rect_for_test().unwrap();
     core.apply(ClientMsg::MoveModeStart);
     core.apply(ClientMsg::MoveModeStep { dx: 3, dy: 0 });
@@ -1398,10 +1401,10 @@ fn colors_setting_overrides_detection_unless_the_env_forced_it() {
 fn cli_launch_of_a_builtin_opens_the_builtin_window() {
     // `tetron-wm launch @settings` used to spawn "@settings" as a program.
     let mut core = SessionCore::new(100, 30, Config::default());
-    core.apply(ClientMsg::Launch { name: "@settings".into(), command: "@settings".into(), args: vec![] });
+    core.apply(ClientMsg::Launch { name: "@settings".into(), command: "@settings".into(), args: vec![], cwd_prompt: false });
     assert_eq!(core.window_count(), 1, "Settings window");
     let dir = std::env::temp_dir();
-    core.apply(ClientMsg::Launch { name: "@files".into(), command: "@files".into(), args: vec![dir.display().to_string()] });
+    core.apply(ClientMsg::Launch { name: "@files".into(), command: "@files".into(), args: vec![dir.display().to_string()], cwd_prompt: false });
     assert_eq!(core.window_count(), 2, "Files window");
     core.shutdown();
 }
@@ -1427,5 +1430,19 @@ fn store_menu_copies_the_releases_link() {
     assert!(!core.desktop_menu_open());
     let got = core.take_clipboard().expect("link copied");
     assert_eq!(Some(got), tetron_wm::catalog::releases_url(app));
+    core.shutdown();
+}
+
+/// WMCAT-009: a Launch with cwd_prompt asks for a working folder first (as the
+/// launcher does for coding agents); without it the app starts at once, and a
+/// message without the field parses (older senders).
+#[test]
+fn launch_with_cwd_prompt_asks_for_a_folder() {
+    let mut core = SessionCore::new(120, 40, Config::default());
+    core.apply(ClientMsg::Launch { name: "agent".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: true });
+    assert!(core.dirpicker_open());
+    assert_eq!(core.window_count(), 0);
+    let old: ClientMsg = serde_json::from_str(r#"{"Launch":{"name":"a","command":"sh","args":["-c","sleep 2"]}}"#).unwrap();
+    assert!(matches!(old, ClientMsg::Launch { cwd_prompt: false, .. }));
     core.shutdown();
 }

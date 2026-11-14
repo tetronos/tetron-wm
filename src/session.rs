@@ -209,6 +209,10 @@ pub enum ClientMsg {
         command: String,
         /// Additional arguments for the child process.
         args: Vec<String>,
+        /// Ask for a working folder first, as the launcher does for coding
+        /// agents (tetron-appstore sets it; WMCAT-009).
+        #[serde(default)]
+        cwd_prompt: bool,
     },
     /// Left-button press at screen coordinates `p`.
     MouseDown(Point),
@@ -1539,6 +1543,20 @@ impl SessionCore {
 
     /// Hand a finished Update list to every open Store and rebuild the launcher
     /// from the catalog now in use (call once per daemon tick).
+    /// The shared catalog file changed (tetron-appstore's Update list,
+    /// WMCAT-009): refresh the launcher and any open Store.
+    pub fn poll_catalog_file(&mut self) {
+        if !crate::catalog::reload_if_changed() {
+            return;
+        }
+        for c in self.contents.values_mut() {
+            if let WinContent::Store(s) = c {
+                s.update_done("List updated by tetron-appstore");
+            }
+        }
+        self.refresh_installed_apps();
+    }
+
     pub fn poll_lists(&mut self) {
         let Some(rx) = self.list_job.as_ref() else { return };
         let msg = match rx.try_recv() {
@@ -3192,7 +3210,11 @@ or a remote-side error — its authorized_keys was left untouched)",
             crate::log_debug(&format!("apply {:?}", msg));
         }
         match msg {
-            ClientMsg::Launch { name, command, args } => {
+            ClientMsg::Launch { name, command, args, cwd_prompt } => {
+                if cwd_prompt && !command.starts_with('@') {
+                    self.launch_maybe_cwd(name, command, args, true, None);
+                    return;
+                }
                 // The `tetron-wm launch` escape hatch (CLI / assistant / dock pins).
                 // A bare launch of a catalog-flagged CLI tool would open a window
                 // that prints usage and instantly dies, so give it the same
