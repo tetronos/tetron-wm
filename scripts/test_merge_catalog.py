@@ -18,12 +18,16 @@ def app(name, bin_, cat="Tools"):
 
 
 class Merge(unittest.TestCase):
-    def merged(self, imported, ours, repology=None):
+    def merged(self, imported, ours, repology=None, trove=None, releases=None):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
+            if releases is not None:
+                (d / "releases.json").write_text(json.dumps({"repos": releases}))
             if repology is not None:
                 (d / "repology.json").write_text(json.dumps({"names": repology}))
             (d / "awesome-tuis.json").write_text(json.dumps(imported))
+            if trove is not None:
+                (d / "terminaltrove.json").write_text(json.dumps(trove))
             (d / "tetron.toml").write_text(ours)
             (d / "suite.txt").write_text(SUITE)
             doc = json.loads(mc.merge(d, d / "suite.txt"))
@@ -39,6 +43,30 @@ class Merge(unittest.TestCase):
         _, a = self.merged([app("btop++", "btop")], '[[app]]\nname = "btop"\nbin = "btop"\ncli = true\n')
         self.assertEqual(list(a), ["btop"])
         self.assertTrue(a["btop"]["cli"])
+
+    def test_second_list_matches_by_repo_and_never_adds_cli(self):
+        imported = [dict(app("GitUI", "gitui"), homepage="https://github.com/gitui-org/gitui")]
+        trove = [dict(app("gitui-org", "gitui-x"), homepage="https://github.com/GitUI-org/gitui/", cli=True),
+                 dict(app("jq", "jq"), cli=True)]
+        _, a = self.merged(imported, "", trove=trove)
+        self.assertEqual(sorted(a), ["GitUI", "jq"])
+        self.assertEqual(a["GitUI"]["sources"], ["awesome-tuis", "terminaltrove"])
+        self.assertNotIn("cli", a["GitUI"], "the earlier list said TUI")
+        self.assertTrue(a["jq"]["cli"])
+
+    def test_releases_flag_from_the_release_list(self):
+        imported = [dict(app("a", "a"), homepage="https://github.com/O/A"), dict(app("b", "b"), homepage="https://github.com/o/b"),
+                    dict(app("c", "c"), homepage="https://github.com/o/a/tree/main/c")]
+        _, a = self.merged(imported, "", releases=["o/a"])
+        self.assertEqual([n for n in "abc" if a[n].get("releases")], ["a"], "repository roots only")
+        self.assertEqual(list(a["a"])[4:6], ["homepage", "releases"])
+
+    def test_ours_never_matched_by_repo(self):
+        imported = [dict(app("tetron-wm", "tetron-wm"), homepage="https://github.com/tetronos/tetron-wm")]
+        ours = ('[[app]]\nname = "AI Mode"\nbin = "tetron-aimode"\ncategory = "AI"\ndescription = "d"\n'
+                'homepage = "https://github.com/tetronos/tetron-wm"\n')
+        _, a = self.merged(imported, ours)
+        self.assertEqual(sorted(a), ["AI Mode", "tetron-wm"])
 
     def test_distinct_never_matches_and_exclude_drops(self):
         imported = [app("amp", "amp", "Editors"), app("termui", "termui")]

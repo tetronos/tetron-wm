@@ -8,12 +8,14 @@ Words used here: a **collection** is a named group of apps (`minimal`, `essentia
 
 | File | Written by | Read by |
 |---|---|---|
-| `lists/tetron.toml` | hand edits, plus recipe blocks appended by `scripts/match_brew.py` (Homebrew formula index), `scripts/merge_recipes.py` (the derive-install-recipes workflow) and `scripts/derive_os.py` | the generators below |
+| `lists/tetron.toml` | hand edits, plus recipe blocks appended by `scripts/match_brew.py` (Homebrew formula index), `scripts/match_lang_recipes.py` (crates.io, PyPI, Go modules), `scripts/merge_recipes.py` (the derive-install-recipes workflow) and `scripts/derive_os.py` | the generators below |
 | `lists/awesome-tuis.json` | `scripts/import_awesome_tuis.py`, from the awesome-tuis list | `scripts/merge_catalog.py` |
+| `lists/terminaltrove.json` | `scripts/import_terminaltrove.py`, from the terminaltrove.com tool list (https://terminaltrove.com, fetched as the terminaltrove-stars data.json: https://carcaradotdev.github.io/terminaltrove-stars/data.json) | `scripts/merge_catalog.py` |
 | `lists/repology.json` | `scripts/match_repology.py`, from repology.org | `scripts/merge_catalog.py` |
+| `lists/releases.json` | `scripts/match_releases.py`, the GitHub repositories whose latest release has downloads (the Store links their releases page) | `scripts/merge_catalog.py` |
 | `assets/suite-apps.txt` | `scripts/gen_suite_lists.py` | carried inside the catalog; the suite installer |
 | `packaging/<collection>.toml` Recommends | `scripts/gen_suite_lists.py` | the collection packages |
-| `assets/catalog.json` | `scripts/merge_catalog.py` (awesome-tuis, then Repology names, then `lists/tetron.toml`, which wins) | compiled into tetron-wm; the Store; Settings |
+| `assets/catalog.json` | `scripts/merge_catalog.py` (awesome-tuis, then terminaltrove, then Repology names, then `lists/tetron.toml`, which wins) | compiled into tetron-wm; the Store; Settings |
 
 `scripts/rebuild-app-sets.sh` runs the generators and their checks in one go after an edit of `lists/tetron.toml`.
 
@@ -34,7 +36,7 @@ One line per entry, `:` separated:
 Opened from the launcher. Source: `src/store.rs`, `src/catalog.rs`, `src/session.rs` (`store_activate`), `src/listfetch.rs`.
 
 - **List shown:** every app in the catalog in use, filtered by category and by the search text (name or description). An app whose recipe names operating systems other than this one, and that has no package for this one, is hidden.
-- **Catalog in use:** the last good **Update list** download (`~/.local/share/tetron-wm/catalog.json`) while it passes the checks (schema 1, has apps, has a suite list), else the compiled-in one. **Update list** (or F5) downloads `https://tetronos.github.io/apt/lists/<major.minor>/catalog.json` (`TETRON_WM_LISTS_URL` overrides the base), checks it and uses it at once; a failed check keeps the old one.
+- **Catalog in use:** the last good **Update list** download (`~/.local/share/tetron-wm/catalog.json`) while it passes the checks (schema 1, has apps, has a suite list), else the compiled-in one. **Prebuilt:** an app whose GitHub repository publishes release downloads shows its releases page, and every install window for it ends by naming the page. **App menu:** right-click an app or press `Alt+O`: Install or Launch, Open or Copy the project link, Open or Copy the releases link; a click on either link in the details offers Open and Copy for it. Open uses the first installed terminal web browser (tetron-browser, w3m, lynx, links, elinks) and is left out when none is. **Update list** (or F5) downloads `https://tetronos.github.io/apt/lists/<major.minor>/catalog.json` (`TETRON_WM_LISTS_URL` overrides the base), checks it and uses it at once; a failed check keeps the old one.
 - **Installed or not:** the app's command (`bin`, or its name in lower case) is on PATH. `~/.local/bin` is added to PATH at start.
 - **Detail pane:** description, homepage, the CLI badge, "In the recommended set (Settings > General > Apps)" when it belongs to a collection, and the recipe's setup tip.
 - **Enter (or click) on an installed app:** launches it; coding agents and the AI category first ask for a working directory; CLI tools run with `--help` and stay in a shell.

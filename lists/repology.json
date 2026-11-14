@@ -25,6 +25,12 @@
   "Gemini CLI": {
    "pacman": "gemini-cli"
   },
+  "GitHub CLI": {
+   "apt": "gh",
+   "dnf": "gh",
+   "pacman": "github-cli",
+   "brew": "gh"
+  },
   "GitType": {
    "brew": "gittype"
   },
@@ -62,6 +68,12 @@
    "dnf": "mutt",
    "pacman": "mutt",
    "brew": "mutt"
+  },
+  "Neovim": {
+   "apt": "neovim",
+   "dnf": "neovim",
+   "pacman": "neovim",
+   "brew": "neovim"
   },
   "NetHack": {
    "apt": "nethack-common",
@@ -113,6 +125,12 @@
    "pacman": "vifm",
    "brew": "vifm"
   },
+  "Vim": {
+   "apt": "vim",
+   "dnf": "vim-common",
+   "pacman": "vim",
+   "brew": "vim"
+  },
   "Visidata": {
    "apt": "visidata",
    "dnf": "visidata",
@@ -133,22 +151,56 @@
    "dnf": "abook",
    "brew": "abook"
   },
+  "ad": {
+   "brew": "ad"
+  },
   "aerc": {
    "apt": "aerc",
    "brew": "aerc"
+  },
+  "aichat": {
+   "pacman": "aichat",
+   "brew": "aichat"
+  },
+  "ali": {
+   "pacman": "ali",
+   "brew": "ali"
   },
   "alpine": {
    "apt": "alpine",
    "dnf": "alpine",
    "brew": "alpine"
   },
+  "amfora": {
+   "brew": "amfora"
+  },
   "apachetop": {
    "apt": "apachetop",
    "dnf": "apachetop",
    "brew": "apachetop"
   },
+  "aria2": {
+   "apt": "aria2",
+   "dnf": "aria2",
+   "pacman": "aria2",
+   "brew": "aria2"
+  },
   "asak": {
    "brew": "asak"
+  },
+  "asciinema": {
+   "apt": "asciinema",
+   "dnf": "asciinema",
+   "pacman": "asciinema",
+   "brew": "asciinema"
+  },
+  "asn": {
+   "apt": "asn",
+   "brew": "asn"
+  },
+  "ast-grep": {
+   "pacman": "ast-grep",
+   "brew": "ast-grep"
   },
   "astroterm": {
    "dnf": "astroterm",
@@ -160,6 +212,15 @@
    "dnf": "atop",
    "pacman": "atop",
    "brew": "atop"
+  },
+  "atuin": {
+   "apt": "atuin",
+   "dnf": "atuin",
+   "pacman": "atuin",
+   "brew": "atuin"
+  },
+  "b4n": {
+   "brew": "b4n"
   },
   "bandwhich": {
    "pacman": "bandwhich",
@@ -174,8 +235,22 @@
    "dnf": "bastet",
    "brew": "bastet"
   },
+  "bbrew": {
+   "brew": "bbrew"
+  },
+  "bcal": {
+   "apt": "bcal",
+   "dnf": "bcal",
+   "brew": "bcal"
+  },
   "below": {
    "dnf": "below"
+  },
+  "bfs": {
+   "apt": "bfs",
+   "dnf": "bfs",
+   "pacman": "bfs",
+   "brew": "bfs"
   },
   "binsider": {
    "pacman": "binsider",
@@ -201,6 +276,11 @@
    "pacman": "bottom",
    "brew": "bottom"
   },
+  "bpftop": {
+   "dnf": "bpftop",
+   "pacman": "bpftop",
+   "brew": "bpftop"
+  },
   "bpytop": {
    "apt": "bpytop",
    "pacman": "bpytop",
@@ -215,9 +295,25 @@
    "pacman": "btop",
    "brew": "btop"
   },
+  "bttf": {
+   "brew": "bttf"
+  },
+  "bugstalker": {
+   "pacman": "bugstalker"
+  },
+  "buku": {
+   "apt": "buku",
+   "dnf": "buku",
+   "brew": "buku"
+  },
   "bulletty": {
    "pacman": "bulletty",
    "brew": "bulletty"
+  },
+  "byobu": {
+   "apt": "byobu",
+   "dnf": "byobu",
+   "brew": "byobu"
   },
   "calcure": {
    "brew": "calcure"
@@ -227,6 +323,13 @@
    "dnf": "calcurse",
    "pacman": "calcurse",
    "brew": "calcurse"
+  },
+  "cargo-geiger": {
+   "pacman": "cargo-geiger",
+   "brew": "cargo-geiger"
+  },
+  "cariddi": {
+   "brew": "cariddi"
   },
   "cava": {
    "dnf": "cava",
@@ -261,12 +364,31 @@
   "chess-tui": {
    "pacman": "chess-tui"
   },
+  "chezmoi": {
+   "dnf": "chezmoi",
+   "pacman": "chezmoi",
+   "brew": "chezmoi"
+  },
   "chiko": {
    "brew": "chiko"
+  },
+  "circumflex": {
+   "brew": "circumflex"
+  },
+  "cloc": {
+   "apt": "cloc",
+   "dnf": "cloc",
+   "pacman": "cloc",
+   "brew": "cloc"
   },
   "cloudflare-speed-cli": {
    "pacman": "cloudflare-speed-cli",
    "brew": "cloudflare-speed-cli"
+  },
+  "cmatrix": {
+   "apt": "cmatrix",
+   "dnf": "cmatrix",
+   "brew": "cmatrix"
   },
   "cmus": {
    "apt": "cmus",
@@ -275,6 +397,31 @@
   },
   "concord": {
    "brew": "concord"
+  },
+  "cotp": {
+   "apt": "cotp",
+   "pacman": "cotp",
+   "brew": "cotp"
+  },
+  "countryfetch": {
+   "pacman": "countryfetch"
+  },
+  "cpufetch": {
+   "apt": "cpufetch",
+   "dnf": "cpufetch",
+   "pacman": "cpufetch",
+   "brew": "cpufetch"
+  },
+  "crates-tui": {
+   "brew": "crates-tui"
+  },
+  "croc": {
+   "dnf": "croc",
+   "pacman": "croc",
+   "brew": "croc"
+  },
+  "cronboard": {
+   "brew": "cronboard"
   },
   "csvlens": {
    "pacman": "csvlens",
@@ -285,11 +432,51 @@
    "pacman": "sysdig",
    "brew": "sysdig"
   },
+  "curl": {
+   "apt": "curl",
+   "dnf": "curl",
+   "pacman": "curl",
+   "brew": "curl"
+  },
+  "curlie": {
+   "pacman": "curlie",
+   "brew": "curlie"
+  },
+  "cyme": {
+   "apt": "cyme",
+   "pacman": "cyme",
+   "brew": "cyme"
+  },
   "dblab": {
    "brew": "dblab"
   },
+  "ddgr": {
+   "apt": "ddgr",
+   "dnf": "ddgr",
+   "pacman": "ddgr",
+   "brew": "ddgr"
+  },
+  "depsguard": {
+   "brew": "depsguard"
+  },
+  "desed": {
+   "dnf": "desed",
+   "brew": "desed"
+  },
   "diary": {
    "brew": "diary"
+  },
+  "diffnav": {
+   "pacman": "diffnav",
+   "brew": "diffnav"
+  },
+  "difftastic": {
+   "dnf": "difftastic",
+   "pacman": "difftastic",
+   "brew": "difftastic"
+  },
+  "dirsearch": {
+   "apt": "dirsearch"
   },
   "diskonaut": {
    "dnf": "diskonaut",
@@ -300,18 +487,50 @@
    "pacman": "dive",
    "brew": "dive"
   },
+  "dnsglobe": {
+   "brew": "dnsglobe"
+  },
+  "dnspyre": {
+   "brew": "dnspyre"
+  },
   "dockly": {
    "brew": "dockly"
   },
+  "doggo": {
+   "pacman": "doggo",
+   "brew": "doggo"
+  },
   "dolphie": {
    "brew": "dolphie"
+  },
+  "domain-check": {
+   "brew": "domain-check"
+  },
+  "dooit": {
+   "brew": "dooit"
   },
   "doxx": {
    "pacman": "doxx",
    "brew": "doxx"
   },
+  "dra": {
+   "pacman": "dra",
+   "brew": "dra"
+  },
   "dry": {
    "brew": "dry"
+  },
+  "dskditto": {
+   "brew": "dskditto"
+  },
+  "dstask": {
+   "brew": "dstask"
+  },
+  "dstp": {
+   "brew": "dstp"
+  },
+  "dte": {
+   "apt": "dte"
   },
   "dtop": {
    "brew": "dtop"
@@ -325,8 +544,26 @@
    "pacman": "ducker",
    "brew": "ducker"
   },
+  "duf": {
+   "apt": "duf",
+   "dnf": "duf",
+   "pacman": "duf",
+   "brew": "duf"
+  },
+  "dug": {
+   "brew": "dug"
+  },
+  "dyff": {
+   "brew": "dyff"
+  },
+  "dysk": {
+   "pacman": "dysk"
+  },
   "e1s": {
    "brew": "e1s"
+  },
+  "eget": {
+   "brew": "eget"
   },
   "ekphos": {
    "brew": "ekphos"
@@ -336,14 +573,57 @@
    "dnf": "elinks",
    "pacman": "elinks"
   },
+  "elio": {
+   "brew": "elio"
+  },
+  "erdtree": {
+   "pacman": "erdtree",
+   "brew": "erdtree"
+  },
+  "ereandel": {
+   "apt": "ereandel"
+  },
+  "eva": {
+   "brew": "eva"
+  },
+  "eza": {
+   "apt": "eza",
+   "dnf": "eza",
+   "pacman": "eza",
+   "brew": "eza"
+  },
   "fancy-cat": {
    "brew": "fancy-cat"
   },
   "far2l": {
    "apt": "far2l"
   },
+  "fastfetch": {
+   "apt": "fastfetch",
+   "dnf": "fastfetch",
+   "pacman": "fastfetch",
+   "brew": "fastfetch"
+  },
+  "fblog": {
+   "brew": "fblog"
+  },
+  "fclones": {
+   "pacman": "fclones",
+   "brew": "fclones"
+  },
+  "fend": {
+   "brew": "fend"
+  },
+  "ffuf": {
+   "apt": "ffuf",
+   "dnf": "ffuf",
+   "brew": "ffuf"
+  },
   "fjira": {
    "brew": "fjira"
+  },
+  "flamelens": {
+   "pacman": "flamelens"
   },
   "flawz": {
    "pacman": "flawz",
@@ -352,8 +632,25 @@
   "flowrs": {
    "brew": "flowrs"
   },
+  "flyline": {
+   "brew": "flyline"
+  },
+  "fnm": {
+   "pacman": "fnm",
+   "brew": "fnm"
+  },
+  "fnt": {
+   "apt": "fnt",
+   "brew": "fnt"
+  },
+  "forgit": {
+   "brew": "forgit"
+  },
   "framework-tool-tui": {
    "brew": "framework-tool-tui"
+  },
+  "fselect": {
+   "brew": "fselect"
   },
   "fx": {
    "pacman": "fx",
@@ -365,34 +662,88 @@
    "pacman": "fzf",
    "brew": "fzf"
   },
+  "fzf-make": {
+   "brew": "fzf-make"
+  },
+  "gallery-dl": {
+   "apt": "gallery-dl"
+  },
+  "gaze": {
+   "brew": "gaze"
+  },
+  "gcli": {
+   "apt": "gcli",
+   "brew": "gcli"
+  },
   "gdu": {
    "apt": "gdu",
    "dnf": "gdu",
    "pacman": "gdu",
    "brew": "gdu"
   },
+  "gemini-cli": {
+   "pacman": "gemini-cli"
+  },
+  "gfold": {
+   "pacman": "gfold",
+   "brew": "gfold"
+  },
   "ggc": {
    "brew": "ggc"
+  },
+  "ggh": {
+   "brew": "ggh"
   },
   "ghcup": {
    "brew": "ghcup"
   },
+  "ghq": {
+   "pacman": "ghq",
+   "brew": "ghq"
+  },
+  "git-cliff": {
+   "pacman": "git-cliff",
+   "brew": "git-cliff"
+  },
   "git-crecord": {
    "apt": "git-crecord"
+  },
+  "git-split-diffs": {
+   "brew": "git-split-diffs"
+  },
+  "git-who": {
+   "brew": "git-who"
+  },
+  "gita": {
+   "apt": "gita",
+   "brew": "gita"
   },
   "gitlogue": {
    "pacman": "gitlogue",
    "brew": "gitlogue"
   },
+  "gitnr": {
+   "brew": "gitnr"
+  },
+  "gitu": {
+   "pacman": "gitu",
+   "brew": "gitu"
+  },
   "gitui": {
    "dnf": "gitui",
    "pacman": "gitui"
+  },
+  "gobackup": {
+   "brew": "gobackup"
   },
   "gocheat": {
    "brew": "gocheat"
   },
   "godap": {
    "brew": "godap"
+  },
+  "gomi": {
+   "brew": "gomi"
   },
   "gomuks": {
    "apt": "gomuks",
@@ -404,6 +755,12 @@
   "gotop": {
    "brew": "gotop"
   },
+  "gotz": {
+   "brew": "gotz"
+  },
+  "gowall": {
+   "brew": "gowall"
+  },
   "gpg-tui": {
    "pacman": "gpg-tui"
   },
@@ -412,8 +769,54 @@
    "pacman": "gping",
    "brew": "gping"
   },
+  "grex": {
+   "pacman": "grex",
+   "brew": "grex"
+  },
+  "gri": {
+   "apt": "gri"
+  },
+  "gruyere": {
+   "brew": "gruyere"
+  },
+  "gtop": {
+   "pacman": "gtop",
+   "brew": "gtop"
+  },
+  "gtrash": {
+   "brew": "gtrash"
+  },
+  "haiti": {
+   "brew": "haiti"
+  },
+  "halp": {
+   "pacman": "halp",
+   "brew": "halp"
+  },
+  "hapless": {
+   "brew": "hapless"
+  },
   "harlequin": {
    "brew": "harlequin"
+  },
+  "has": {
+   "brew": "has"
+  },
+  "hashcat": {
+   "apt": "hashcat",
+   "dnf": "hashcat",
+   "pacman": "hashcat",
+   "brew": "hashcat"
+  },
+  "havn": {
+   "pacman": "havn",
+   "brew": "havn"
+  },
+  "hazelnut": {
+   "pacman": "hazelnut"
+  },
+  "heh": {
+   "pacman": "heh"
   },
   "herdr": {
    "brew": "herdr"
@@ -421,12 +824,44 @@
   "heretek": {
    "pacman": "heretek"
   },
+  "hexapoda": {
+   "brew": "hexapoda"
+  },
+  "hexhog": {
+   "brew": "hexhog"
+  },
+  "hexpatch": {
+   "pacman": "hexpatch"
+  },
+  "hexyl": {
+   "apt": "hexyl",
+   "dnf": "hexyl",
+   "pacman": "hexyl",
+   "brew": "hexyl"
+  },
   "himalaya": {
    "brew": "himalaya"
+  },
+  "hishtory": {
+   "brew": "hishtory"
+  },
+  "hl": {
+   "pacman": "hl",
+   "brew": "hl"
+  },
+  "hledger": {
+   "apt": "hledger",
+   "dnf": "hledger",
+   "pacman": "hledger",
+   "brew": "hledger"
   },
   "hledger-ui": {
    "apt": "hledger-ui",
    "pacman": "hledger-ui"
+  },
+  "hstr": {
+   "apt": "hstr",
+   "dnf": "hstr"
   },
   "htop": {
    "apt": "htop",
@@ -434,14 +869,33 @@
    "pacman": "htop",
    "brew": "htop"
   },
+  "httm": {
+   "brew": "httm"
+  },
+  "httpstat": {
+   "brew": "httpstat"
+  },
+  "httpyac": {
+   "brew": "httpyac"
+  },
   "hunk": {
    "brew": "hunk"
   },
   "hwatch": {
    "brew": "hwatch"
   },
+  "hyperfine": {
+   "apt": "hyperfine",
+   "dnf": "hyperfine",
+   "pacman": "hyperfine",
+   "brew": "hyperfine"
+  },
   "iamb": {
    "brew": "iamb"
+  },
+  "igrep": {
+   "pacman": "igrep",
+   "brew": "igrep"
   },
   "impala": {
    "pacman": "impala"
@@ -453,17 +907,60 @@
   "invidtui": {
    "apt": "invidtui"
   },
+  "iredis": {
+   "apt": "iredis",
+   "brew": "iredis"
+  },
   "irssi": {
    "apt": "irssi",
    "dnf": "irssi",
    "pacman": "irssi",
    "brew": "irssi"
   },
+  "isd": {
+   "pacman": "isd"
+  },
+  "jaq": {
+   "pacman": "jaq",
+   "brew": "jaq"
+  },
+  "jc": {
+   "apt": "jc",
+   "dnf": "jc",
+   "pacman": "jc",
+   "brew": "jc"
+  },
   "jcode": {
    "brew": "jcode"
   },
+  "jid": {
+   "apt": "jid",
+   "dnf": "jid",
+   "brew": "jid"
+  },
   "jiratui": {
    "brew": "jiratui"
+  },
+  "jjui": {
+   "brew": "jjui"
+  },
+  "jless": {
+   "pacman": "jless",
+   "brew": "jless"
+  },
+  "jnv": {
+   "pacman": "jnv",
+   "brew": "jnv"
+  },
+  "jolt": {
+   "pacman": "jolt"
+  },
+  "joshuto": {
+   "brew": "joshuto"
+  },
+  "jql": {
+   "dnf": "jql",
+   "brew": "jql"
   },
   "jqp": {
    "apt": "jqp",
@@ -473,6 +970,22 @@
    "dnf": "jrnl",
    "pacman": "jrnl",
    "brew": "jrnl"
+  },
+  "jsongrep": {
+   "brew": "jsongrep"
+  },
+  "jujutsu": {
+   "pacman": "jujutsu",
+   "brew": "jj"
+  },
+  "just": {
+   "apt": "just",
+   "dnf": "just",
+   "pacman": "just",
+   "brew": "just"
+  },
+  "jwt-ui": {
+   "pacman": "jwt-ui"
   },
   "k9s": {
    "dnf": "k9s",
@@ -484,8 +997,15 @@
    "pacman": "kakoune",
    "brew": "kakoune"
   },
+  "kalker": {
+   "brew": "kalker"
+  },
   "kaskade": {
    "brew": "kaskade"
+  },
+  "kbt": {
+   "pacman": "kbt",
+   "brew": "kbt"
   },
   "kdash": {
    "brew": "kdash"
@@ -498,12 +1018,28 @@
    "pacman": "khard",
    "brew": "khard"
   },
+  "kibi": {
+   "brew": "kibi"
+  },
   "kmon": {
    "apt": "kmon",
    "pacman": "kmon"
   },
+  "koji": {
+   "brew": "koji"
+  },
+  "kondo": {
+   "pacman": "kondo",
+   "brew": "kondo"
+  },
+  "ktea": {
+   "brew": "ktea"
+  },
   "ktop": {
    "brew": "ktop"
+  },
+  "kubecolor": {
+   "brew": "kubecolor"
   },
   "kubetui": {
    "pacman": "kubetui",
@@ -511,6 +1047,9 @@
   },
   "lazycontainer": {
    "brew": "lazycontainer"
+  },
+  "lazycut": {
+   "brew": "lazycut"
   },
   "lazydocker": {
    "pacman": "lazydocker",
@@ -521,14 +1060,27 @@
    "pacman": "lazygit",
    "brew": "lazygit"
   },
+  "lazyjj": {
+   "pacman": "lazyjj",
+   "brew": "lazyjj"
+  },
   "lazyjournal": {
    "brew": "lazyjournal"
   },
   "lazymake": {
    "brew": "lazymake"
   },
+  "lazyrsync": {
+   "brew": "lazyrsync"
+  },
   "lazysql": {
    "brew": "lazysql"
+  },
+  "lemmeknow": {
+   "brew": "lemmeknow"
+  },
+  "lemurs": {
+   "pacman": "lemurs"
   },
   "lf": {
    "apt": "lf",
@@ -546,14 +1098,36 @@
    "dnf": "litecli",
    "brew": "litecli"
   },
+  "llmfit": {
+   "pacman": "llmfit",
+   "brew": "llmfit"
+  },
   "lnav": {
    "apt": "lnav",
    "dnf": "lnav",
    "pacman": "lnav",
    "brew": "lnav"
   },
+  "lsd": {
+   "apt": "lsd",
+   "dnf": "lsd",
+   "pacman": "lsd",
+   "brew": "lsd"
+  },
+  "lsix": {
+   "apt": "lsix",
+   "pacman": "lsix",
+   "brew": "lsix"
+  },
+  "lstr": {
+   "brew": "lstr"
+  },
   "mac-cleanup-go": {
    "brew": "mac-cleanup-go"
+  },
+  "macchina": {
+   "pacman": "macchina",
+   "brew": "macchina"
   },
   "macmon": {
    "brew": "macmon"
@@ -569,20 +1143,57 @@
    "dnf": "mcabber",
    "brew": "mcabber"
   },
+  "mcat": {
+   "brew": "mcat"
+  },
   "mcfly": {
    "pacman": "mcfly",
    "brew": "mcfly"
   },
+  "mcpsnoop": {
+   "brew": "mcpsnoop"
+  },
+  "mdfried": {
+   "pacman": "mdfried",
+   "brew": "mdfried"
+  },
+  "menyoki": {
+   "pacman": "menyoki"
+  },
+  "micasa": {
+   "brew": "micasa"
+  },
   "micro": {
    "dnf": "micro"
+  },
+  "miller": {
+   "apt": "miller",
+   "dnf": "miller",
+   "pacman": "miller",
+   "brew": "miller"
+  },
+  "mise": {
+   "pacman": "mise",
+   "brew": "mise"
+  },
+  "mistral-vibe-cli": {
+   "brew": "mistral-vibe"
   },
   "mitmproxy": {
    "apt": "mitmproxy",
    "pacman": "mitmproxy"
   },
+  "moar": {
+   "pacman": "moor",
+   "brew": "moor"
+  },
   "moc": {
    "apt": "moc",
    "brew": "moc"
+  },
+  "monolith": {
+   "pacman": "monolith",
+   "brew": "monolith"
   },
   "moon-buggy": {
    "apt": "moon-buggy",
@@ -592,9 +1203,27 @@
   "moribito": {
    "brew": "moribito"
   },
+  "mprocs": {
+   "brew": "dekit"
+  },
+  "mpv": {
+   "apt": "mpv",
+   "dnf": "mpv",
+   "pacman": "mpv",
+   "brew": "mpv"
+  },
   "mqttui": {
    "pacman": "mqttui",
    "brew": "mqttui"
+  },
+  "msgvault": {
+   "brew": "msgvault"
+  },
+  "mufetch": {
+   "brew": "mufetch"
+  },
+  "musikcube": {
+   "brew": "musikcube"
   },
   "mycli": {
    "apt": "mycli",
@@ -603,6 +1232,17 @@
   },
   "nInvaders": {
    "brew": "ninvaders"
+  },
+  "nano": {
+   "apt": "nano",
+   "dnf": "nano",
+   "pacman": "nano",
+   "brew": "nano"
+  },
+  "navi": {
+   "dnf": "navi",
+   "pacman": "navi",
+   "brew": "navi"
   },
   "nb": {
    "brew": "nb"
@@ -619,6 +1259,12 @@
   "nemu": {
    "brew": "nemu"
   },
+  "neomutt": {
+   "apt": "neomutt",
+   "dnf": "neomutt",
+   "pacman": "neomutt",
+   "brew": "neomutt"
+  },
   "nethogs": {
    "apt": "nethogs",
    "dnf": "nethogs",
@@ -629,11 +1275,20 @@
    "pacman": "netscanner",
    "brew": "netscanner"
   },
+  "netshow": {
+   "brew": "netshow"
+  },
+  "network-doctor": {
+   "brew": "network-doctor"
+  },
   "newsboat": {
    "apt": "newsboat",
    "dnf": "newsboat",
    "pacman": "newsboat",
    "brew": "newsboat"
+  },
+  "nmail": {
+   "brew": "nmail"
   },
   "nnn": {
    "apt": "nnn",
@@ -641,10 +1296,24 @@
    "pacman": "nnn",
    "brew": "nnn"
   },
+  "nomino": {
+   "brew": "nomino"
+  },
+  "nping": {
+   "brew": "nbping"
+  },
   "nudoku": {
    "apt": "nudoku",
    "dnf": "nudoku",
    "brew": "nudoku"
+  },
+  "numbat": {
+   "apt": "numbat",
+   "pacman": "numbat",
+   "brew": "numbat"
+  },
+  "nvitop": {
+   "apt": "nvitop"
   },
   "nvtop": {
    "apt": "nvtop",
@@ -652,9 +1321,29 @@
    "pacman": "nvtop",
    "brew": "nvtop"
   },
+  "octosql": {
+   "brew": "octosql"
+  },
+  "oh-my-reddit": {
+   "brew": "oh-my-reddit"
+  },
   "oha": {
    "pacman": "oha",
    "brew": "oha"
+  },
+  "ollama": {
+   "dnf": "ollama",
+   "pacman": "ollama",
+   "brew": "ollama"
+  },
+  "onefetch": {
+   "dnf": "onefetch",
+   "pacman": "onefetch",
+   "brew": "onefetch"
+  },
+  "openapi-tui": {
+   "pacman": "openapi-tui",
+   "brew": "openapi-tui"
   },
   "opencode": {
    "pacman": "opencode",
@@ -663,19 +1352,63 @@
   "oryx": {
    "pacman": "oryx"
   },
+  "oterm": {
+   "brew": "oterm"
+  },
+  "otree": {
+   "brew": "otree"
+  },
+  "ouch": {
+   "pacman": "ouch",
+   "brew": "ouch"
+  },
+  "ov": {
+   "dnf": "ov",
+   "brew": "ov"
+  },
+  "ox": {
+   "brew": "ox"
+  },
   "oxker": {
    "brew": "oxker"
+  },
+  "pandoc": {
+   "apt": "pandoc",
+   "dnf": "ghc-pandoc",
+   "pacman": "haskell-pandoc",
+   "brew": "pandoc"
+  },
+  "papis": {
+   "brew": "papis"
+  },
+  "parqeye": {
+   "brew": "parqeye"
   },
   "patat": {
    "apt": "patat",
    "dnf": "patat",
    "brew": "patat"
   },
+  "pdu": {
+   "pacman": "parallel-disk-usage",
+   "brew": "parallel-disk-usage"
+  },
+  "peco": {
+   "apt": "peco",
+   "pacman": "peco",
+   "brew": "peco"
+  },
+  "pet": {
+   "brew": "pet"
+  },
   "pgcli": {
    "apt": "pgcli",
    "dnf": "pgcli",
    "pacman": "pgcli",
    "brew": "pgcli"
+  },
+  "pik": {
+   "pacman": "pik"
   },
   "posting": {
    "brew": "posting"
@@ -687,14 +1420,49 @@
   "process-compose": {
    "pacman": "process-compose"
   },
+  "procs": {
+   "apt": "procs",
+   "dnf": "procs",
+   "pacman": "procs",
+   "brew": "procs"
+  },
+  "projectable": {
+   "brew": "projectable"
+  },
   "proxelar": {
    "brew": "proxelar"
+  },
+  "pspg": {
+   "apt": "pspg",
+   "dnf": "pspg",
+   "brew": "pspg"
   },
   "pudb": {
    "apt": "python3-pudb"
   },
+  "pueue": {
+   "pacman": "pueue",
+   "brew": "pueue"
+  },
+  "pvetui": {
+   "brew": "pvetui"
+  },
+  "pwndbg": {
+   "pacman": "pwndbg"
+  },
+  "qman": {
+   "brew": "qman"
+  },
   "qo": {
    "brew": "qo"
+  },
+  "qrtool": {
+   "pacman": "qrtool",
+   "brew": "qrtool"
+  },
+  "qsv": {
+   "pacman": "qsv",
+   "brew": "qsv"
   },
   "rainfrog": {
    "pacman": "rainfrog",
@@ -706,18 +1474,63 @@
    "pacman": "ranger",
    "brew": "ranger"
   },
+  "rclone": {
+   "apt": "rclone",
+   "dnf": "rclone",
+   "pacman": "rclone",
+   "brew": "rclone"
+  },
   "recoverpy": {
    "brew": "recoverpy"
+  },
+  "reddix": {
+   "brew": "reddix"
   },
   "redu": {
    "brew": "redu"
   },
+  "repgrep": {
+   "pacman": "repgrep"
+  },
   "resterm": {
    "brew": "resterm"
+  },
+  "restic": {
+   "apt": "restic",
+   "dnf": "restic",
+   "pacman": "restic",
+   "brew": "restic"
+  },
+  "rga": {
+   "pacman": "ripgrep-all",
+   "brew": "ripgrep-all"
+  },
+  "rhit": {
+   "pacman": "rhit"
+  },
+  "ripgrep": {
+   "apt": "ripgrep",
+   "dnf": "ripgrep",
+   "pacman": "ripgrep",
+   "brew": "ripgrep"
+  },
+  "rizin": {
+   "dnf": "rizin",
+   "pacman": "rizin",
+   "brew": "rizin"
   },
   "rmpc": {
    "pacman": "rmpc",
    "brew": "rmpc"
+  },
+  "rsync": {
+   "apt": "rsync",
+   "dnf": "rsync",
+   "pacman": "rsync",
+   "brew": "rsync"
+  },
+  "rsyncy": {
+   "brew": "rsyncy"
   },
   "rtorrent": {
    "apt": "rtorrent",
@@ -725,25 +1538,43 @@
    "pacman": "rtorrent",
    "brew": "rtorrent"
   },
+  "rucola": {
+   "pacman": "rucola"
+  },
   "runme": {
    "brew": "runme"
+  },
+  "rura": {
+   "brew": "rura"
   },
   "rustnet": {
    "pacman": "rustnet",
    "brew": "rustnet"
+  },
+  "rustscan": {
+   "brew": "rustscan"
   },
   "s-tui": {
    "apt": "s-tui",
    "dnf": "s-tui",
    "pacman": "s-tui"
   },
+  "s3scanner": {
+   "brew": "s3scanner"
+  },
   "sabiql": {
    "brew": "sabiql"
+  },
+  "sampler": {
+   "brew": "sampler"
   },
   "sc-im": {
    "apt": "sc-im",
    "dnf": "sc-im",
    "brew": "sc-im"
+  },
+  "scooter": {
+   "brew": "scooter"
   },
   "sen": {
    "apt": "sen",
@@ -753,12 +1584,39 @@
    "pacman": "serie",
    "brew": "serie"
   },
+  "serpl": {
+   "pacman": "serpl",
+   "brew": "serpl"
+  },
   "sheets": {
    "brew": "sheets"
+  },
+  "shellcheck": {
+   "apt": "shellcheck",
+   "dnf": "ShellCheck",
+   "pacman": "shellcheck",
+   "brew": "shellcheck"
+  },
+  "sig": {
+   "pacman": "sig"
+  },
+  "sl": {
+   "apt": "sl",
+   "dnf": "sl",
+   "brew": "sl"
+  },
+  "smartcat": {
+   "pacman": "smartcat"
+  },
+  "so": {
+   "brew": "so"
   },
   "soft-serve": {
    "pacman": "soft-serve",
    "brew": "soft-serve"
+  },
+  "soundscope": {
+   "pacman": "soundscope"
   },
   "spotify-player": {
    "pacman": "spotify-player",
@@ -767,12 +1625,49 @@
   "sq": {
    "brew": "sq"
   },
+  "srgn": {
+   "pacman": "srgn",
+   "brew": "srgn"
+  },
+  "sshs": {
+   "pacman": "sshs",
+   "brew": "sshs"
+  },
+  "stormy": {
+   "brew": "stormy"
+  },
+  "sttr": {
+   "brew": "sttr"
+  },
   "stu": {
    "brew": "stu"
   },
   "superfile": {
    "pacman": "superfile",
    "brew": "superfile"
+  },
+  "superseedr": {
+   "brew": "superseedr"
+  },
+  "swaptop": {
+   "pacman": "swaptop"
+  },
+  "systemctl-tui": {
+   "pacman": "systemctl-tui"
+  },
+  "systeroid": {
+   "pacman": "systeroid"
+  },
+  "t-rec": {
+   "brew": "t-rec"
+  },
+  "tailspin": {
+   "apt": "tailspin",
+   "pacman": "tailspin",
+   "brew": "tailspin"
+  },
+  "taproom": {
+   "brew": "taproom"
   },
   "taskline": {
    "brew": "taskline"
@@ -781,9 +1676,24 @@
    "pacman": "taskwarrior-tui",
    "brew": "taskwarrior-tui"
   },
+  "tcpdump": {
+   "apt": "tcpdump",
+   "dnf": "tcpdump",
+   "pacman": "tcpdump",
+   "brew": "tcpdump"
+  },
   "tdf": {
    "pacman": "tdf",
    "brew": "tdf"
+  },
+  "tealdeer": {
+   "apt": "tealdeer",
+   "dnf": "tealdeer",
+   "pacman": "tealdeer",
+   "brew": "tealdeer"
+  },
+  "tele": {
+   "brew": "tele"
   },
   "television": {
    "pacman": "television",
@@ -791,6 +1701,16 @@
   },
   "tenere": {
    "brew": "tenere"
+  },
+  "tere": {
+   "pacman": "tere",
+   "brew": "tere"
+  },
+  "termframe": {
+   "brew": "termframe"
+  },
+  "terminaltexteffects": {
+   "apt": "python3-terminaltexteffects"
   },
   "termscp": {
    "pacman": "termscp",
@@ -805,6 +1725,19 @@
    "pacman": "termusic",
    "brew": "termusic"
   },
+  "textql": {
+   "apt": "textql"
+  },
+  "tgpt": {
+   "pacman": "tgpt",
+   "brew": "tgpt"
+  },
+  "threatdeck": {
+   "brew": "threatdeck"
+  },
+  "tickrs": {
+   "pacman": "tickrs"
+  },
   "tig": {
    "apt": "tig",
    "dnf": "tig",
@@ -816,11 +1749,31 @@
    "dnf": "timg",
    "brew": "timg"
   },
+  "tio": {
+   "apt": "tio",
+   "dnf": "tio",
+   "brew": "tio"
+  },
+  "tmate": {
+   "apt": "tmate",
+   "dnf": "tmate",
+   "pacman": "tmate",
+   "brew": "tmate"
+  },
   "tmux": {
    "apt": "tmux",
    "dnf": "tmux",
    "pacman": "tmux",
    "brew": "tmux"
+  },
+  "tokei": {
+   "apt": "tokei",
+   "dnf": "tokei",
+   "pacman": "tokei",
+   "brew": "tokei"
+  },
+  "toktop": {
+   "brew": "toktop"
   },
   "toot": {
    "apt": "toot",
@@ -828,13 +1781,22 @@
    "pacman": "toot",
    "brew": "toot"
   },
+  "topgrade": {
+   "brew": "topgrade"
+  },
   "topydo": {
    "apt": "topydo",
    "brew": "topydo"
   },
+  "torra": {
+   "brew": "torrra"
+  },
   "toxic": {
    "apt": "toxic",
    "pacman": "toxic"
+  },
+  "tracexec": {
+   "pacman": "tracexec"
   },
   "treemd": {
    "pacman": "treemd",
@@ -861,8 +1823,18 @@
    "dnf": "ttyplot",
    "brew": "ttyplot"
   },
+  "tui-journal": {
+   "pacman": "tui-journal"
+  },
   "tuisky": {
    "brew": "tuisky"
+  },
+  "tukai": {
+   "pacman": "tukai"
+  },
+  "tuptime": {
+   "apt": "tuptime",
+   "dnf": "tuptime"
   },
   "turbo": {
    "pacman": "turbo"
@@ -873,13 +1845,31 @@
   "twitch-tui": {
    "pacman": "twitch-tui"
   },
+  "typioca": {
+   "brew": "typioca"
+  },
   "typtea": {
    "brew": "typtea"
+  },
+  "ugrep": {
+   "apt": "ugrep",
+   "dnf": "ugrep",
+   "pacman": "ugrep",
+   "brew": "ugrep"
+  },
+  "usbtree": {
+   "brew": "usbtree"
   },
   "vhs": {
    "dnf": "vhs",
    "pacman": "vhs",
    "brew": "vhs"
+  },
+  "vi-sql": {
+   "brew": "vi-sql"
+  },
+  "viddy": {
+   "brew": "viddy"
   },
   "vlc": {
    "apt": "vlc",
@@ -889,6 +1879,9 @@
   "vortix": {
    "pacman": "vortix",
    "brew": "vortix"
+  },
+  "vscli": {
+   "brew": "vscli"
   },
   "w3m": {
    "dnf": "w3m",
@@ -904,15 +1897,48 @@
    "apt": "wego",
    "brew": "wego"
   },
+  "whosthere": {
+   "brew": "whosthere"
+  },
   "wifitui": {
    "brew": "wifitui"
+  },
+  "wikiman": {
+   "pacman": "wikiman"
+  },
+  "wireman": {
+   "pacman": "wireman"
   },
   "wiremix": {
    "dnf": "wiremix",
    "pacman": "wiremix"
   },
+  "wrkflw": {
+   "brew": "wrkflw"
+  },
+  "wtfis": {
+   "brew": "wtfis"
+  },
+  "wuzz": {
+   "apt": "wuzz"
+  },
   "x-cmd": {
    "brew": "x-cmd"
+  },
+  "xan": {
+   "pacman": "xan",
+   "brew": "xan"
+  },
+  "xfr": {
+   "brew": "xfr"
+  },
+  "xh": {
+   "apt": "xh",
+   "pacman": "xh",
+   "brew": "xh"
+  },
+  "xleak": {
+   "brew": "xleak"
   },
   "xplr": {
    "pacman": "xplr",
@@ -920,6 +1946,20 @@
   },
   "yazi": {
    "pacman": "yazi"
+  },
+  "youplot": {
+   "apt": "youplot",
+   "brew": "youplot"
+  },
+  "youtube-dl": {
+   "apt": "youtube-dl",
+   "dnf": "youtube-dl"
+  },
+  "yt-dlp": {
+   "apt": "yt-dlp",
+   "dnf": "yt-dlp",
+   "pacman": "yt-dlp",
+   "brew": "yt-dlp"
   },
   "ytfzf": {
    "apt": "ytfzf",
@@ -932,6 +1972,24 @@
   "zenith": {
    "pacman": "zenith",
    "brew": "zenith"
+  },
+  "zf": {
+   "brew": "zf"
+  },
+  "zizmor": {
+   "pacman": "zizmor"
+  },
+  "zoxide": {
+   "apt": "zoxide",
+   "dnf": "zoxide",
+   "pacman": "zoxide",
+   "brew": "zoxide"
+  },
+  "zrok": {
+   "brew": "zrok"
+  },
+  "zsv": {
+   "brew": "zsv"
   }
  }
 }

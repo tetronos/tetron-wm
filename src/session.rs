@@ -300,6 +300,8 @@ pub enum ClientMsg {
     StoreClose,
     /// Store: Update list (F5, or the row 0 button), WMCAT-004.
     StoreUpdateList,
+    /// Open the Store menu of the selected app (Alt+O, WMCAT-007).
+    StoreMenu,
     /// Open the settings window (or focus it if already open).
     OpenSettings,
     /// Settings: move selection up / down.
@@ -1693,7 +1695,48 @@ impl SessionCore {
                 self.rename = Some((id, String::new()));
             }
             A::CloseWindow => self.request_close(id),
+            A::StoreInstall(_) => {
+                self.focus_window(id);
+                self.store_activate();
+            }
+            A::OpenLink(label, url) => {
+                let browser = crate::catalog::WEB_BROWSERS.iter().find(|b| crate::catalog::is_installed(b));
+                let msg = match browser {
+                    Some(b) => {
+                        self.launch(url.clone(), (*b).to_string(), vec![url.clone()]);
+                        format!("{label}: opened in {b}")
+                    }
+                    None => format!("{label}: no terminal web browser installed"),
+                };
+                crate::dbg_log(&format!("store: {msg} ({url})"));
+                self.store_status(id, &msg);
+            }
+            A::CopyLink(label, url) => {
+                self.pending_clipboard = Some(url.clone());
+                self.clip_record(&url, crate::clipboard::ClipSource::Copy);
+                self.store_status(id, &format!("{label}: copied"));
+            }
             _ => {}
+        }
+    }
+
+    /// Show `msg` in Store window `id`'s status line.
+    fn store_status(&mut self, id: WindowId, msg: &str) {
+        if let Some(WinContent::Store(s)) = self.contents.get_mut(&id) {
+            s.set_status(msg);
+        }
+    }
+
+    /// Open the Store menu (WMCAT-007) of Store window `id`'s selected app at
+    /// screen point `at`, through the title bar menu overlay (same keys, hover
+    /// and click capture).
+    fn open_store_menu(&mut self, id: WindowId, links: crate::contextmenu::StoreLinks, at: Point) {
+        let Some(WinContent::Store(s)) = self.contents.get(&id) else { return };
+        let Some(app) = s.selected_app() else { return };
+        let browser = crate::catalog::WEB_BROWSERS.iter().any(|b| crate::catalog::is_installed(b));
+        let items = crate::contextmenu::store_actions(app, links, crate::catalog::is_installed(&app.bin), browser);
+        if !items.is_empty() {
+            self.win_menu = Some((id, crate::contextmenu::ContextMenu::new(at, items)));
         }
     }
 
@@ -3432,6 +3475,15 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::StoreBackspace => { if let Some(s) = self.focused_store_mut() { s.backspace(); } }
             ClientMsg::StoreActivate => self.store_activate(),
             ClientMsg::StoreUpdateList => self.start_list_update(),
+            ClientMsg::StoreMenu => {
+                // Alt+O: the app menu, anchored in the details beside the list.
+                if let Some(id) = self.wm.focused().filter(|id| matches!(self.contents.get(id), Some(WinContent::Store(_)))) {
+                    if let Some(cr) = self.wm.get(id).map(|w| w.content_rect()) {
+                        let at = Point::new(cr.x + crate::store::details_x(), cr.y + 3);
+                        self.open_store_menu(id, crate::contextmenu::StoreLinks::App, at);
+                    }
+                }
+            }
             ClientMsg::StoreClose => {
                 if let Some(id) = self.wm.focused() {
                     if matches!(self.contents.get(&id), Some(WinContent::Store(_))) {
@@ -3696,6 +3748,18 @@ or a remote-side error — its authorized_keys was left untouched)",
                         if self.wm.get(id).is_some_and(|w| !w.minimized && w.titlebar_rect().contains(p)) {
                             self.wm.raise(id);
                             self.win_menu = Some((id, crate::contextmenu::ContextMenu::new(p, crate::contextmenu::window_actions())));
+                            return;
+                        }
+                    }
+                }
+                // Right-clicking an app in the Store opens its menu (WMCAT-007).
+                if !overlay_open {
+                    if let Some((id, cr)) = self.topmost_window_content_at(p) {
+                        if let Some(WinContent::Store(s)) = self.contents.get_mut(&id) {
+                            self.wm.raise(id);
+                            if s.right_click(Point::new(p.x - cr.x, p.y - cr.y), cr.w, cr.h) {
+                                self.open_store_menu(id, crate::contextmenu::StoreLinks::App, p);
+                            }
                             return;
                         }
                     }
@@ -5821,7 +5885,8 @@ or a remote-side error — its authorized_keys was left untouched)",
                     f.begin_empty_trash();
                 }
             }
-            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => self.desktop.cancel_overlay(),
+            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
+            | A::StoreInstall(_) | A::OpenLink(..) | A::CopyLink(..) => self.desktop.cancel_overlay(),
         }
     }
 
@@ -5933,6 +5998,9 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
                 if store_click == crate::store::StoreClick::Activate {
                     self.store_activate();
+                }
+                if let crate::store::StoreClick::Menu(links) = store_click {
+                    self.open_store_menu(id, links, p);
                 }
                 if settings_changed {
                     // A click can have armed an Updates action (Check / Install);

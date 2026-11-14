@@ -38,6 +38,8 @@ pub enum StoreClick {
     Activate,
     /// Fetch the catalog ([`crate::listfetch`]).
     UpdateList,
+    /// Open the Store menu of the selected app with these links (WMCAT-007).
+    Menu(crate::contextmenu::StoreLinks),
 }
 
 /// State of the store browser.
@@ -73,6 +75,11 @@ impl Store {
         cats.sort();
         cats.insert(0, "All".to_string());
         cats
+    }
+
+    /// Show `msg` in the status line (row 0) instead of the app count.
+    pub fn set_status(&mut self, msg: &str) {
+        self.status = msg.to_string();
     }
 
     /// An Update list press started.
@@ -244,7 +251,11 @@ impl Store {
                     }
                 }
             }
-            buf.write_str(dx + 1, h - 4, truncate(&app.homepage, dw as usize - 2), pal_dim(), pal_panel());
+            // Prebuilt binaries (WMCAT-006), above the homepage.
+            if let Some(url) = catalog::releases_url(app) {
+                buf.write_str(dx + 1, prebuilt_row(h), truncate(&format!("Prebuilt: {url}"), dw as usize - 2), pal_dim(), pal_panel());
+            }
+            buf.write_str(dx + 1, homepage_row(h), truncate(&app.homepage, dw as usize - 2), pal_dim(), pal_panel());
             // Verified-recipe badge.
             if let Some(r) = catalog::recipe(&app.name) {
                 if r.verified {
@@ -253,7 +264,7 @@ impl Store {
             }
             // Action hint.
             let installed = catalog::is_installed(&app.bin);
-            let action = if installed { "[ Enter: Launch ]" } else { "[ Enter: Install ]" };
+            let action = if installed { "[ Enter: Launch ]  Alt+O: more" } else { "[ Enter: Install ]  Alt+O: more" };
             let acol = if installed { green() } else { pal_accent() };
             buf.write_str(dx + 1, h - 2, action, acol, pal_panel());
         }
@@ -299,7 +310,33 @@ impl Store {
         if p.x >= dx && p.y == h - 2 {
             return StoreClick::Activate;
         }
+        if p.x >= dx && p.y == prebuilt_row(h) && self.selected_app().and_then(catalog::releases_url).is_some() {
+            return StoreClick::Menu(crate::contextmenu::StoreLinks::Releases);
+        }
+        if p.x >= dx && p.y == homepage_row(h) && self.selected_app().is_some() {
+            return StoreClick::Menu(crate::contextmenu::StoreLinks::Project);
+        }
         StoreClick::None
+    }
+
+    /// A right-click at content-local `p` (WMCAT-007): on an app row it
+    /// selects that app, on the details it keeps the selection; either way
+    /// the app menu opens (true). Elsewhere nothing (false).
+    pub fn right_click(&mut self, p: Point, w: i32, h: i32) -> bool {
+        let list_x = SIDEBAR_W + 1;
+        if p.y < 2 || p.x < list_x {
+            return false;
+        }
+        if p.x < list_x + LIST_W {
+            let rows = (h - 2).max(0) as usize;
+            let idx = self.scroll_for(rows) + (p.y - 2) as usize;
+            if idx >= self.filtered().len() {
+                return false;
+            }
+            self.selected = idx;
+        }
+        let _ = w;
+        self.selected_app().is_some()
     }
 
     /// Scroll offset that keeps the selection visible given `rows` visible lines.
@@ -358,9 +395,10 @@ fn native_branches(p: &Packages) -> Vec<(String, String)> {
 /// It always ends by naming the homepage so the user can finish by hand.
 pub fn install_command(app: &CatalogApp) -> String {
     let done = format!(
-        "echo; echo '────────'; echo 'Done. If it succeeded, {name} is now in your launcher.'; \
+        "echo; echo '────────'; echo 'Done. If it succeeded, {name} is now in your launcher.'; {prebuilt}\
 echo 'Close this window (x) when finished.'; exec \"$SHELL\"",
-        name = app.name
+        name = app.name,
+        prebuilt = prebuilt_lines(app),
     );
     let recipe = app.recipe.as_ref().filter(|r| r.verified && !r.install.is_empty());
     // The upstream way: a verified recipe (its toolchain offered first when
@@ -395,6 +433,27 @@ echo 'Close this window (x) when finished.'; exec \"$SHELL\"",
     sh
 }
 
+/// The content-local column where the detail pane starts.
+pub fn details_x() -> i32 {
+    SIDEBAR_W + 1 + LIST_W + 1
+}
+
+/// The detail pane rows of the "Prebuilt" link and the project link in a
+/// `h`-row Store, shared by render and hit-test so they can not drift.
+fn prebuilt_row(h: i32) -> i32 {
+    h - 5
+}
+fn homepage_row(h: i32) -> i32 {
+    h - 4
+}
+
+/// Shell lines naming the releases page (WMCAT-006), or nothing.
+fn prebuilt_lines(app: &CatalogApp) -> String {
+    catalog::releases_url(app)
+        .map(|u| format!("echo 'If it did not install, prebuilt binaries are at:'; echo '  {u}'; "))
+        .unwrap_or_default()
+}
+
 /// The best-effort chain for an app with no package names and no verified
 /// recipe: the host's manager by command name, then `cargo install`, then
 /// `go install <repo>@latest`, then Homebrew when installed.
@@ -420,9 +479,10 @@ fn fallback_command(app: &CatalogApp) -> String {
 || ( {brew_env}; command -v brew >/dev/null 2>&1 && brew install {bin} ) \
 || true; \
 echo; echo '────────'; \
-echo 'If nothing installed automatically, get {name} from:'; echo '  {home}'; \
+echo 'If nothing installed automatically, get {name} from:'; echo '  {home}'; {prebuilt}\
 echo; echo 'Close this window (x) when done.'; exec \"$SHELL\"",
         name = app.name,
+        prebuilt = prebuilt_lines(app),
         brew_env = crate::toolchain::BREW_ENV,
         home = app.homepage,
     )
@@ -595,6 +655,25 @@ mod tests {
         parses(&c);
         assert!(!c.contains("rm -rf") && !c.contains("-Syu"), "{c}");
         assert!(c.contains("dnf install -y demo") && c.contains("No package for demo here"), "{c}");
+    }
+
+    /// WMCAT-006: an app with prebuilt binaries names its releases page in
+    /// the best-effort chain and after a recipe install; one without does not,
+    /// and a homepage with odd characters never builds a link.
+    #[test]
+    fn releases_page_named_only_when_flagged_and_plain() {
+        let c = install_command(&app(r#","releases":true"#));
+        parses(&c);
+        assert!(c.contains("prebuilt binaries are at:'; echo '  https://github.com/o/demo/releases/latest'"), "{c}");
+        let c = install_command(&app(r#","releases":true,"recipe":{"install":"cargo install demo","method":"cargo","verified":true}"#));
+        parses(&c);
+        assert!(c.contains("/o/demo/releases/latest"), "{c}");
+        assert!(!install_command(&app("")).contains("releases/latest"));
+        let mut odd = app(r#","releases":true"#);
+        odd.homepage = "https://github.com/o/de'mo".into();
+        assert_eq!(catalog::releases_url(&odd), None);
+        odd.homepage = "https://github.com/o/demo/tree/main/x".into();
+        assert_eq!(catalog::releases_url(&odd), None, "repository roots only");
     }
 
     /// No names, no recipe: the host manager by command name, then cargo, go,

@@ -10,13 +10,18 @@ lists/tetron.toml, assets/suite-apps.txt (scripts/gen_suite_lists.py),
 which gives each app its set and is carried whole as "suite_apps", and
 lists/repology.json (scripts/match_repology.py, WMCAT-005): package names per
 manager (apt, dnf, pacman, brew) by app name; a `pkg` table of ours overrides
-them name by name ("" means that manager has none).
+them name by name ("" means that manager has none). lists/releases.json
+(scripts/match_releases.py, WMCAT-006): GitHub repositories whose latest
+release has assets; their apps get `releases: true`.
 
-Matching: by name (any case), then by command name; an entry of ours with
+Matching: by name (any case), then by command name, then, between
+imported lists only, by a homepage that is a GitHub repository root (any
+case); a later imported list never adds `cli` to a matched app. An entry of ours with
 distinct = true is a different app and never matches. Ours wins field by
 field; among imported lists the earlier one wins. Stdlib only (Python 3.11+).
 """
 import json
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -27,7 +32,7 @@ OUT = ROOT / "assets" / "catalog.json"
 SUITE = ROOT / "assets" / "suite-apps.txt"
 
 SCHEMA = 1
-IMPORTED = ["awesome-tuis"]
+IMPORTED = ["awesome-tuis", "terminaltrove"]
 REQUIRED = ["name", "bin", "category", "description", "homepage"]
 OPTIONAL = ["variants", "cli", "needs_url", "recipe", "tier", "distinct", "pkg", "set", "agent"]
 MANAGERS = ("apt", "dnf", "pacman", "brew")
@@ -39,7 +44,7 @@ TEMPLATES = {"json", "opencode"}
 TIERS = {"default", "recommended", "optional"}
 # Suite sizes (WMINST-001) and the catalog tier an app of each gets.
 SIZES = {"essentials": "default", "recommended": "recommended", "extras": "optional"}
-ORDER = ["name", "bin", "variants", "category", "description", "homepage", "cli", "needs_url",
+ORDER = ["name", "bin", "variants", "category", "description", "homepage", "releases", "cli", "needs_url",
          "recipe", "agent", "pkg", "tier", "set", "sources"]
 
 
@@ -108,30 +113,41 @@ def check_wiring(name, key, w):
     if not all(isinstance(v, str) for v in w.get("args", [])) or not all(isinstance(v, str) for v in w.get("env", {}).values()):
         fail(f"{name}: agent.{key} args and env values are strings")
 
+def gh_repo(url):
+    """owner/repo (lower case) of a github.com repository root URL, else None."""
+    m = re.fullmatch(r"https?://(?:www\.)?github\.com/([^/?#]+/[^/?#]+?)/?", url or "", re.I)
+    return m.group(1).lower().removesuffix(".git") if m else None
+
+
 def merged_apps(lists=LISTS):
     """Every app of the lists merged, with its package names (pkg), before
     the suite sets give tiers (scripts/gen_suite_lists.py reads this too)."""
-    apps, by_name, by_bin = [], {}, {}
+    apps, by_name, by_bin, by_repo = [], {}, {}, {}
 
-    def find(a):
-        return by_name.get(a["name"].lower()) or (by_bin.get(a["bin"]) if a.get("bin") else None)
+    def find(a, repo=False):
+        return (by_name.get(a["name"].lower()) or (by_bin.get(a["bin"]) if a.get("bin") else None)
+                or (by_repo.get(gh_repo(a.get("homepage"))) if repo else None))
 
     def add(a):
         apps.append(a)
         by_name.setdefault(a["name"].lower(), a)
         if a.get("bin"):
             by_bin.setdefault(a["bin"], a)
+        if gh_repo(a.get("homepage")):
+            by_repo.setdefault(gh_repo(a["homepage"]), a)
 
     ours = tomllib.loads((lists / "tetron.toml").read_text(encoding="utf-8"))
     exclude = {n.lower() for n in ours.get("exclude", [])}
     for src in IMPORTED:
-        for a in json.loads((lists / f"{src}.json").read_text(encoding="utf-8")):
+        path = lists / f"{src}.json"
+        for a in json.loads(path.read_text(encoding="utf-8")) if path.exists() else []:
             if a["name"].lower() in exclude:
                 continue
-            hit = find(a)
+            hit = find(a, repo=True)
             if hit:
                 for k, v in a.items():
-                    hit.setdefault(k, v)
+                    if k != "cli":
+                        hit.setdefault(k, v)
                 hit["sources"].append(src)
             else:
                 add(dict(a, sources=[src]))
@@ -157,6 +173,12 @@ def merged_apps(lists=LISTS):
             a["pkg"] = {k: names[k] for k in MANAGERS if k in names}
         else:
             a.pop("pkg", None)
+    rl = lists / "releases.json"
+    released = set(json.loads(rl.read_text(encoding="utf-8"))["repos"]) if rl.exists() else set()
+    for a in apps:
+        a.pop("releases", None)
+        if gh_repo(a.get("homepage")) in released:
+            a["releases"] = True
     return apps
 
 

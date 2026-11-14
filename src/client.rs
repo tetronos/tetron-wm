@@ -503,6 +503,9 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             KeyCode::Esc => send(&mut out_stream, &ClientMsg::StoreClose)?,
                             KeyCode::Enter => send(&mut out_stream, &ClientMsg::StoreActivate)?,
                             KeyCode::F(5) => send(&mut out_stream, &ClientMsg::StoreUpdateList)?,
+                            KeyCode::Char('o') | KeyCode::Char('O') if k.modifiers.contains(KeyModifiers::ALT) && !ctrl => {
+                                send(&mut out_stream, &ClientMsg::StoreMenu)?
+                            }
                             KeyCode::Up => send(&mut out_stream, &ClientMsg::StoreUp)?,
                             KeyCode::Down => send(&mut out_stream, &ClientMsg::StoreDown)?,
                             KeyCode::Left => send(&mut out_stream, &ClientMsg::StorePrevCategory)?,
