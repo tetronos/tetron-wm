@@ -38,6 +38,8 @@ pub enum StoreClick {
     Activate,
     /// Fetch the catalog ([`crate::listfetch`]).
     UpdateList,
+    /// Copy and open the selected app's releases page (WMCAT-006).
+    OpenReleases,
 }
 
 /// State of the store browser.
@@ -73,6 +75,11 @@ impl Store {
         cats.sort();
         cats.insert(0, "All".to_string());
         cats
+    }
+
+    /// Show `msg` in the status line (row 0) instead of the app count.
+    pub fn set_status(&mut self, msg: &str) {
+        self.status = msg.to_string();
     }
 
     /// An Update list press started.
@@ -246,7 +253,7 @@ impl Store {
             }
             // Prebuilt binaries (WMCAT-006), above the homepage.
             if let Some(url) = catalog::releases_url(app) {
-                buf.write_str(dx + 1, h - 5, truncate(&format!("Prebuilt: {url}"), dw as usize - 2), pal_dim(), pal_panel());
+                buf.write_str(dx + 1, prebuilt_row(h), truncate(&format!("Prebuilt (Alt+O): {url}"), dw as usize - 2), pal_dim(), pal_panel());
             }
             buf.write_str(dx + 1, h - 4, truncate(&app.homepage, dw as usize - 2), pal_dim(), pal_panel());
             // Verified-recipe badge.
@@ -302,6 +309,9 @@ impl Store {
         let dx = list_x + LIST_W + 1;
         if p.x >= dx && p.y == h - 2 {
             return StoreClick::Activate;
+        }
+        if p.x >= dx && p.y == prebuilt_row(h) && self.selected_app().and_then(catalog::releases_url).is_some() {
+            return StoreClick::OpenReleases;
         }
         StoreClick::None
     }
@@ -398,6 +408,12 @@ echo 'Close this window (x) when finished.'; exec \"$SHELL\"",
     }
     sh.push_str(&done);
     sh
+}
+
+/// The detail pane row of the "Prebuilt" link in a `h`-row Store, shared by
+/// render and hit-test so they can not drift.
+fn prebuilt_row(h: i32) -> i32 {
+    h - 5
 }
 
 /// Shell lines naming the releases page (WMCAT-006), or nothing.

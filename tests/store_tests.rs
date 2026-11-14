@@ -51,3 +51,26 @@ fn click_selects_category_and_row() {
     // second click on the same (selected) row activates
     assert_eq!(s.handle_click(Point::new(20, 2), 96, 22), tetron_wm::store::StoreClick::Activate);
 }
+
+/// WMCAT-006: the "Prebuilt" line is drawn and clickable only for an app with
+/// a releases page, on the same row render and hit-test share.
+#[test]
+fn prebuilt_line_click_opens_releases() {
+    use tetron_wm::geometry::Point;
+    use tetron_wm::store::StoreClick;
+    let (w, h) = (110, 30);
+    let row = |s: &Store, y: i32| -> String { let b = s.render(w, h); (0..w).map(|x| b.get(x, y).map(|c| c.ch).unwrap_or(' ')).collect() };
+    let with = tetron_wm::catalog::catalog().iter().find(|a| tetron_wm::catalog::releases_url(a).is_some() && a.name.len() > 5).unwrap();
+    let mut s = Store::new();
+    for c in with.name.chars() { s.type_char(c); }
+    assert_eq!(s.selected_app().map(|a| a.name.as_str()), Some(with.name.as_str()));
+    let y = (0..h).find(|&y| row(&s, y).contains("Prebuilt (Alt+O): https://github.com/")).expect("prebuilt line");
+    let x = (0..w).find(|&x| s.render(w, h).get(x, y).map(|c| c.ch) == Some('P')).unwrap();
+    assert_eq!(s.handle_click(Point::new(x + 2, y), w, h), StoreClick::OpenReleases);
+    let without = tetron_wm::catalog::catalog().iter().find(|a| !a.releases && a.name.len() > 5 && !a.name.contains(' ')).unwrap();
+    let mut s = Store::new();
+    for c in without.name.chars() { s.type_char(c); }
+    if s.selected_app().map(|a| a.releases) == Some(false) {
+        assert_eq!(s.handle_click(Point::new(x + 2, y), w, h), StoreClick::None);
+    }
+}

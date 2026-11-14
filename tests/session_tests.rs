@@ -1405,3 +1405,20 @@ fn cli_launch_of_a_builtin_opens_the_builtin_window() {
     assert_eq!(core.window_count(), 2, "Files window");
     core.shutdown();
 }
+
+/// WMCAT-006: Alt+O in the Store copies the selected app's releases page to
+/// the clipboard (a terminal browser, when installed, opens it too).
+#[test]
+fn store_open_releases_copies_the_link() {
+    let app = tetron_wm::catalog::catalog().iter().find(|a| tetron_wm::catalog::releases_url(a).is_some() && a.name.len() > 5).expect("an app with releases");
+    let mut core = SessionCore::new(120, 40, Config::default());
+    core.apply(ClientMsg::OpenStore);
+    for c in app.name.chars() {
+        core.apply(ClientMsg::StoreChar(c));
+    }
+    let _ = core.take_clipboard();
+    core.apply(ClientMsg::StoreOpenReleases);
+    let got = core.take_clipboard().expect("link copied");
+    assert!(got.ends_with("/releases/latest") && got.starts_with("https://github.com/"), "{got}");
+    core.shutdown();
+}

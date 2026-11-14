@@ -268,6 +268,10 @@ pub fn current_os() -> &'static str {
 
 /// Whether an app is applicable to the current OS (true unless its recipe lists
 /// operating systems that exclude this one and no package for this OS exists).
+/// Terminal web browsers that open a URL given as their argument, in the
+/// order the Store tries them for a releases page (WMCAT-006).
+pub const WEB_BROWSERS: [&str; 5] = ["tetron-browser", "w3m", "lynx", "links", "elinks"];
+
 /// The releases page of an app with prebuilt binaries (WMCAT-006):
 /// `https://github.com/<owner>/<repo>/releases/latest`, built only from a
 /// homepage that is a GitHub repository root with plain owner and repository

@@ -300,6 +300,8 @@ pub enum ClientMsg {
     StoreClose,
     /// Store: Update list (F5, or the row 0 button), WMCAT-004.
     StoreUpdateList,
+    /// Copy and open the selected app's releases page (Alt+O, WMCAT-006).
+    StoreOpenReleases,
     /// Open the settings window (or focus it if already open).
     OpenSettings,
     /// Settings: move selection up / down.
@@ -3432,6 +3434,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::StoreBackspace => { if let Some(s) = self.focused_store_mut() { s.backspace(); } }
             ClientMsg::StoreActivate => self.store_activate(),
             ClientMsg::StoreUpdateList => self.start_list_update(),
+            ClientMsg::StoreOpenReleases => self.store_open_releases(),
             ClientMsg::StoreClose => {
                 if let Some(id) = self.wm.focused() {
                     if matches!(self.contents.get(&id), Some(WinContent::Store(_))) {
@@ -5047,6 +5050,28 @@ or a remote-side error — its authorized_keys was left untouched)",
         }
     }
 
+    /// The selected app's releases page (WMCAT-006): copied to the clipboard
+    /// (and so to the real terminal by OSC 52), and opened in the first
+    /// installed terminal web browser in a new window.
+    fn store_open_releases(&mut self) {
+        let Some(app) = self.focused_store_mut().and_then(|s| s.selected_app()) else { return };
+        let Some(url) = crate::catalog::releases_url(app) else { return };
+        self.pending_clipboard = Some(url.clone());
+        self.clip_record(&url, crate::clipboard::ClipSource::Copy);
+        let browser = crate::catalog::WEB_BROWSERS.iter().find(|b| crate::catalog::is_installed(b));
+        let msg = match browser {
+            Some(b) => format!("Link copied; opening it in {b}"),
+            None => "Link copied (no terminal web browser installed to open it)".to_string(),
+        };
+        crate::dbg_log(&format!("store: releases page {url}: {msg}"));
+        if let Some(s) = self.focused_store_mut() {
+            s.set_status(&msg);
+        }
+        if let Some(b) = browser {
+            self.launch(format!("{} releases", app.name), (*b).to_string(), vec![url]);
+        }
+    }
+
     /// Activate a launcher entry: open the store/settings for the pinned tetron-wm
     /// actions, otherwise spawn the app (prompting for a working directory when
     /// the entry is flagged `requires_cwd` and has no fixed `cwd`).
@@ -5933,6 +5958,9 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
                 if store_click == crate::store::StoreClick::Activate {
                     self.store_activate();
+                }
+                if store_click == crate::store::StoreClick::OpenReleases {
+                    self.store_open_releases();
                 }
                 if settings_changed {
                     // A click can have armed an Updates action (Check / Install);

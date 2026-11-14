@@ -112,7 +112,12 @@ class PrebuiltReleaseLink(Requirement):
     the Store shows the link `https://github.com/<owner>/<repo>/releases/latest`
     in its details, and every install window for it (a recipe, a package or
     the best-effort chain) ends by naming that link next to the homepage,
-    so a user whose install failed can download the binary by hand. The link
+    so a user whose install failed can download the binary by hand. In the
+    Store, Alt+O or a click on that line copies the link to the clipboard
+    (which reaches the real terminal by OSC 52) and, when a terminal web
+    browser is installed (tetron-browser, w3m, lynx, links, elinks: the first
+    found), opens it there in a new window; the Store's status line says
+    which. The link
     is built only from a homepage whose owner and repository are plain names
     (letters, digits, `.`, `_`, `-`). Absent `releases` means false, so
     older catalogs and binaries are unaffected.
