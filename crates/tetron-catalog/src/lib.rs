@@ -52,6 +52,10 @@ pub struct CatalogApp {
     /// The smallest suite size that brings it (`essentials`, `recommended`, `extras`), if any.
     #[serde(default)]
     pub set: Option<String>,
+    /// The lists the app came from (`awesome-tuis`, `terminaltrove`, `tetron`
+    /// for our own list), in merge order; see [`listed_by`].
+    #[serde(default)]
+    pub sources: Vec<String>,
     /// The GitHub repository's latest release has downloadable assets
     /// (WMCAT-006, from lists/releases.json); the Store links its page.
     #[serde(default)]
@@ -336,6 +340,28 @@ pub fn current_os() -> &'static str {
 
 /// Whether an app is applicable to the current OS (true unless its recipe lists
 /// operating systems that exclude this one and no package for this OS exists).
+/// The lists an app is shown as coming from (WMCAT-010), as display names:
+/// the imported lists it is on, in merge order; "tetron" only when no
+/// imported list has it (our own list annotates nearly every app, with
+/// recipes and fixes, so naming it everywhere would say nothing).
+pub fn listed_by(app: &CatalogApp) -> Vec<&'static str> {
+    let mut v = Vec::new();
+    for s in &app.sources {
+        let name = match s.as_str() {
+            "awesome-tuis" => "awesome-tuis",
+            "terminaltrove" => "Terminal Trove",
+            _ => continue,
+        };
+        if !v.contains(&name) {
+            v.push(name);
+        }
+    }
+    if v.is_empty() && app.sources.iter().any(|s| s == "tetron") {
+        v.push("tetron");
+    }
+    v
+}
+
 /// Terminal web browsers that open a URL given as their argument, in the
 /// order the Store tries them for a releases page (WMCAT-006).
 pub const WEB_BROWSERS: [&str; 5] = ["tetron-browser", "w3m", "lynx", "links", "elinks"];
@@ -569,5 +595,20 @@ mod tests {
         assert!(parse(r#"[{"name":"old bare list"}]"#).unwrap_err().contains("schema"));
         let c = parse(&doc(SCHEMA, app, suite)).unwrap();
         assert_eq!((c.apps[0].tier.as_str(), c.apps[0].set.is_none()), ("optional", true));
+    }
+
+    /// WMCAT-010: imported lists by display name, deduplicated, in merge
+    /// order; tetron only for an app no imported list has.
+    #[test]
+    fn listed_by_names_imported_lists_and_tetron_only_alone() {
+        let app = |src: &str| -> CatalogApp {
+            serde_json::from_str(&format!(r#"{{"name":"x","bin":"x","category":"c","description":"d","homepage":"h","sources":{src}}}"#)).unwrap()
+        };
+        assert_eq!(listed_by(&app(r#"["awesome-tuis","terminaltrove","tetron","tetron"]"#)), ["awesome-tuis", "Terminal Trove"]);
+        assert_eq!(listed_by(&app(r#"["terminaltrove","tetron"]"#)), ["Terminal Trove"]);
+        assert_eq!(listed_by(&app(r#"["tetron"]"#)), ["tetron"]);
+        assert!(listed_by(&app("[]")).is_empty(), "older catalogs carry no sources");
+        let n = catalog().iter().filter(|a| listed_by(a) == ["tetron"]).count();
+        assert!(n > 10 && n < 100, "our own additions: {n}");
     }
 }

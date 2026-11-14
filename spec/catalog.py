@@ -183,3 +183,18 @@ class StandaloneStoreHooks(Requirement):
       built-in Store.
     """
 
+
+class ListedBy(Requirement):
+    """REQUIREMENT-ID: WMCAT-010
+
+    Depends on WMCAT-001. The Store says which lists an app came from: its
+    details show "Listed by:" with the imported lists that have it, in merge
+    order (awesome-tuis, Terminal Trove), or "tetron" when only our own list
+    has it (our list annotates nearly every app, so it is not named
+    otherwise). Typing `from:NAME` in the search shows only the apps whose
+    shown lists match NAME (any case, any part, so `from:trove` works), and
+    combines with the other words typed. The catalog's `sources` field carries
+    the lists; a catalog without it shows no line. Shown by tetron-appstore;
+    tetron-wm's built-in Store, which phase 3 removes, does not.
+    """
+
