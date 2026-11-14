@@ -27,7 +27,8 @@ natural_scroll = true
 ## Open new app windows maximized (filling the work area).
 launch_maximized = false
 ## The Store: this program in a window named "Store" (tetron-appstore, from the
-## desktop set). "" or a command that is not installed opens the built-in Store.
+## desktop set). "" means tetron-appstore; when it is missing, opening the Store
+## opens a window that installs it.
 store_app = "tetron-appstore"
 fullscreen = true
 

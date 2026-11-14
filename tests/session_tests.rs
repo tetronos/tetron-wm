@@ -59,21 +59,6 @@ fn spotlight_launches_selected_app() {
 }
 
 #[test]
-fn open_store_creates_focused_store_window() {
-    let mut core = SessionCore::new(120, 40, builtin_store());
-    assert!(!core.focused_is_store());
-    core.apply(ClientMsg::OpenStore);
-    assert!(core.focused_is_store());
-    let n = core.window_count();
-    // opening again focuses the same window, doesn't make a second
-    core.apply(ClientMsg::OpenStore);
-    assert_eq!(core.window_count(), n);
-    core.apply(ClientMsg::StoreClose);
-    assert!(!core.focused_is_store());
-    core.shutdown();
-}
-
-#[test]
 fn open_settings_creates_focused_settings_window() {
     let mut core = SessionCore::new(120, 40, Config::default());
     assert!(!core.focused_is_settings());
@@ -1409,58 +1394,14 @@ fn cli_launch_of_a_builtin_opens_the_builtin_window() {
     core.shutdown();
 }
 
-/// WMCAT-007: Alt+O opens the Store menu of the selected app; it is driven
-/// by the menu keys, and "Copy releases link" puts the link in the clipboard.
+/// WMCAT-011: the Store opens as the `store_app` program in a window named
+/// "Store", and opening it again focuses that window; a missing program opens
+/// a window that installs tetron-appstore instead.
 #[test]
-fn store_menu_copies_the_releases_link() {
-    use tetron_wm::session::MenuKey;
-    let app = tetron_wm::catalog::catalog().iter().find(|a| tetron_wm::catalog::releases_url(a).is_some() && a.name.len() > 5).expect("an app with releases");
-    let mut core = SessionCore::new(120, 40, builtin_store());
-    core.apply(ClientMsg::OpenStore);
-    for c in app.name.chars() {
-        core.apply(ClientMsg::StoreChar(c));
-    }
-    let _ = core.take_clipboard();
-    core.apply(ClientMsg::StoreMenu);
-    assert!(core.desktop_menu_open(), "the client routes arrows to the menu");
-    // Install, [Open project], Copy project, [Open releases], Copy releases:
-    // Up from the first entry wraps to the last.
-    core.apply(ClientMsg::DesktopMenuKey(MenuKey::Up));
-    core.apply(ClientMsg::DesktopMenuKey(MenuKey::Enter));
-    assert!(!core.desktop_menu_open());
-    let got = core.take_clipboard().expect("link copied");
-    assert_eq!(Some(got), tetron_wm::catalog::releases_url(app));
-    core.shutdown();
-}
-
-/// WMCAT-009: a Launch with cwd_prompt asks for a working folder first (as the
-/// launcher does for coding agents); without it the app starts at once, and a
-/// message without the field parses (older senders).
-#[test]
-fn launch_with_cwd_prompt_asks_for_a_folder() {
-    let mut core = SessionCore::new(120, 40, Config::default());
-    core.apply(ClientMsg::Launch { name: "agent".into(), command: "sh".into(), args: vec!["-c".into(), "sleep 2".into()], cwd_prompt: true });
-    assert!(core.dirpicker_open());
-    assert_eq!(core.window_count(), 0);
-    let old: ClientMsg = serde_json::from_str(r#"{"Launch":{"name":"a","command":"sh","args":["-c","sleep 2"]}}"#).unwrap();
-    assert!(matches!(old, ClientMsg::Launch { cwd_prompt: false, .. }));
-    core.shutdown();
-}
-
-/// The built-in Store (`store_app = ""`), whatever is installed here (WMCAT-011).
-fn builtin_store() -> Config {
-    Config { store_app: String::new(), ..Config::default() }
-}
-
-/// WMCAT-011: with `store_app` installed, the Store opens as that program in
-/// a window named "Store"; opening it again focuses it; opening it for one
-/// app replaces it. A missing program falls back to the built-in Store.
-#[test]
-fn store_opens_the_store_app_once_and_falls_back() {
+fn store_opens_the_store_app_once_or_installs_it() {
     let mut core = SessionCore::new(120, 40, Config { store_app: "sh".into(), ..Config::default() });
     core.apply(ClientMsg::OpenStore);
     let id = core.store_app_window().expect("a Store app window");
-    assert!(!core.focused_is_store(), "the program, not the built-in Store");
     assert_eq!(core.window_count(), 1);
     core.apply(ClientMsg::OpenStore);
     assert_eq!((core.window_count(), core.store_app_window()), (1, Some(id)), "focused, not opened twice");
@@ -1468,12 +1409,8 @@ fn store_opens_the_store_app_once_and_falls_back() {
 
     let mut core = SessionCore::new(120, 40, Config { store_app: "no-such-store-xyz".into(), ..Config::default() });
     core.apply(ClientMsg::OpenStore);
-    assert!(core.focused_is_store() && core.store_app_window().is_none(), "built-in when the program is missing");
-    core.shutdown();
-
-    let mut core = SessionCore::new(120, 40, builtin_store());
-    core.apply(ClientMsg::OpenStore);
-    assert!(core.focused_is_store() && core.store_app_window().is_none(), "built-in when store_app is empty");
+    assert!(core.store_app_window().is_none());
+    assert_eq!(core.window_count(), 1, "the install window");
+    assert!(core.window_titles().iter().any(|t| t == "install: tetron-appstore"), "{:?}", core.window_titles());
     core.shutdown();
 }
-

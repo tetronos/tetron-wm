@@ -498,22 +498,6 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             KeyCode::Char('n') | KeyCode::Char('N') => send(&mut out_stream, &ClientMsg::DirPickerNewFolder)?,
                             _ => {}
                         }
-                    } else if f.store_focused {
-                        match k.code {
-                            KeyCode::Esc => send(&mut out_stream, &ClientMsg::StoreClose)?,
-                            KeyCode::Enter => send(&mut out_stream, &ClientMsg::StoreActivate)?,
-                            KeyCode::F(5) => send(&mut out_stream, &ClientMsg::StoreUpdateList)?,
-                            KeyCode::Char('o') | KeyCode::Char('O') if k.modifiers.contains(KeyModifiers::ALT) && !ctrl => {
-                                send(&mut out_stream, &ClientMsg::StoreMenu)?
-                            }
-                            KeyCode::Up => send(&mut out_stream, &ClientMsg::StoreUp)?,
-                            KeyCode::Down => send(&mut out_stream, &ClientMsg::StoreDown)?,
-                            KeyCode::Left => send(&mut out_stream, &ClientMsg::StorePrevCategory)?,
-                            KeyCode::Right => send(&mut out_stream, &ClientMsg::StoreNextCategory)?,
-                            KeyCode::Backspace => send(&mut out_stream, &ClientMsg::StoreBackspace)?,
-                            KeyCode::Char(c) if !ctrl => send(&mut out_stream, &ClientMsg::StoreChar(c))?,
-                            _ => {}
-                        }
                     } else if f.settings_focused && f.settings_editing {
                         // A text field, the Apps add form or the Apps dialog: forward
                         // typed characters; Left / Right switch the dialog's
@@ -880,8 +864,6 @@ pub(crate) fn route_mouse(
         // route it (e.g. volume over the tray), never the focused widget's scroll.
         (_, A::ScrollUp) if p.y == 0 => send(out, &ClientMsg::ScrollAt { p, lines: 3 })?,
         (_, A::ScrollDown) if p.y == 0 => send(out, &ClientMsg::ScrollAt { p, lines: -3 })?,
-        (_, A::ScrollUp) if f.store_focused => send(out, &ClientMsg::StoreUp)?,
-        (_, A::ScrollDown) if f.store_focused => send(out, &ClientMsg::StoreDown)?,
         (_, A::ScrollUp) if f.filemanager_focused => send(out, &ClientMsg::FileManagerUp)?,
         (_, A::ScrollDown) if f.filemanager_focused => send(out, &ClientMsg::FileManagerDown)?,
         (_, A::ScrollUp) if f.help_focused => send(out, &ClientMsg::HelpScroll(-3))?,

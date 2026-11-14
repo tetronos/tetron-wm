@@ -865,7 +865,8 @@ essentials:script:opencode\n";
     #[test]
     fn suite_script_lists_minor_follows_the_core_version() {
         let script = include_str!("../install-tetron-wm-suite.sh");
-        let want = format!("LISTS_MINOR=\"{}\"", crate::listfetch::minor_of(env!("CARGO_PKG_VERSION")));
+        let minor: Vec<&str> = env!("CARGO_PKG_VERSION").split('.').take(2).collect();
+        let want = format!("LISTS_MINOR=\"{}\"", minor.join("."));
         assert!(script.lines().any(|l| l == want), "install-tetron-wm-suite.sh needs {want}");
     }
 

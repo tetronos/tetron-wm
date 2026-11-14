@@ -448,7 +448,6 @@ fn serve_client_inner(
         core.poll_power();
         core.poll_themes();
         core.poll_apps_download();
-        core.poll_lists();
         core.poll_catalog_file();
         crate::theme::export_store_colors();
         core.poll_update_check();
@@ -490,7 +489,6 @@ fn serve_client_inner(
         let flags = Flags {
             launcher_open: core.launcher_open(),
             spotlight_open: core.spotlight_open(),
-            store_focused: core.focused_is_store(),
             settings_focused: core.focused_is_settings(),
             settings_editing: core.settings_editing(),
             dirpicker_open: core.dirpicker_open(),

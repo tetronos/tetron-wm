@@ -29,7 +29,8 @@ tetron-wm launch lazygit       # git UI
 tetron-wm tile                 # arrange everything into the grid
 ```
 
-Apps are installed via the in-app Store (1,300+ terminal apps), or you can
+Apps are installed via the Store (leader S; the program `tetron-appstore`, 1,300+
+terminal apps; `tetron-appstore NAME` opens it searching for NAME), or you can
 install them yourself with the user's package manager and then `tetron-wm launch`.
 
 Other things worth knowing when helping the user:
