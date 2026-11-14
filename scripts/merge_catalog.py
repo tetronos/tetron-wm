@@ -10,7 +10,9 @@ lists/tetron.toml, assets/suite-apps.txt (scripts/gen_suite_lists.py),
 which gives each app its set and is carried whole as "suite_apps", and
 lists/repology.json (scripts/match_repology.py, WMCAT-005): package names per
 manager (apt, dnf, pacman, brew) by app name; a `pkg` table of ours overrides
-them name by name ("" means that manager has none).
+them name by name ("" means that manager has none). lists/releases.json
+(scripts/match_releases.py, WMCAT-006): GitHub repositories whose latest
+release has assets; their apps get `releases: true`.
 
 Matching: by name (any case), then by command name, then, between
 imported lists only, by a homepage that is a GitHub repository root (any
@@ -42,7 +44,7 @@ TEMPLATES = {"json", "opencode"}
 TIERS = {"default", "recommended", "optional"}
 # Suite sizes (WMINST-001) and the catalog tier an app of each gets.
 SIZES = {"essentials": "default", "recommended": "recommended", "extras": "optional"}
-ORDER = ["name", "bin", "variants", "category", "description", "homepage", "cli", "needs_url",
+ORDER = ["name", "bin", "variants", "category", "description", "homepage", "releases", "cli", "needs_url",
          "recipe", "agent", "pkg", "tier", "set", "sources"]
 
 
@@ -171,6 +173,12 @@ def merged_apps(lists=LISTS):
             a["pkg"] = {k: names[k] for k in MANAGERS if k in names}
         else:
             a.pop("pkg", None)
+    rl = lists / "releases.json"
+    released = set(json.loads(rl.read_text(encoding="utf-8"))["repos"]) if rl.exists() else set()
+    for a in apps:
+        a.pop("releases", None)
+        if gh_repo(a.get("homepage")) in released:
+            a["releases"] = True
     return apps
 
 

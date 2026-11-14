@@ -99,3 +99,21 @@ class PackageNamesPerManager(Requirement):
     names reach the shell. An app with a package for this OS is listed even
     when its recipe names other systems.
     """
+
+
+class PrebuiltReleaseLink(Requirement):
+    """REQUIREMENT-ID: WMCAT-006
+
+    A catalog entry whose homepage is a GitHub repository root carries
+    `releases: true` when that repository's latest release has downloadable
+    assets (prebuilt binaries). `scripts/match_releases.py` (gh CLI, cached
+    in `target/`) writes the repositories that have them to
+    `lists/releases.json`; the merge sets the flag from it. For such an app
+    the Store shows the link `https://github.com/<owner>/<repo>/releases/latest`
+    in its details, and every install window for it (a recipe, a package or
+    the best-effort chain) ends by naming that link next to the homepage,
+    so a user whose install failed can download the binary by hand. The link
+    is built only from a homepage whose owner and repository are plain names
+    (letters, digits, `.`, `_`, `-`). Absent `releases` means false, so
+    older catalogs and binaries are unaffected.
+    """

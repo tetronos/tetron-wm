@@ -6558,3 +6558,3951 @@ category = "Editors"
 description = "GNU nano: a small, friendly modeless editor with its key help on screen."
 homepage = "https://www.nano-editor.org"
 pkg = { apt = "nano", dnf = "nano", pacman = "nano", brew = "nano" }
+
+[[app]]
+name = "Neovim"
+[app.recipe]
+install = "brew install neovim"
+method = "brew"
+verified = true
+
+[[app]]
+name = "Vim"
+[app.recipe]
+install = "brew install vim"
+method = "brew"
+verified = true
+
+[[app]]
+name = "abtop"
+[app.recipe]
+install = "brew install abtop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "act"
+[app.recipe]
+install = "brew install act"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ad"
+[app.recipe]
+install = "brew install ad"
+method = "brew"
+verified = true
+
+[[app]]
+name = "age"
+[app.recipe]
+install = "brew install age"
+method = "brew"
+verified = true
+
+[[app]]
+name = "aichat"
+[app.recipe]
+install = "brew install aichat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ali"
+[app.recipe]
+install = "brew install ali"
+method = "brew"
+verified = true
+
+[[app]]
+name = "amfora"
+[app.recipe]
+install = "brew install amfora"
+method = "brew"
+verified = true
+
+[[app]]
+name = "aria2"
+[app.recipe]
+install = "brew install aria2"
+method = "brew"
+verified = true
+
+[[app]]
+name = "asciinema"
+[app.recipe]
+install = "brew install asciinema"
+method = "brew"
+verified = true
+
+[[app]]
+name = "asn"
+[app.recipe]
+install = "brew install asn"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ast-grep"
+[app.recipe]
+install = "brew install ast-grep"
+method = "brew"
+verified = true
+
+[[app]]
+name = "atuin"
+[app.recipe]
+install = "brew install atuin"
+method = "brew"
+verified = true
+
+[[app]]
+name = "b4n"
+[app.recipe]
+install = "brew install b4n"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bacon"
+[app.recipe]
+install = "brew install bacon"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bat"
+[app.recipe]
+install = "brew install bat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bbrew"
+[app.recipe]
+install = "brew install bbrew"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bcal"
+[app.recipe]
+install = "brew install bcal"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bfs"
+[app.recipe]
+install = "brew install bfs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bpftop"
+[app.recipe]
+install = "brew install bpftop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "bttf"
+[app.recipe]
+install = "brew install bttf"
+method = "brew"
+verified = true
+
+[[app]]
+name = "buku"
+[app.recipe]
+install = "brew install buku"
+method = "brew"
+verified = true
+
+[[app]]
+name = "byobu"
+[app.recipe]
+install = "brew install byobu"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cargo-geiger"
+[app.recipe]
+install = "brew install cargo-geiger"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cariddi"
+[app.recipe]
+install = "brew install cariddi"
+method = "brew"
+verified = true
+
+[[app]]
+name = "chezmoi"
+[app.recipe]
+install = "brew install chezmoi"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cidr"
+[app.recipe]
+install = "brew install cidr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "circumflex"
+[app.recipe]
+install = "brew install circumflex"
+method = "brew"
+verified = true
+
+[[app]]
+name = "clipboard"
+[app.recipe]
+install = "brew install clipboard"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cloc"
+[app.recipe]
+install = "brew install cloc"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cmatrix"
+[app.recipe]
+install = "brew install cmatrix"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cotp"
+[app.recipe]
+install = "brew install cotp"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cpufetch"
+[app.recipe]
+install = "brew install cpufetch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "crates-tui"
+[app.recipe]
+install = "brew install crates-tui"
+method = "brew"
+verified = true
+
+[[app]]
+name = "croc"
+[app.recipe]
+install = "brew install croc"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cronboard"
+[app.recipe]
+install = "brew install cronboard"
+method = "brew"
+verified = true
+
+[[app]]
+name = "curl"
+[app.recipe]
+install = "brew install curl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "curlie"
+[app.recipe]
+install = "brew install curlie"
+method = "brew"
+verified = true
+
+[[app]]
+name = "cyme"
+[app.recipe]
+install = "brew install cyme"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ddgr"
+[app.recipe]
+install = "brew install ddgr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "depsguard"
+[app.recipe]
+install = "brew install depsguard"
+method = "brew"
+verified = true
+
+[[app]]
+name = "desed"
+[app.recipe]
+install = "brew install desed"
+method = "brew"
+verified = true
+
+[[app]]
+name = "diffnav"
+[app.recipe]
+install = "brew install diffnav"
+method = "brew"
+verified = true
+
+[[app]]
+name = "difftastic"
+[app.recipe]
+install = "brew install difftastic"
+method = "brew"
+verified = true
+
+[[app]]
+name = "diskwatch"
+[app.recipe]
+install = "brew install diskwatch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dnsglobe"
+[app.recipe]
+install = "brew install dnsglobe"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dnspyre"
+[app.recipe]
+install = "brew install dnspyre"
+method = "brew"
+verified = true
+
+[[app]]
+name = "doggo"
+[app.recipe]
+install = "brew install doggo"
+method = "brew"
+verified = true
+
+[[app]]
+name = "domain-check"
+[app.recipe]
+install = "brew install domain-check"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dooit"
+[app.recipe]
+install = "brew install dooit"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dra"
+[app.recipe]
+install = "brew install dra"
+method = "brew"
+verified = true
+
+[[app]]
+name = "drydock"
+[app.recipe]
+install = "brew install drydock"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dskditto"
+[app.recipe]
+install = "brew install dskditto"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dstask"
+[app.recipe]
+install = "brew install dstask"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dstp"
+[app.recipe]
+install = "brew install dstp"
+method = "brew"
+verified = true
+
+[[app]]
+name = "duf"
+[app.recipe]
+install = "brew install duf"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dug"
+[app.recipe]
+install = "brew install dug"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dyff"
+[app.recipe]
+install = "brew install dyff"
+method = "brew"
+verified = true
+
+[[app]]
+name = "dysk"
+[app.recipe]
+install = "brew install dysk"
+method = "brew"
+verified = true
+
+[[app]]
+name = "eget"
+[app.recipe]
+install = "brew install eget"
+method = "brew"
+verified = true
+
+[[app]]
+name = "elio"
+[app.recipe]
+install = "brew install elio"
+method = "brew"
+verified = true
+
+[[app]]
+name = "emacs"
+[app.recipe]
+install = "brew install emacs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "emeraldian"
+[app.recipe]
+install = "brew install emeraldian"
+method = "brew"
+verified = true
+
+[[app]]
+name = "erdtree"
+[app.recipe]
+install = "brew install erdtree"
+method = "brew"
+verified = true
+
+[[app]]
+name = "eva"
+[app.recipe]
+install = "brew install eva"
+method = "brew"
+verified = true
+
+[[app]]
+name = "eza"
+[app.recipe]
+install = "brew install eza"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fastfetch"
+[app.recipe]
+install = "brew install fastfetch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fblog"
+[app.recipe]
+install = "brew install fblog"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fclones"
+[app.recipe]
+install = "brew install fclones"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fd"
+[app.recipe]
+install = "brew install fd"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fend"
+[app.recipe]
+install = "brew install fend"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ffsend"
+[app.recipe]
+install = "brew install ffsend"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ffuf"
+[app.recipe]
+install = "brew install ffuf"
+method = "brew"
+verified = true
+
+[[app]]
+name = "flowrs"
+[app.recipe]
+install = "brew install flowrs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "flyline"
+[app.recipe]
+install = "brew install flyline"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fnm"
+[app.recipe]
+install = "brew install fnm"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fnt"
+[app.recipe]
+install = "brew install fnt"
+method = "brew"
+verified = true
+
+[[app]]
+name = "forgit"
+[app.recipe]
+install = "brew install forgit"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fselect"
+[app.recipe]
+install = "brew install fselect"
+method = "brew"
+verified = true
+
+[[app]]
+name = "fzf-make"
+[app.recipe]
+install = "brew install fzf-make"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gama"
+[app.recipe]
+install = "brew install gama"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gaze"
+[app.recipe]
+install = "brew install gaze"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gcli"
+[app.recipe]
+install = "brew install gcli"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gfold"
+[app.recipe]
+install = "brew install gfold"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ggh"
+[app.recipe]
+install = "brew install ggh"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ghq"
+[app.recipe]
+install = "brew install ghq"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gifski"
+[app.recipe]
+install = "brew install gifski"
+method = "brew"
+verified = true
+
+[[app]]
+name = "git-cliff"
+[app.recipe]
+install = "brew install git-cliff"
+method = "brew"
+verified = true
+
+[[app]]
+name = "git-interactive-rebase-tool"
+[app.recipe]
+install = "brew install git-interactive-rebase-tool"
+method = "brew"
+verified = true
+
+[[app]]
+name = "git-split-diffs"
+[app.recipe]
+install = "brew install git-split-diffs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "git-who"
+[app.recipe]
+install = "brew install git-who"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gita"
+[app.recipe]
+install = "brew install gita"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gitnr"
+[app.recipe]
+install = "brew install gitnr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gitu"
+[app.recipe]
+install = "brew install gitu"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gobackup"
+[app.recipe]
+install = "brew install gobackup"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gollama"
+[app.recipe]
+install = "brew install gollama"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gomi"
+[app.recipe]
+install = "brew install gomi"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gopass"
+[app.recipe]
+install = "brew install gopass"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gotz"
+[app.recipe]
+install = "brew install gotz"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gowall"
+[app.recipe]
+install = "brew install gowall"
+method = "brew"
+verified = true
+
+[[app]]
+name = "grex"
+[app.recipe]
+install = "brew install grex"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gruyere"
+[app.recipe]
+install = "brew install gruyere"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gtop"
+[app.recipe]
+install = "brew install gtop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "gtrash"
+[app.recipe]
+install = "brew install gtrash"
+method = "brew"
+verified = true
+
+[[app]]
+name = "haiti"
+[app.recipe]
+install = "brew install haiti"
+method = "brew"
+verified = true
+
+[[app]]
+name = "halp"
+[app.recipe]
+install = "brew install halp"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hapless"
+[app.recipe]
+install = "brew install hapless"
+method = "brew"
+verified = true
+
+[[app]]
+name = "has"
+[app.recipe]
+install = "brew install has"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hashcat"
+[app.recipe]
+install = "brew install hashcat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "havn"
+[app.recipe]
+install = "brew install havn"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hexapoda"
+[app.recipe]
+install = "brew install hexapoda"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hexhog"
+[app.recipe]
+install = "brew install hexhog"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hexyl"
+[app.recipe]
+install = "brew install hexyl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hishtory"
+[app.recipe]
+install = "brew install hishtory"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hl"
+[app.recipe]
+install = "brew install hl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hstr"
+[app.recipe]
+install = "brew install hstr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "httm"
+[app.recipe]
+install = "brew install httm"
+method = "brew"
+verified = true
+
+[[app]]
+name = "httpstat"
+[app.recipe]
+install = "brew install httpstat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hurl"
+[app.recipe]
+install = "brew install hurl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "hyperfine"
+[app.recipe]
+install = "brew install hyperfine"
+method = "brew"
+verified = true
+
+[[app]]
+name = "igrep"
+[app.recipe]
+install = "brew install igrep"
+method = "brew"
+verified = true
+
+[[app]]
+name = "intermodal"
+[app.recipe]
+install = "brew install intermodal"
+method = "brew"
+verified = true
+
+[[app]]
+name = "iredis"
+[app.recipe]
+install = "brew install iredis"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jaq"
+[app.recipe]
+install = "brew install jaq"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jc"
+[app.recipe]
+install = "brew install jc"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jid"
+[app.recipe]
+install = "brew install jid"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jira-cli"
+[app.recipe]
+install = "brew install jira-cli"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jjui"
+[app.recipe]
+install = "brew install jjui"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jless"
+[app.recipe]
+install = "brew install jless"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jnv"
+[app.recipe]
+install = "brew install jnv"
+method = "brew"
+verified = true
+
+[[app]]
+name = "joshuto"
+[app.recipe]
+install = "brew install joshuto"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jql"
+[app.recipe]
+install = "brew install jql"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jsongrep"
+[app.recipe]
+install = "brew install jsongrep"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jujutsu"
+[app.recipe]
+install = "brew install jj"
+method = "brew"
+verified = true
+
+[[app]]
+name = "just"
+[app.recipe]
+install = "brew install just"
+method = "brew"
+verified = true
+
+[[app]]
+name = "jwt-ui"
+[app.recipe]
+install = "brew install jwt-ui"
+method = "brew"
+verified = true
+
+[[app]]
+name = "kalker"
+[app.recipe]
+install = "brew install kalker"
+method = "brew"
+verified = true
+
+[[app]]
+name = "kbt"
+[app.recipe]
+install = "brew install kbt"
+method = "brew"
+verified = true
+
+[[app]]
+name = "kibi"
+[app.recipe]
+install = "brew install kibi"
+method = "brew"
+verified = true
+
+[[app]]
+name = "knife"
+[app.recipe]
+install = "brew install knife"
+method = "brew"
+verified = true
+
+[[app]]
+name = "koji"
+[app.recipe]
+install = "brew install koji"
+method = "brew"
+verified = true
+
+[[app]]
+name = "kondo"
+[app.recipe]
+install = "brew install kondo"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ktea"
+[app.recipe]
+install = "brew install ktea"
+method = "brew"
+verified = true
+
+[[app]]
+name = "kubecolor"
+[app.recipe]
+install = "brew install kubecolor"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lazycut"
+[app.recipe]
+install = "brew install lazycut"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lazyjj"
+[app.recipe]
+install = "brew install lazyjj"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lazyrsync"
+[app.recipe]
+install = "brew install lazyrsync"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lemmeknow"
+[app.recipe]
+install = "brew install lemmeknow"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lfk"
+[app.recipe]
+install = "brew install lfk"
+method = "brew"
+verified = true
+
+[[app]]
+name = "linecast"
+[app.recipe]
+install = "brew install linecast"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lla"
+[app.recipe]
+install = "brew install lla"
+method = "brew"
+verified = true
+
+[[app]]
+name = "llmfit"
+[app.recipe]
+install = "brew install llmfit"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lsd"
+[app.recipe]
+install = "brew install lsd"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lsix"
+[app.recipe]
+install = "brew install lsix"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lsoff"
+[app.recipe]
+install = "brew install lsoff"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lstr"
+[app.recipe]
+install = "brew install lstr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "lychee"
+[app.recipe]
+install = "brew install lychee"
+method = "brew"
+verified = true
+
+[[app]]
+name = "macchina"
+[app.recipe]
+install = "brew install macchina"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mandown"
+[app.recipe]
+install = "brew install mandown"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mani"
+[app.recipe]
+install = "brew install mani"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mcat"
+[app.recipe]
+install = "brew install mcat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mcpsnoop"
+[app.recipe]
+install = "brew install mcpsnoop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mdfried"
+[app.recipe]
+install = "brew install mdfried"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mdp"
+[app.recipe]
+install = "brew install mdp"
+method = "brew"
+verified = true
+
+[[app]]
+name = "miller"
+[app.recipe]
+install = "brew install miller"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mise"
+[app.recipe]
+install = "brew install mise"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mole"
+[app.recipe]
+install = "brew install mole"
+method = "brew"
+verified = true
+
+[[app]]
+name = "monolith"
+[app.recipe]
+install = "brew install monolith"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mpv"
+[app.recipe]
+install = "brew install mpv"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mq"
+[app.recipe]
+install = "brew install mq"
+method = "brew"
+verified = true
+
+[[app]]
+name = "msgvault"
+[app.recipe]
+install = "brew install msgvault"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mtr"
+[app.recipe]
+install = "brew install mtr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "mufetch"
+[app.recipe]
+install = "brew install mufetch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "musikcube"
+[app.recipe]
+install = "brew install musikcube"
+method = "brew"
+verified = true
+
+[[app]]
+name = "nano"
+[app.recipe]
+install = "brew install nano"
+method = "brew"
+verified = true
+
+[[app]]
+name = "navi"
+[app.recipe]
+install = "brew install navi"
+method = "brew"
+verified = true
+
+[[app]]
+name = "neomutt"
+[app.recipe]
+install = "brew install neomutt"
+method = "brew"
+verified = true
+
+[[app]]
+name = "netshow"
+[app.recipe]
+install = "brew install netshow"
+method = "brew"
+verified = true
+
+[[app]]
+name = "netwatch"
+[app.recipe]
+install = "brew install netwatch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "network-doctor"
+[app.recipe]
+install = "brew install network-doctor"
+method = "brew"
+verified = true
+
+[[app]]
+name = "nmail"
+[app.recipe]
+install = "brew install nmail"
+method = "brew"
+verified = true
+
+[[app]]
+name = "nomino"
+[app.recipe]
+install = "brew install nomino"
+method = "brew"
+verified = true
+
+[[app]]
+name = "numbat"
+[app.recipe]
+install = "brew install numbat"
+method = "brew"
+verified = true
+
+[[app]]
+name = "octosql"
+[app.recipe]
+install = "brew install octosql"
+method = "brew"
+verified = true
+
+[[app]]
+name = "oh-my-reddit"
+[app.recipe]
+install = "brew install oh-my-reddit"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ollama"
+[app.recipe]
+install = "brew install ollama"
+method = "brew"
+verified = true
+
+[[app]]
+name = "onefetch"
+[app.recipe]
+install = "brew install onefetch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "openapi-tui"
+[app.recipe]
+install = "brew install openapi-tui"
+method = "brew"
+verified = true
+
+[[app]]
+name = "oterm"
+[app.recipe]
+install = "brew install oterm"
+method = "brew"
+verified = true
+
+[[app]]
+name = "otree"
+[app.recipe]
+install = "brew install otree"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ouch"
+[app.recipe]
+install = "brew install ouch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ov"
+[app.recipe]
+install = "brew install ov"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ox"
+[app.recipe]
+install = "brew install ox"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pandoc"
+[app.recipe]
+install = "brew install pandoc"
+method = "brew"
+verified = true
+
+[[app]]
+name = "papis"
+[app.recipe]
+install = "brew install papis"
+method = "brew"
+verified = true
+
+[[app]]
+name = "parqeye"
+[app.recipe]
+install = "brew install parqeye"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pastel"
+[app.recipe]
+install = "brew install pastel"
+method = "brew"
+verified = true
+
+[[app]]
+name = "peco"
+[app.recipe]
+install = "brew install peco"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pet"
+[app.recipe]
+install = "brew install pet"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pop"
+[app.recipe]
+install = "brew install pop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "portal"
+[app.recipe]
+install = "brew install portal"
+method = "brew"
+verified = true
+
+[[app]]
+name = "procs"
+[app.recipe]
+install = "brew install procs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "projectable"
+[app.recipe]
+install = "brew install projectable"
+method = "brew"
+verified = true
+
+[[app]]
+name = "proxelar"
+[app.recipe]
+install = "brew install proxelar"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pspg"
+[app.recipe]
+install = "brew install pspg"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pueue"
+[app.recipe]
+install = "brew install pueue"
+method = "brew"
+verified = true
+
+[[app]]
+name = "pvetui"
+[app.recipe]
+install = "brew install pvetui"
+method = "brew"
+verified = true
+
+[[app]]
+name = "qman"
+[app.recipe]
+install = "brew install qman"
+method = "brew"
+verified = true
+
+[[app]]
+name = "qrtool"
+[app.recipe]
+install = "brew install qrtool"
+method = "brew"
+verified = true
+
+[[app]]
+name = "qsv"
+[app.recipe]
+install = "brew install qsv"
+method = "brew"
+verified = true
+
+[[app]]
+name = "quien"
+[app.recipe]
+install = "brew install quien"
+method = "brew"
+verified = true
+
+[[app]]
+name = "radare2"
+[app.recipe]
+install = "brew install radare2"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rclone"
+[app.recipe]
+install = "brew install rclone"
+method = "brew"
+verified = true
+
+[[app]]
+name = "reddix"
+[app.recipe]
+install = "brew install reddix"
+method = "brew"
+verified = true
+
+[[app]]
+name = "restic"
+[app.recipe]
+install = "brew install restic"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rga"
+[app.recipe]
+install = "brew install ripgrep-all"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rhit"
+[app.recipe]
+install = "brew install rhit"
+method = "brew"
+verified = true
+
+[[app]]
+name = "riff"
+[app.recipe]
+install = "brew install riff"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ripgrep"
+[app.recipe]
+install = "brew install ripgrep"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rizin"
+[app.recipe]
+install = "brew install rizin"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rsync"
+[app.recipe]
+install = "brew install rsync"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rsyncy"
+[app.recipe]
+install = "brew install rsyncy"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rura"
+[app.recipe]
+install = "brew install rura"
+method = "brew"
+verified = true
+
+[[app]]
+name = "rustscan"
+[app.recipe]
+install = "brew install rustscan"
+method = "brew"
+verified = true
+
+[[app]]
+name = "s3scanner"
+[app.recipe]
+install = "brew install s3scanner"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sabiql"
+[app.recipe]
+install = "brew install sabiql"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sampler"
+[app.recipe]
+install = "brew install sampler"
+method = "brew"
+verified = true
+
+[[app]]
+name = "scc"
+[app.recipe]
+install = "brew install scc"
+method = "brew"
+verified = true
+
+[[app]]
+name = "scooter"
+[app.recipe]
+install = "brew install scooter"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sd"
+[app.recipe]
+install = "brew install sd"
+method = "brew"
+verified = true
+
+[[app]]
+name = "serpl"
+[app.recipe]
+install = "brew install serpl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "shellcheck"
+[app.recipe]
+install = "brew install shellcheck"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sherlock"
+[app.recipe]
+install = "brew install sherlock"
+method = "brew"
+verified = true
+
+[[app]]
+name = "silicon"
+[app.recipe]
+install = "brew install silicon"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sl"
+[app.recipe]
+install = "brew install sl"
+method = "brew"
+verified = true
+
+[[app]]
+name = "slurm"
+[app.recipe]
+install = "brew install slurm"
+method = "brew"
+verified = true
+
+[[app]]
+name = "snitch"
+[app.recipe]
+install = "brew install snitch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "so"
+[app.recipe]
+install = "brew install so"
+method = "brew"
+verified = true
+
+[[app]]
+name = "srgn"
+[app.recipe]
+install = "brew install srgn"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sshs"
+[app.recipe]
+install = "brew install sshs"
+method = "brew"
+verified = true
+
+[[app]]
+name = "stormy"
+[app.recipe]
+install = "brew install stormy"
+method = "brew"
+verified = true
+
+[[app]]
+name = "sttr"
+[app.recipe]
+install = "brew install sttr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "superseedr"
+[app.recipe]
+install = "brew install superseedr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "syswatch"
+[app.recipe]
+install = "brew install syswatch"
+method = "brew"
+verified = true
+
+[[app]]
+name = "t-rec"
+[app.recipe]
+install = "brew install t-rec"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tailspin"
+[app.recipe]
+install = "brew install tailspin"
+method = "brew"
+verified = true
+
+[[app]]
+name = "taproom"
+[app.recipe]
+install = "brew install taproom"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tcpdump"
+[app.recipe]
+install = "brew install tcpdump"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tealdeer"
+[app.recipe]
+install = "brew install tealdeer"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tele"
+[app.recipe]
+install = "brew install tele"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tere"
+[app.recipe]
+install = "brew install tere"
+method = "brew"
+verified = true
+
+[[app]]
+name = "termframe"
+[app.recipe]
+install = "brew install termframe"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tgpt"
+[app.recipe]
+install = "brew install tgpt"
+method = "brew"
+verified = true
+
+[[app]]
+name = "threatdeck"
+[app.recipe]
+install = "brew install threatdeck"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tio"
+[app.recipe]
+install = "brew install tio"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tldx"
+[app.recipe]
+install = "brew install tldx"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tmate"
+[app.recipe]
+install = "brew install tmate"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tokei"
+[app.recipe]
+install = "brew install tokei"
+method = "brew"
+verified = true
+
+[[app]]
+name = "toktop"
+[app.recipe]
+install = "brew install toktop"
+method = "brew"
+verified = true
+
+[[app]]
+name = "topgrade"
+[app.recipe]
+install = "brew install topgrade"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tproxy"
+[app.recipe]
+install = "brew install tproxy"
+method = "brew"
+verified = true
+
+[[app]]
+name = "typioca"
+[app.recipe]
+install = "brew install typioca"
+method = "brew"
+verified = true
+
+[[app]]
+name = "tz"
+[app.recipe]
+install = "brew install tz"
+method = "brew"
+verified = true
+
+[[app]]
+name = "ugrep"
+[app.recipe]
+install = "brew install ugrep"
+method = "brew"
+verified = true
+
+[[app]]
+name = "up"
+[app.recipe]
+install = "brew install up"
+method = "brew"
+verified = true
+
+[[app]]
+name = "upmd"
+[app.recipe]
+install = "brew install upmd"
+method = "brew"
+verified = true
+
+[[app]]
+name = "usbtree"
+[app.recipe]
+install = "brew install usbtree"
+method = "brew"
+verified = true
+
+[[app]]
+name = "vi-sql"
+[app.recipe]
+install = "brew install vi-sql"
+method = "brew"
+verified = true
+
+[[app]]
+name = "viddy"
+[app.recipe]
+install = "brew install viddy"
+method = "brew"
+verified = true
+
+[[app]]
+name = "vscli"
+[app.recipe]
+install = "brew install vscli"
+method = "brew"
+verified = true
+
+[[app]]
+name = "whosthere"
+[app.recipe]
+install = "brew install whosthere"
+method = "brew"
+verified = true
+
+[[app]]
+name = "wrkflw"
+[app.recipe]
+install = "brew install wrkflw"
+method = "brew"
+verified = true
+
+[[app]]
+name = "wtfis"
+[app.recipe]
+install = "brew install wtfis"
+method = "brew"
+verified = true
+
+[[app]]
+name = "xan"
+[app.recipe]
+install = "brew install xan"
+method = "brew"
+verified = true
+
+[[app]]
+name = "xfr"
+[app.recipe]
+install = "brew install xfr"
+method = "brew"
+verified = true
+
+[[app]]
+name = "xh"
+[app.recipe]
+install = "brew install xh"
+method = "brew"
+verified = true
+
+[[app]]
+name = "xleak"
+[app.recipe]
+install = "brew install xleak"
+method = "brew"
+verified = true
+
+[[app]]
+name = "youplot"
+[app.recipe]
+install = "brew install youplot"
+method = "brew"
+verified = true
+
+[[app]]
+name = "yt-dlp"
+[app.recipe]
+install = "brew install yt-dlp"
+method = "brew"
+verified = true
+
+[[app]]
+name = "zf"
+[app.recipe]
+install = "brew install zf"
+method = "brew"
+verified = true
+
+[[app]]
+name = "zizmor"
+[app.recipe]
+install = "brew install zizmor"
+method = "brew"
+verified = true
+
+[[app]]
+name = "zoxide"
+[app.recipe]
+install = "brew install zoxide"
+method = "brew"
+verified = true
+
+[[app]]
+name = "zrok"
+[app.recipe]
+install = "brew install zrok"
+method = "brew"
+verified = true
+
+[[app]]
+name = "zsv"
+[app.recipe]
+install = "brew install zsv"
+method = "brew"
+verified = true
+
+
+[[app]]
+name = "Clanki"
+[app.recipe]
+install = "pipx install clanki"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "FileView"
+[app.recipe]
+install = "cargo install --locked fileview"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "Gravitype"
+[app.recipe]
+install = "pipx install gravitype"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "Tomatui"
+[app.recipe]
+install = "cargo install --locked tomatui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "aic"
+[app.recipe]
+install = "go install github.com/arimxyer/aic@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "aim"
+[app.recipe]
+install = "cargo install --locked aim"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "amdtop"
+[app.recipe]
+install = "cargo install --locked amdtop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "andcli"
+[app.recipe]
+install = "go install github.com/tjblackheart/andcli/v2/cmd/andcli@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "apisnip"
+[app.recipe]
+install = "cargo install --locked apisnip"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "aptui"
+[app.recipe]
+install = "go install github.com/mexirica/aptui@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "aria2tui"
+[app.recipe]
+install = "pipx install aria2tui"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "artui"
+[app.recipe]
+install = "pipx install artui"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "asmdiff"
+[app.recipe]
+install = "pipx install asmdiff"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "az-tui"
+[app.recipe]
+install = "go install github.com/IAL32/az-tui/cmd/az-tui@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ballast"
+[app.recipe]
+install = "cargo install --locked ballast"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "basilk"
+[app.recipe]
+install = "cargo install --locked basilk"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "bit"
+[app.recipe]
+install = "go install github.com/paulilaaso/bit/cmd/bit@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "bitchat-tui"
+[app.recipe]
+install = "cargo install --locked bitchat-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "bkp"
+[app.recipe]
+install = "pipx install bkp"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "blueutil-tui"
+[app.recipe]
+install = "pipx install blueutil-tui"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "bmm"
+[app.recipe]
+install = "cargo install --locked bmm"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "boomtypr"
+[app.recipe]
+install = "go install github.com/yagnikpt/boomtypr@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "braindrop"
+[app.recipe]
+install = "pipx install braindrop"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "browsr"
+[app.recipe]
+install = "pipx install browsr"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "bt"
+[app.recipe]
+install = "go install github.com/LeperGnome/bt/cmd/bt@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "budget-tracker-tui"
+[app.recipe]
+install = "cargo install --locked budget-tracker-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "cargo-selector"
+[app.recipe]
+install = "cargo install --locked cargo-selector"
+method = "cargo"
+verified = true
+
+
+[[app]]
+name = "chatuino"
+[app.recipe]
+install = "go install github.com/julez-dev/chatuino@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "cheznav"
+[app.recipe]
+install = "pipx install cheznav"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "chmod-cli"
+[app.recipe]
+install = "go install github.com/Mayowa-Ojo/chmod-cli@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "chroncal"
+[app.recipe]
+install = "go install github.com/douglasdemoura/chroncal/cmd/chroncal@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "cli-chess"
+[app.recipe]
+install = "pipx install cli-chess"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "cliamp"
+[app.recipe]
+install = "go install github.com/bjarneo/cliamp@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "climp"
+[app.recipe]
+install = "go install github.com/olivier-w/climp@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "clin"
+[app.recipe]
+install = "cargo install --locked clin-rs"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "cmdperf"
+[app.recipe]
+install = "go install github.com/miklosn/cmdperf/cmd/cmdperf@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "comchan"
+[app.recipe]
+install = "cargo install --locked comchan"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "cooldeck"
+[app.recipe]
+install = "go install github.com/resetnak/cooldeck/cmd/cooldeck@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "cpx"
+[app.recipe]
+install = "go install github.com/ozacod/cpx/cmd/cpx@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "csvi"
+[app.recipe]
+install = "go install github.com/hymkor/csvi@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "cueitup"
+[app.recipe]
+install = "go install github.com/dhth/cueitup@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "cull"
+[app.recipe]
+install = "go install github.com/legostin/cull@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "darya"
+[app.recipe]
+install = "cargo install --locked darya"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "datui"
+[app.recipe]
+install = "cargo install --locked datui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "daylight"
+[app.recipe]
+install = "go install github.com/jbreckmckye/daylight@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "dcv"
+[app.recipe]
+install = "go install github.com/tokuhirom/dcv@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "deadbranch"
+[app.recipe]
+install = "cargo install --locked deadbranch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "dealve-tui"
+[app.recipe]
+install = "cargo install --locked dealve-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "dhv"
+[app.recipe]
+install = "pipx install dhv"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "diffyml"
+[app.recipe]
+install = "go install github.com/szhekpisov/diffyml@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "diskbloom"
+[app.recipe]
+install = "go install github.com/Zingzy/diskbloom@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "dns53"
+[app.recipe]
+install = "go install github.com/purpleclay/dns53@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "dotbins"
+[app.recipe]
+install = "pipx install dotbins"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "dotenvhub"
+[app.recipe]
+install = "pipx install dotenvhub"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "dotstate"
+[app.recipe]
+install = "cargo install --locked dotstate"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "dtflow"
+[app.recipe]
+install = "pipx install dtflow"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "dunk"
+[app.recipe]
+install = "pipx install dunk"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "dusage"
+[app.recipe]
+install = "cargo install --locked dusage"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "dynamite"
+[app.recipe]
+install = "go install github.com/wolfwfr/dynamite/cmd/dynamite@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "e2c"
+[app.recipe]
+install = "go install github.com/nlamirault/e2c/cmd/e2c@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ecscope"
+[app.recipe]
+install = "cargo install --locked ecscope"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "eg"
+[app.recipe]
+install = "pipx install eg"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "enola"
+[app.recipe]
+install = "go install github.com/theyahya/enola/cmd/enola@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "envdiff"
+[app.recipe]
+install = "go install github.com/GBerghoff/envdiff/cmd/envdiff@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "envfetch"
+[app.recipe]
+install = "cargo install --locked envfetch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "erldash"
+[app.recipe]
+install = "cargo install --locked erldash"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "exa"
+[app.recipe]
+install = "cargo install --locked exa"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "excise"
+[app.recipe]
+install = "cargo install --locked excise"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "ffdash"
+[app.recipe]
+install = "cargo install --locked ffdash"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "filessh"
+[app.recipe]
+install = "cargo install --locked filessh"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "flameshow"
+[app.recipe]
+install = "pipx install flameshow"
+method = "pipx"
+verified = true
+
+
+[[app]]
+name = "flow"
+[app.recipe]
+install = "go install github.com/programmersd21/flow/cmd/flow@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "fm"
+[app.recipe]
+install = "go install github.com/mistakenelf/fm@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "fnug"
+[app.recipe]
+install = "cargo install --locked fnug"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "fuzz.fish"
+[app.recipe]
+install = "go install github.com/jedipunkz/fuzz.fish/cmd/fuzz@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "fztea"
+[app.recipe]
+install = "go install github.com/jon4hz/fztea@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "g"
+[app.recipe]
+install = "go install github.com/Equationzhao/g@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ghfetch"
+[app.recipe]
+install = "go install github.com/orangekame3/ghfetch@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gistui"
+[app.recipe]
+install = "cargo install --locked gistui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "git-cc"
+[app.recipe]
+install = "go install github.com/skalt/git-cc@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "git-tailor"
+[app.recipe]
+install = "cargo install --locked git-tailor"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "gitid"
+[app.recipe]
+install = "go install github.com/nathabonfim59/gitid@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gitpane"
+[app.recipe]
+install = "cargo install --locked gitpane"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "gitsnip"
+[app.recipe]
+install = "go install github.com/dagimg-dot/gitsnip/cmd/gitsnip@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gittop"
+[app.recipe]
+install = "go install github.com/hjr265/gittop@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gitwig"
+[app.recipe]
+install = "cargo install --locked gitwig"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "glues"
+[app.recipe]
+install = "cargo install --locked glues"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "gocovsh"
+[app.recipe]
+install = "go install github.com/orlangure/gocovsh@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "goji"
+[app.recipe]
+install = "go install github.com/muandane/goji@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "google-workspace-cli"
+[app.recipe]
+install = "cargo install --locked google-workspace-cli"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "gotip"
+[app.recipe]
+install = "go install github.com/lusingander/gotip/cmd/gotip@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "goto"
+[app.recipe]
+install = "go install github.com/grafviktor/goto/cmd/goto@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gptop"
+[app.recipe]
+install = "cargo install --locked gptop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "grut"
+[app.recipe]
+install = "go install github.com/jongio/grut@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gsty"
+[app.recipe]
+install = "cargo install --locked gsty"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "gtt"
+[app.recipe]
+install = "go install github.com/eeeXun/gtt@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "gwm-cli"
+[app.recipe]
+install = "cargo install --locked gwm-cli"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "herald"
+[app.recipe]
+install = "go install github.com/herald-email/herald-mail-app@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "hexabyte"
+[app.recipe]
+install = "pipx install hexabyte"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "hexowl"
+[app.recipe]
+install = "go install github.com/dece2183/hexowl@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "hf"
+[app.recipe]
+install = "cargo install --locked hf"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "hike"
+[app.recipe]
+install = "pipx install hike"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "hostctl"
+[app.recipe]
+install = "go install github.com/guumaster/hostctl/cmd/hostctl@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "hours"
+[app.recipe]
+install = "go install github.com/dhth/hours@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "httplab"
+[app.recipe]
+install = "go install github.com/gchaincl/httplab/cmd/httplab@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "httpmonitor"
+[app.recipe]
+install = "go install github.com/ricoberger/httpmonitor@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "hulak"
+[app.recipe]
+install = "go install github.com/xaaha/hulak@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ibtop"
+[app.recipe]
+install = "cargo install --locked ibtop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "imgcat"
+[app.recipe]
+install = "go install github.com/danielgatis/imgcat@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "inspect-cert-chain"
+[app.recipe]
+install = "cargo install --locked inspect-cert-chain"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "intentrace"
+[app.recipe]
+install = "cargo install --locked intentrace"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "jellex"
+[app.recipe]
+install = "pipx install jellex"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "jiq"
+[app.recipe]
+install = "cargo install --locked jiq"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "kanban-tui"
+[app.recipe]
+install = "pipx install kanban-tui"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "kanha"
+[app.recipe]
+install = "cargo install --locked kanha"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "kat"
+[app.recipe]
+install = "go install github.com/macropower/kat/cmd/kat@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "keyb"
+[app.recipe]
+install = "go install github.com/kencx/keyb@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "keyward"
+[app.recipe]
+install = "go install github.com/gateway-of-last-resort/keyward/cmd/keyward@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "kite-tui"
+[app.recipe]
+install = "cargo install --locked kite-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "kl"
+[app.recipe]
+install = "go install github.com/robinovitch61/kl@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "kplay"
+[app.recipe]
+install = "go install github.com/dhth/kplay@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ku"
+[app.recipe]
+install = "go install github.com/bjarneo/ku@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "kure"
+[app.recipe]
+install = "go install github.com/GGP1/kure@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "kyma"
+[app.recipe]
+install = "go install github.com/museslabs/kyma@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "labcoat"
+[app.recipe]
+install = "go install github.com/jhillyerd/labcoat@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "layerx"
+[app.recipe]
+install = "go install github.com/deveshctl/layerx@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazycelery"
+[app.recipe]
+install = "cargo install --locked lazycelery"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "lazyenv"
+[app.recipe]
+install = "go install github.com/lazynop/lazyenv@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazyjira"
+[app.recipe]
+install = "go install github.com/textfuel/lazyjira/v2/cmd/lazyjira@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazykiq"
+[app.recipe]
+install = "go install github.com/kpumuk/lazykiq/cmd/lazykiq@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazynpm"
+[app.recipe]
+install = "go install github.com/jesseduffield/lazynpm@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazytilt"
+[app.recipe]
+install = "go install github.com/tdi/lazytilt@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "lazyworktree"
+[app.recipe]
+install = "go install github.com/chmouel/lazyworktree/cmd/lazyworktree@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "linear-tui"
+[app.recipe]
+install = "go install github.com/roeyazroel/linear-tui/cmd/linear-tui@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "livediff"
+[app.recipe]
+install = "cargo install --locked livediff"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "lobtui"
+[app.recipe]
+install = "cargo install --locked lobtui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "loggo"
+[app.recipe]
+install = "go install github.com/aurc/loggo@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "logmerger"
+[app.recipe]
+install = "pipx install logmerger"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "logria"
+[app.recipe]
+install = "cargo install --locked logria"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "logss"
+[app.recipe]
+install = "cargo install --locked logss"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mandible"
+[app.recipe]
+install = "cargo install --locked mandible"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mcdu"
+[app.recipe]
+install = "cargo install --locked mcdu"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mdns-scanner"
+[app.recipe]
+install = "cargo install --locked mdns-scanner"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mdtt"
+[app.recipe]
+install = "go install github.com/szktkfm/mdtt/cmd/mdtt@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "memtui"
+[app.recipe]
+install = "go install github.com/nnnkkk7/memtui/cmd/memtui@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "meteor"
+[app.recipe]
+install = "go install github.com/stefanlogue/meteor@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "mlbt"
+[app.recipe]
+install = "cargo install --locked mlbt"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "moji"
+[app.recipe]
+install = "go install github.com/microck/moji/cmd/moji@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "moltbook-tui"
+[app.recipe]
+install = "cargo install --locked moltbook-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mop"
+[app.recipe]
+install = "go install github.com/mop-tracker/mop/cmd/mop@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "motus"
+[app.recipe]
+install = "cargo install --locked motus"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mpv-music"
+[app.recipe]
+install = "cargo install --locked mpv-music"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "mult"
+[app.recipe]
+install = "go install github.com/dhth/mult@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "myx"
+[app.recipe]
+install = "cargo install --locked myx"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "nastro"
+[app.recipe]
+install = "go install github.com/scaccogatto/nastro@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ncgopher"
+[app.recipe]
+install = "cargo install --locked ncgopher"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "netop"
+[app.recipe]
+install = "cargo install --locked netop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "nnd"
+[app.recipe]
+install = "cargo install --locked nnd"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "notox"
+[app.recipe]
+install = "cargo install --locked notox"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "nvrs"
+[app.recipe]
+install = "cargo install --locked nvrs"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "oatmeal"
+[app.recipe]
+install = "cargo install --locked oatmeal"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "octocov"
+[app.recipe]
+install = "go install github.com/k1LoW/octocov@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "octoscope"
+[app.recipe]
+install = "go install github.com/gfazioli/octoscope@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "octotype"
+[app.recipe]
+install = "cargo install --locked octotype"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "oeis-tui"
+[app.recipe]
+install = "cargo install --locked oeis-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "omm"
+[app.recipe]
+install = "go install github.com/dhth/omm@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "oq"
+[app.recipe]
+install = "go install github.com/plutov/oq@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "outside"
+[app.recipe]
+install = "cargo install --locked outside"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "oyo"
+[app.recipe]
+install = "cargo install --locked oyo"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "oyui"
+[app.recipe]
+install = "cargo install --locked oyui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pacsea"
+[app.recipe]
+install = "cargo install --locked pacsea"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pacseek"
+[app.recipe]
+install = "go install github.com/moson-mo/pacseek@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "panix"
+[app.recipe]
+install = "go install github.com/mihakrumpestar/panix/cmd/panix@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "para-cada"
+[app.recipe]
+install = "pipx install para-cada"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "parllama"
+[app.recipe]
+install = "pipx install parllama"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "passepartui"
+[app.recipe]
+install = "cargo install --locked passepartui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "passtui"
+[app.recipe]
+install = "pipx install passtui"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "patch-hub"
+[app.recipe]
+install = "cargo install --locked patch-hub"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "peplum"
+[app.recipe]
+install = "pipx install peplum"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "perch"
+[app.recipe]
+install = "cargo install --locked perch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "phetch"
+[app.recipe]
+install = "cargo install --locked phetch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pikpaktui"
+[app.recipe]
+install = "cargo install --locked pikpaktui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pillager"
+[app.recipe]
+install = "go install github.com/brittonhayes/pillager/cmd/pillager@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "pipeform"
+[app.recipe]
+install = "go install github.com/magodo/pipeform@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "postbear"
+[app.recipe]
+install = "go install github.com/carban/postbear@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "pqviewer"
+[app.recipe]
+install = "pipx install pqviewer"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "prt"
+[app.recipe]
+install = "cargo install --locked prt"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pumas"
+[app.recipe]
+install = "cargo install --locked pumas"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "pvw"
+[app.recipe]
+install = "go install github.com/allyring/pvw@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "pwdsafety"
+[app.recipe]
+install = "go install github.com/edoardottt/pwdsafety/cmd/pwdsafety@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "pygitzen"
+[app.recipe]
+install = "pipx install pygitzen"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "pysentation"
+[app.recipe]
+install = "pipx install pysentation"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "qmassa"
+[app.recipe]
+install = "cargo install --locked qmassa"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "qq"
+[app.recipe]
+install = "go install github.com/JFryy/qq@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "qrc"
+[app.recipe]
+install = "go install github.com/fumiyas/qrc/cmd/qrc@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "rdmatop"
+[app.recipe]
+install = "cargo install --locked rdmatop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "redthread"
+[app.recipe]
+install = "go install github.com/B33pBeeps/redthread/cmd/redthread@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "renux"
+[app.recipe]
+install = "pipx install renux"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "reqlog"
+[app.recipe]
+install = "go install github.com/sagarmaheshwary/reqlog/cmd/reqlog@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "resto"
+[app.recipe]
+install = "go install github.com/abdfnx/resto@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "rexi"
+[app.recipe]
+install = "pipx install rexi"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "rogallo"
+[app.recipe]
+install = "pipx install rogallo"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "roumon"
+[app.recipe]
+install = "go install github.com/becheran/roumon@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "rssnix"
+[app.recipe]
+install = "go install github.com/aidlx/rssnix@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "rum"
+[app.recipe]
+install = "go install github.com/thekarel/rum@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "runal"
+[app.recipe]
+install = "go install github.com/emprcl/runal/cmd/runal@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "rusticon"
+[app.recipe]
+install = "cargo install --locked rusticon"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "rustormy"
+[app.recipe]
+install = "cargo install --locked rustormy"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "rwx"
+[app.recipe]
+install = "cargo install --locked rwx"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "sake"
+[app.recipe]
+install = "go install github.com/alajmo/sake@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "sbb-tui"
+[app.recipe]
+install = "go install github.com/necrom4/sbb-tui@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "seednaut"
+[app.recipe]
+install = "cargo install --locked seednaut"
+method = "cargo"
+verified = true
+
+
+
+[[app]]
+name = "sgram-tui"
+[app.recipe]
+install = "cargo install --locked sgram-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "sidecar"
+[app.recipe]
+install = "go install github.com/marcus/sidecar/cmd/sidecar@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "siggy"
+[app.recipe]
+install = "cargo install --locked siggy"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "sigye"
+[app.recipe]
+install = "cargo install --locked sigye"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "simtool"
+[app.recipe]
+install = "go install github.com/azizuysal/simtool/cmd/simtool@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "sizeof"
+[app.recipe]
+install = "go install github.com/zackproser/sizeof@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "sncli"
+[app.recipe]
+install = "pipx install sncli"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "snipt"
+[app.recipe]
+install = "cargo install --locked snipt"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "snowmachine"
+[app.recipe]
+install = "pipx install snowmachine"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "sou"
+[app.recipe]
+install = "go install github.com/knqyf263/sou@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "spectatui"
+[app.recipe]
+install = "cargo install --locked spectatui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "splashboard"
+[app.recipe]
+install = "cargo install --locked splashboard"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "spotify-tui"
+[app.recipe]
+install = "cargo install --locked spotify-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "sqly"
+[app.recipe]
+install = "go install github.com/nao1215/sqly@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "squix"
+[app.recipe]
+install = "go install github.com/eduardofuncao/squix/cmd/squix@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ssh-list"
+[app.recipe]
+install = "cargo install --locked ssh-list"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "ssh-para"
+[app.recipe]
+install = "pipx install ssh-para"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "sshclick"
+[app.recipe]
+install = "pipx install sshclick"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "ssl-checker"
+[app.recipe]
+install = "go install github.com/fabio42/ssl-checker@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ssm"
+[app.recipe]
+install = "go install github.com/lfaoro/ssm@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "steamfetch"
+[app.recipe]
+install = "cargo install --locked steamfetch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "stew"
+[app.recipe]
+install = "go install github.com/marwanhawari/stew@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "strace-tui"
+[app.recipe]
+install = "cargo install --locked strace-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "streamtop"
+[app.recipe]
+install = "cargo install --locked streamtop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "stree"
+[app.recipe]
+install = "go install github.com/orangekame3/stree@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "sunbeam"
+[app.recipe]
+install = "go install github.com/pomdtr/sunbeam@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "swpui"
+[app.recipe]
+install = "cargo install --locked swpui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "tatuin"
+[app.recipe]
+install = "cargo install --locked tatuin"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "taws"
+[app.recipe]
+install = "cargo install --locked taws"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "tempo"
+[app.recipe]
+install = "go install github.com/galaxy-io/tempo/cmd/tempo@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "termpicker"
+[app.recipe]
+install = "go install github.com/ChausseBenjamin/termpicker@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "tfjournal"
+[app.recipe]
+install = "go install github.com/Owloops/tfjournal@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "theattyr"
+[app.recipe]
+install = "cargo install --locked theattyr"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "tinboard"
+[app.recipe]
+install = "pipx install tinboard"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "tinifier"
+[app.recipe]
+install = "go install gh.tarampamp.am/tinifier/v5/cmd/tinifier@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "tiptop"
+[app.recipe]
+install = "pipx install tiptop"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "tldrc"
+[app.recipe]
+install = "cargo install --locked tlrc"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "toast"
+[app.recipe]
+install = "go install github.com/paradise-runner/toast/cmd/toast@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "tofuref"
+[app.recipe]
+install = "pipx install tofuref"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "toofan"
+[app.recipe]
+install = "go install github.com/vyrx-dev/toofan@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "toolong"
+[app.recipe]
+install = "pipx install toolong"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "toptop"
+[app.recipe]
+install = "cargo install --locked toptop"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "tori"
+[app.recipe]
+install = "go install github.com/thobiasn/tori-cli/cmd/tori@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "tran"
+[app.recipe]
+install = "go install github.com/abdfnx/tran@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "tredis"
+[app.recipe]
+install = "cargo install --locked tredis"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "trex"
+[app.recipe]
+install = "go install github.com/samyakbardiya/trex@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "ttt-editor"
+[app.recipe]
+install = "go install github.com/eugenioenko/ttt/cmd/ttt@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "turm"
+[app.recipe]
+install = "cargo install --locked turm"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "tzupdate"
+[app.recipe]
+install = "cargo install --locked tzupdate"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "ugdb"
+[app.recipe]
+install = "cargo install --locked ugdb"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "ugm"
+[app.recipe]
+install = "go install github.com/ariasmn/ugm@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "unifly"
+[app.recipe]
+install = "cargo install --locked unifly"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "uuinfo"
+[app.recipe]
+install = "cargo install --locked uuinfo"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "vi-mongo"
+[app.recipe]
+install = "go install github.com/kopecmaciej/vi-mongo@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "vignore"
+[app.recipe]
+install = "pipx install vignore"
+method = "pipx"
+verified = true
+
+
+
+[[app]]
+name = "wizu"
+[app.recipe]
+install = "cargo install --locked wisu"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "xpdig"
+[app.recipe]
+install = "go install github.com/brunoluiz/xpdig/cmd/xpdig@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "y509"
+[app.recipe]
+install = "go install github.com/kanywst/y509/cmd/y509@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "yatto"
+[app.recipe]
+install = "go install github.com/handlebargh/yatto@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "youtube-tui"
+[app.recipe]
+install = "cargo install --locked youtube-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "ytm-player"
+[app.recipe]
+install = "pipx install ytm-player"
+method = "pipx"
+verified = true
+
+[[app]]
+name = "ytunnel"
+[app.recipe]
+install = "cargo install --locked ytunnel"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "zeitfetch"
+[app.recipe]
+install = "cargo install --locked zeitfetch"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "zmate"
+[app.recipe]
+install = "go install github.com/ziinaio/zmate@latest"
+method = "go"
+verified = true
+
+[[app]]
+name = "zonetimeline-tui"
+[app.recipe]
+install = "cargo install --locked zonetimeline-tui"
+method = "cargo"
+verified = true
+
+[[app]]
+name = "zuse"
+[app.recipe]
+install = "go install github.com/babycommando/zuse@latest"
+method = "go"
+verified = true

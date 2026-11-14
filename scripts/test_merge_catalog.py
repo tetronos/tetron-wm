@@ -18,9 +18,11 @@ def app(name, bin_, cat="Tools"):
 
 
 class Merge(unittest.TestCase):
-    def merged(self, imported, ours, repology=None, trove=None):
+    def merged(self, imported, ours, repology=None, trove=None, releases=None):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
+            if releases is not None:
+                (d / "releases.json").write_text(json.dumps({"repos": releases}))
             if repology is not None:
                 (d / "repology.json").write_text(json.dumps({"names": repology}))
             (d / "awesome-tuis.json").write_text(json.dumps(imported))
@@ -51,6 +53,13 @@ class Merge(unittest.TestCase):
         self.assertEqual(a["GitUI"]["sources"], ["awesome-tuis", "terminaltrove"])
         self.assertNotIn("cli", a["GitUI"], "the earlier list said TUI")
         self.assertTrue(a["jq"]["cli"])
+
+    def test_releases_flag_from_the_release_list(self):
+        imported = [dict(app("a", "a"), homepage="https://github.com/O/A"), dict(app("b", "b"), homepage="https://github.com/o/b"),
+                    dict(app("c", "c"), homepage="https://github.com/o/a/tree/main/c")]
+        _, a = self.merged(imported, "", releases=["o/a"])
+        self.assertEqual([n for n in "abc" if a[n].get("releases")], ["a"], "repository roots only")
+        self.assertEqual(list(a["a"])[4:6], ["homepage", "releases"])
 
     def test_ours_never_matched_by_repo(self):
         imported = [dict(app("tetron-wm", "tetron-wm"), homepage="https://github.com/tetronos/tetron-wm")]

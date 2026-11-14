@@ -6,8 +6,13 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- `scripts/match_brew.py` uses a Homebrew formula only when it points at the app's own GitHub repository, so a different program with the same name is never installed.
+
 ### Added
 - The Store lists the terminaltrove.com tools too: 694 apps new to the catalog (463 TUIs, 231 command line tools marked CLI; 275 with distro package names from Repology), about 1,390 in all. They are unreviewed, like every Store entry without a checked recipe, and are `optional`. `scripts/import_terminaltrove.py` writes `lists/terminaltrove.json` from the terminaltrove-stars data.json (terminaltrove.com refuses scripted fetches); it keeps every tool that runs on Linux or macOS and is not archived, whatever its age.
+- Install recipes for the new apps: 50 more from Homebrew's formula index and 256 by language (`scripts/match_lang_recipes.py`: `cargo install` for a crates.io crate, `pipx install` for a PyPI project, `go install` for a Go module, each only when it names the app's own repository). The Store offers Rust, Go or Python first when it is missing. 113 new apps still have no package and no recipe and get the best-effort install (76 of them link prebuilt binaries).
+- An app with prebuilt binaries on GitHub (972 apps: its latest release has downloads, `scripts/match_releases.py` writes `lists/releases.json`) shows "Prebuilt: …/releases/latest" in the Store's details, and its install window names that page at the end, so a failed install can be finished by hand.
 - The catalog merge matches apps between imported lists by their GitHub repository too, so one app listed under two names is one entry; the earlier list (awesome-tuis) wins, and our `lists/tetron.toml` entries are still matched only by name or command.
 
 ## [0.15.8] — 2026-11-13

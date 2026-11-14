@@ -49,6 +49,10 @@ pub struct CatalogApp {
     /// The smallest suite size that brings it (`essentials`, `recommended`, `extras`), if any.
     #[serde(default)]
     pub set: Option<String>,
+    /// The GitHub repository's latest release has downloadable assets
+    /// (WMCAT-006, from lists/releases.json); the Store links its page.
+    #[serde(default)]
+    pub releases: bool,
     /// Package names per package manager (WMCAT-005), from Repology
     /// (lists/repology.json) and lists/tetron.toml. Empty: no package known.
     #[serde(default)]
@@ -264,6 +268,20 @@ pub fn current_os() -> &'static str {
 
 /// Whether an app is applicable to the current OS (true unless its recipe lists
 /// operating systems that exclude this one and no package for this OS exists).
+/// The releases page of an app with prebuilt binaries (WMCAT-006):
+/// `https://github.com/<owner>/<repo>/releases/latest`, built only from a
+/// homepage that is a GitHub repository root with plain owner and repository
+/// names, because the link is echoed in the install shell.
+pub fn releases_url(app: &CatalogApp) -> Option<String> {
+    if !app.releases {
+        return None;
+    }
+    let rest = app.homepage.strip_prefix("https://github.com/")?.trim_end_matches('/');
+    let (owner, repo) = rest.split_once('/')?;
+    let plain = |s: &str| !s.is_empty() && !s.starts_with('.') && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+    (plain(owner) && plain(repo)).then(|| format!("https://github.com/{owner}/{repo}/releases/latest"))
+}
+
 pub fn runs_on_current_os(name: &str) -> bool {
     let Some(a) = catalog().iter().find(|a| a.name == name) else { return true };
     match &a.recipe {

@@ -8,10 +8,11 @@ Words used here: a **collection** is a named group of apps (`minimal`, `essentia
 
 | File | Written by | Read by |
 |---|---|---|
-| `lists/tetron.toml` | hand edits, plus recipe blocks appended by `scripts/match_brew.py` (Homebrew formula index), `scripts/merge_recipes.py` (the derive-install-recipes workflow) and `scripts/derive_os.py` | the generators below |
+| `lists/tetron.toml` | hand edits, plus recipe blocks appended by `scripts/match_brew.py` (Homebrew formula index), `scripts/match_lang_recipes.py` (crates.io, PyPI, Go modules), `scripts/merge_recipes.py` (the derive-install-recipes workflow) and `scripts/derive_os.py` | the generators below |
 | `lists/awesome-tuis.json` | `scripts/import_awesome_tuis.py`, from the awesome-tuis list | `scripts/merge_catalog.py` |
 | `lists/terminaltrove.json` | `scripts/import_terminaltrove.py`, from the terminaltrove.com tool list (https://terminaltrove.com, fetched as the terminaltrove-stars data.json: https://carcaradotdev.github.io/terminaltrove-stars/data.json) | `scripts/merge_catalog.py` |
 | `lists/repology.json` | `scripts/match_repology.py`, from repology.org | `scripts/merge_catalog.py` |
+| `lists/releases.json` | `scripts/match_releases.py`, the GitHub repositories whose latest release has downloads (the Store links their releases page) | `scripts/merge_catalog.py` |
 | `assets/suite-apps.txt` | `scripts/gen_suite_lists.py` | carried inside the catalog; the suite installer |
 | `packaging/<collection>.toml` Recommends | `scripts/gen_suite_lists.py` | the collection packages |
 | `assets/catalog.json` | `scripts/merge_catalog.py` (awesome-tuis, then terminaltrove, then Repology names, then `lists/tetron.toml`, which wins) | compiled into tetron-wm; the Store; Settings |
