@@ -8,13 +8,22 @@ class CatalogFromSourceLists(Requirement):
 
     The Store catalog is built from source lists in `lists/`, never edited in
     `assets/` by hand. `lists/awesome-tuis.json` is written only by
-    `scripts/import_awesome_tuis.py` from the awesome-tuis README.
+    `scripts/import_awesome_tuis.py` from the awesome-tuis README, and
+    `lists/terminaltrove.json` only by `scripts/import_terminaltrove.py` from
+    the terminaltrove.com tool list (the terminaltrove-stars data.json,
+    https://carcaradotdev.github.io/terminaltrove-stars/data.json, since the
+    site itself refuses scripted fetches). The terminaltrove import keeps
+    every tool that runs on Linux or macOS and is not archived, whatever its
+    age; a tool without the `tui` tag is `cli = true`. Imported apps are
+    unreviewed (`optional` unless ours says otherwise).
     `lists/tetron.toml` is ours, hand-maintained: `[[app]]` blocks add apps
     found on no other list or annotate an app from any list (any catalog
     field, the recipe, tier), and `exclude` drops imported names (duplicates,
     libraries). `scripts/merge_catalog.py` (stdlib) merges them into
     `assets/catalog.json`: one entry per app, matched by name (any case),
-    then by command name; ours wins field by field; each entry records its
+    then by command name, then by GitHub repository of the homepage (any
+    case); ours wins field by field, among imported lists the earlier one
+    (awesome-tuis before terminaltrove); each entry records its
     `sources`; entries sorted by category, then name. An import never
     overwrites our decisions.
     """

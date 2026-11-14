@@ -6,6 +6,10 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- The Store lists the terminaltrove.com tools too: 694 apps new to the catalog (463 TUIs, 231 command line tools marked CLI; 275 with distro package names from Repology), about 1,390 in all. They are unreviewed, like every Store entry without a checked recipe, and are `optional`. `scripts/import_terminaltrove.py` writes `lists/terminaltrove.json` from the terminaltrove-stars data.json (terminaltrove.com refuses scripted fetches); it keeps every tool that runs on Linux or macOS and is not archived, whatever its age.
+- The catalog merge matches apps between imported lists by their GitHub repository too, so one app listed under two names is one entry; the earlier list (awesome-tuis) wins, and our `lists/tetron.toml` entries are still matched only by name or command.
+
 ## [0.15.8] — 2026-11-13
 
 ### Added

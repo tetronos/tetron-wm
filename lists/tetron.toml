@@ -2391,6 +2391,7 @@ os = ["macos", "linux", "windows"]
 [[app]]
 name = "pgcli"
 bin = "pgcli"
+cli = false # an interactive REPL; terminaltrove tags it cli
 category = "Development"
 description = "Postgres CLI with auto-completion and syntax highlighting."
 homepage = "https://github.com/dbcli/pgcli"

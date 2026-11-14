@@ -15,7 +15,7 @@ Your apps run in the background, so you can close the terminal, drop an ssh conn
 - **Windows in a terminal.** Run btop, a shell, vim and a file manager side by side. Drag titlebars, resize edges, click the taskbar. The mouse also reaches apps that use it.
 - **Keeps running.** Detach and reattach from any terminal or over ssh, like tmux. Reloading or updating the UI does not close your apps.
 - **Works almost anywhere.** Any modern terminal, over ssh, or on a bare Linux console with no X11 or Wayland.
-- **Batteries included.** An app store with 600+ terminal apps, a file manager, desktop icons, themes, wallpapers, a clipboard history and an optional AI assistant that runs the agent CLI you choose (opencode by default; Claude Code, Codex, pi, Antigravity CLI, Hermes or any other) with optional desktop tools over MCP (`tetron-wm mcp`).
+- **Batteries included.** An app store with 1,300+ terminal apps, a file manager, desktop icons, themes, wallpapers, a clipboard history and an optional AI assistant that runs the agent CLI you choose (opencode by default; Claude Code, Codex, pi, Antigravity CLI, Hermes or any other) with optional desktop tools over MCP (`tetron-wm mcp`).
 
 ## Install
 

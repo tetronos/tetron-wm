@@ -1,8 +1,8 @@
 # tetron-wm — project memory for coding agents
 
 tetron-wm is a window manager & desktop for the terminal, in Rust. Floating
-windows, a top-panel taskbar, cascading launcher, app store (600+ curated
-TUIs), file manager, desktop icons, menubar tray, mouse — rendered as cells
+windows, a top-panel taskbar, cascading launcher, app store (1,300+ apps,
+TUIs and CLIs), file manager, desktop icons, menubar tray, mouse — rendered as cells
 over a daemon/client socket, like a graphical tmux.
 
 ## Build, test, lint

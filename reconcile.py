@@ -81,7 +81,7 @@ def check_catalog() -> dict:
 
 # CON-WD06. Files where these words are expected: the changelog (dates), lock
 # files and generated data, license text, .gitignore and the agent guide.
-NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "assets/catalog.json", "lists/awesome-tuis.json", "lists/tetron.toml",
+NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "assets/catalog.json", "lists/awesome-tuis.json", "lists/terminaltrove.json", "lists/tetron.toml",
                  "THIRD-PARTY-LICENSES.md", ".gitignore", "CLAUDE.md"}
 # Built from parts so this file does not match itself.
 OWNER = re.compile(r"(?<![$\w\"{])" + "US" + r"ER(?![\w])")
