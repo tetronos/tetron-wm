@@ -52,6 +52,12 @@ exclude = [
 #   GitHub lists for the asset (WMINST-015).
 
 [[release]]
+name = "tetron-appstore"
+repo = "tetronos/tetron-appstore"
+amd64 = "tetron-appstore-x86_64-unknown-linux-gnu.tar.gz"
+arm64 = "tetron-appstore-aarch64-unknown-linux-gnu.tar.gz"
+
+[[release]]
 name = "fastfetch"
 repo = "fastfetch-cli/fastfetch"
 amd64 = "fastfetch-linux-amd64.deb"
@@ -220,6 +226,16 @@ dnf = "vim-enhanced"
 name = "tetron-browser"
 set = "desktop"
 check = "tetron-browser"
+dnf = ""
+pacman = ""
+brew = ""
+
+# The Store as its own program (WMCAT-008): the tetronos apt repo on Debian and
+# Ubuntu, else its release (the [[release]] below).
+[[package]]
+name = "tetron-appstore"
+set = "desktop"
+check = "tetron-appstore"
 dnf = ""
 pacman = ""
 brew = ""
