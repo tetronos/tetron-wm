@@ -42,6 +42,8 @@ The leader key exists so tetron-wm shortcuts never collide with your terminal, t
 | `c` | `copy` | Copy the mouse selection to the clipboard (same as Ctrl+Shift+C where the terminal allows it) |
 | `v`, `p` | `paste` | Paste the clipboard into the focused app (same as Ctrl+Shift+V) |
 | `z` | `screensaver` | Start the screensaver (any key or mouse wakes it; effect from `screensaver` in the config) |
+| `d` | `dictate` | Dictation: start or stop listening. Needs the optional tetron-stt addon; the live text shows on the bottom line and the finished text is typed into the focused window |
+| `D` | `dictate_mode` | Dictation: switch between live segments and one final pass |
 | `o` | `cast` | Cast the desktop to the Chromecast (`cast_device`, through casttui or catt); casting already: stop it. The red `CAST n` marker in the menubar is clickable and stops it too |
 | `s` | `screenshot` | Save a PNG screenshot of the whole composited screen to `screenshot_dir` (default `~/Pictures`, else `$HOME`) |
 | `?`, `h` | `help` | Show the shortcut help screen |
@@ -52,7 +54,7 @@ The leader key exists so tetron-wm shortcuts never collide with your terminal, t
 
 | Key after leader | Action name | What it will do |
 | --- | --- | --- |
-| `d` | `screen_dump` | Save a cell dump of the screen (`.ansi` and `.cells.json.gz`) |
+| (to be chosen) | `screen_dump` | Save a cell dump of the screen (`.ansi` and `.cells.json.gz`); `d` went to dictation |
 
 ## Free keys
 
@@ -60,12 +62,12 @@ These keys are unused after the leader and safe to bind in `[keys]` or to claim 
 
 | Type | Free |
 | --- | --- |
-| lowercase | `a b d e g j k u` |
-| uppercase | `B D E F G H I J K L O P U V W X Y Z` |
+| lowercase | `a b e g j k u` |
+| uppercase | `B E F G H I J K L O P U V W X Y Z` |
 | digit | `0` |
 | symbols | `` ` ; ' / \ ! @ # $ % ^ & * ( ) _ + { } | : " < > ~ `` |
 
-`d` is reserved for the planned screen dump above, and `g` is reserved for the planned grid prefix (`g` then `1` to `9` sends a window to a cell).
+`g` is reserved for the planned grid prefix (`g` then `1` to `9` sends a window to a cell).
 
 ## Other rules
 

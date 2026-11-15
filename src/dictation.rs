@@ -12,6 +12,9 @@
 //! EOF on the provider's stdin quits it.
 
 use serde::{Deserialize, Serialize};
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::{Arc, Mutex};
 
 /// What the provider reported, as the client forwards it to the daemon.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -124,6 +127,110 @@ impl DictationState {
     }
 }
 
+/// The program and arguments that start the provider: `<command> serve [options]`
+/// from the `dictation_*` settings (the provider's own defaults for unset ones).
+pub fn provider_command(cfg: &crate::config::Config) -> (String, Vec<String>) {
+    let program = match cfg.dictation_command.trim() { "" => "tetron-stt", p => p }.to_string();
+    let mut args = vec!["serve".to_string()];
+    let mode = cfg.dictation_mode.trim();
+    if mode == "segment" || mode == "final" { args.extend(["--mode".to_string(), mode.to_string()]); }
+    if cfg.dictation_pause > 0.0 { args.extend(["--pause".to_string(), format!("{}", cfg.dictation_pause)]); }
+    args.extend(["--enter-word".to_string(), cfg.dictation_enter_word.clone()]);
+    if cfg.dictation_threads > 0 { args.extend(["--threads".to_string(), cfg.dictation_threads.to_string()]); }
+    (program, args)
+}
+
+/// A running provider process, owned by the client.
+pub struct Provider {
+    child: Child,
+    stdin: ChildStdin,
+}
+
+impl Provider {
+    /// Start the provider. Everything it prints is parsed and passed to `forward`;
+    /// when it exits, `Gone` follows (after an `Error` with its last stderr line
+    /// when it died on its own).
+    pub fn spawn(cfg: &crate::config::Config, forward: impl Fn(DictationEvent) + Send + 'static) -> Result<Provider, String> {
+        let (program, args) = provider_command(cfg);
+        let mut child = Command::new(&program)
+            .args(&args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    format!("dictation needs {program} (install it from the Store)")
+                } else {
+                    format!("cannot run {program}: {e}")
+                }
+            })?;
+        let stdin = child.stdin.take().ok_or("no stdin")?;
+        let stdout = child.stdout.take().ok_or("no stdout")?;
+        let stderr = child.stderr.take().ok_or("no stderr")?;
+        let last_err = Arc::new(Mutex::new(String::new()));
+        let le = last_err.clone();
+        let err_thread = std::thread::spawn(move || {
+            for l in BufReader::new(stderr).lines().map_while(Result::ok) {
+                if !l.trim().is_empty() { *le.lock().unwrap_or_else(|e| e.into_inner()) = l; }
+            }
+        });
+        std::thread::spawn(move || {
+            for l in BufReader::new(stdout).lines().map_while(Result::ok) {
+                if let Some(ev) = parse_provider_line(&l) { forward(ev); }
+            }
+            let _ = err_thread.join();
+            let e = last_err.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            if !e.is_empty() { forward(DictationEvent::Error(e)); }
+            forward(DictationEvent::Gone);
+        });
+        Ok(Provider { child, stdin })
+    }
+
+    /// Send a command line (`{"cmd":"toggle"}`). False when the provider is gone.
+    pub fn command(&mut self, cmd: &str, mode: Option<&str>) -> bool {
+        let mut v = serde_json::json!({ "cmd": cmd });
+        if let Some(m) = mode { v["mode"] = serde_json::Value::from(m); }
+        writeln!(self.stdin, "{v}").and_then(|()| self.stdin.flush()).is_ok()
+    }
+
+    /// Whether the process is still running.
+    pub fn alive(&mut self) -> bool { matches!(self.child.try_wait(), Ok(None)) }
+}
+
+impl Drop for Provider {
+    fn drop(&mut self) {
+        let _ = writeln!(self.stdin, r#"{{"cmd":"quit"}}"#);
+        let _ = self.stdin.flush();
+        let t0 = std::time::Instant::now();
+        while t0.elapsed() < std::time::Duration::from_millis(1500) {
+            if matches!(self.child.try_wait(), Ok(Some(_))) { return; }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+/// Turn a toggle or mode request into the provider command and send it, starting
+/// the provider first when none runs. Errors come back as an event for the daemon.
+pub fn dispatch(provider: &mut Option<Provider>, cfg: &crate::config::Config, what: &str, forward: &(impl Fn(DictationEvent) + Clone + Send + 'static)) {
+    if provider.as_mut().is_some_and(|p| !p.alive()) { *provider = None; }
+    if provider.is_none() {
+        match Provider::spawn(cfg, forward.clone()) {
+            Ok(p) => *provider = Some(p),
+            Err(e) => return forward(DictationEvent::Error(e)),
+        }
+    }
+    let (cmd, mode) = match what { "mode" => ("mode", None), _ => ("toggle", None) };
+    if let Some(p) = provider.as_mut() {
+        if !p.command(cmd, mode) {
+            *provider = None;
+            forward(DictationEvent::Error("the dictation provider stopped; press again to restart it".into()));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,5 +272,64 @@ mod tests {
         assert_eq!(s.overlay(), Some(("no microphone".into(), true)));
         s.apply(DictationEvent::Gone);
         assert_eq!(s.tray_text(), "MIC");
+    }
+
+    #[test]
+    fn provider_command_from_settings() {
+        let mut c = crate::config::Config::default();
+        let (prog, args) = provider_command(&c);
+        assert_eq!(prog, "tetron-stt");
+        assert_eq!(args, ["serve", "--mode", "segment", "--pause", "1.2", "--enter-word", "make it so"]);
+        c.dictation_command = "/opt/x/stt".into();
+        c.dictation_mode = "final".into();
+        c.dictation_threads = 3;
+        c.dictation_enter_word.clear();
+        let (prog, args) = provider_command(&c);
+        assert_eq!(prog, "/opt/x/stt");
+        assert_eq!(args, ["serve", "--mode", "final", "--pause", "1.2", "--enter-word", "", "--threads", "3"]);
+    }
+
+    fn fake(body: &str) -> (std::path::PathBuf, crate::config::Config) {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("twm-dict-{}-{}", std::process::id(), body.len()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("provider.sh");
+        std::fs::write(&p, format!("#!/bin/sh\n{body}\n")).unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        (dir, crate::config::Config { dictation_command: p.to_string_lossy().into_owned(), ..Default::default() })
+    }
+
+    #[test]
+    fn a_provider_is_started_commanded_and_stopped() {
+        // Answers a toggle with state, partial and commit; `quit` or EOF ends it.
+        let (dir, cfg) = fake(r#"while read l; do case "$l" in *toggle*) echo '{"state":"listening","mode":"segment"}'; echo '{"partial":"hel"}'; echo '{"commit":"hello ","enter":true}';; *quit*) exit 0;; esac; done"#);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tx = Mutex::new(tx);
+        let forward = move |e| { let _ = tx.lock().unwrap().send(e); };
+        let mut p = Provider::spawn(&cfg, forward).unwrap();
+        assert!(p.alive() && p.command("toggle", None));
+        let next = || rx.recv_timeout(std::time::Duration::from_secs(3)).unwrap();
+        assert_eq!(next(), DictationEvent::State { state: "listening".into(), mode: Some("segment".into()) });
+        assert_eq!(next(), DictationEvent::Partial("hel".into()));
+        assert_eq!(next(), DictationEvent::Commit { text: "hello ".into(), enter: true });
+        drop(p);
+        assert_eq!(next(), DictationEvent::Gone, "the provider ending is reported");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_provider_that_dies_reports_its_last_error_line_and_a_missing_one_says_so() {
+        let (dir, cfg) = fake(r#"echo "no microphone found" >&2; exit 1"#);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tx = Mutex::new(tx);
+        let _p = Provider::spawn(&cfg, move |e| { let _ = tx.lock().unwrap().send(e); }).unwrap();
+        assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(3)).unwrap(), DictationEvent::Error("no microphone found".into()));
+        assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(3)).unwrap(), DictationEvent::Gone);
+        let _ = std::fs::remove_dir_all(dir);
+        let cfg = crate::config::Config { dictation_command: "/nonexistent/tetron-stt-x".into(), ..Default::default() };
+        match Provider::spawn(&cfg, |_| {}) {
+            Err(e) => assert!(e.contains("dictation needs"), "{e}"),
+            Ok(_) => panic!("spawned a missing program"),
+        }
     }
 }

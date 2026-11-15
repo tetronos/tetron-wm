@@ -56,6 +56,8 @@ pub const DEFAULTS: &[(&str, &[&str], &str)] = &[
     ("context_menu", &["."], "right-click menu for the selected file (Files or desktop), arrows and Enter pick"),
     ("auto_tile", &["T"], "toggle auto-tile"),
     ("screensaver", &["z"], "start the screensaver (any key or mouse wakes it)"),
+    ("dictate", &["d"], "dictation: start or stop listening (needs the tetron-stt addon)"),
+    ("dictate_mode", &["D"], "dictation: switch between live segments and one final pass"),
     ("cast", &["o"], "cast the desktop to the Chromecast (stops it while casting)"),
     ("screenshot", &["s"], "save a screenshot (PNG) of the whole screen"),
     ("detach", &["q"], "detach (apps keep running)"),

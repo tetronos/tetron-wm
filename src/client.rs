@@ -56,6 +56,18 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
         crate::dbg_log(&format!("keymap: {w}"));
     }
 
+    // Dictation: this client owns the microphone, so it starts the provider (an
+    // optional addon, tetron-stt) and forwards what it says to the daemon.
+    let dictate_cmd: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut provider: Option<crate::dictation::Provider> = None;
+    let forward = {
+        let to_daemon = Arc::new(Mutex::new(stream.try_clone()?));
+        move |ev: crate::dictation::DictationEvent| {
+            let mut s = to_daemon.lock().unwrap_or_else(|e| e.into_inner());
+            let _ = send(&mut s, &ClientMsg::Dictation(ev));
+        }
+    };
+
     let flags = Arc::new(Mutex::new(Flags::default()));
     let detached = Arc::new(AtomicBool::new(false));
     let reload = Arc::new(AtomicBool::new(false));
@@ -72,6 +84,7 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
         let switch = switch.clone();
         let fullscreen = fullscreen.clone();
         let notice = notice.clone();
+        let dictate_cmd = dictate_cmd.clone();
         let reader_stream = stream.try_clone()?;
         std::thread::spawn(move || {
             let mut r = BufReader::new(reader_stream);
@@ -95,6 +108,9 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             caps.depth = msg.flags.colors.unwrap_or(detected);
                             // The whole frame goes out in one write.
                             let mut frame = String::new();
+                            if let Some(cmd) = msg.dictate.take() {
+                                *dictate_cmd.lock().unwrap() = Some(cmd);
+                            }
                             if let Some(text) = msg.notice.take() {
                                 *notice.lock().unwrap() = Some(text);
                             }
@@ -159,6 +175,11 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
     loop {
         if detached.load(Ordering::SeqCst) {
             break;
+        }
+        // A click on the tray mic asked for a provider command.
+        let asked = dictate_cmd.lock().unwrap().take();
+        if let Some(what) = asked {
+            crate::dictation::dispatch(&mut provider, &cfg, &what, &forward);
         }
         if event::poll(Duration::from_millis(16))? {
             let f = *flags.lock().unwrap();
@@ -421,6 +442,8 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (Some("context_menu"), _) => send(&mut out_stream, &ClientMsg::ContextMenuOpen)?,
                             (Some("screensaver"), _) => send(&mut out_stream, &ClientMsg::Screensaver { mode: crate::screensaver::SaverMode::Toggle, effect: None })?,
                             (Some("cast"), _) => send(&mut out_stream, &ClientMsg::CastToggle)?,
+                            (Some("dictate"), _) => crate::dictation::dispatch(&mut provider, &cfg, "toggle", &forward),
+                            (Some("dictate_mode"), _) => crate::dictation::dispatch(&mut provider, &cfg, "mode", &forward),
                             (Some("screenshot"), _) => send(&mut out_stream, &ClientMsg::Screenshot(String::new()))?,
                             (Some("auto_tile"), _) => send(&mut out_stream, &ClientMsg::ToggleAutoTile)?,
                             (Some("detach"), _) => break,                       // detach (apps persist)
