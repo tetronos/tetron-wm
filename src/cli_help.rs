@@ -177,6 +177,13 @@ SESSIONS:\n\
 \x20 Windows opened inside a session inherit it (TETRON_WM_SESSION), so tetron-wm commands run\n\
 \x20 in a window reach that window's session. Names: 1-32 chars of A-Z a-z 0-9 _ -.\n\
 \x20 The launcher button shows the session name with launcher_label = \"@session\".\n\n\
+DICTATION (optional addon, needs tetron-stt; models are downloaded only on request):\n\
+\x20 Leader d starts and stops listening, leader D switches between live segments and one\n\
+\x20 final pass, and a click on MIC in the menubar toggles. The live text shows on the bottom\n\
+\x20 line and the finished text is typed into the focused window; ending with the enter word\n\
+\x20 (default \"make it so\") presses Enter. Settings > Dictation sets the options and downloads\n\
+\x20 the models (about 0.9 GB); the dictation_* config keys are the same. The microphone is the\n\
+\x20 one on the computer where the client runs.\n\n\
 RIGHT-CLICK MENU (desktop icons and Files; leader . from the keyboard):\n\
 \x20 Open (video and audio play in the window with mpv), Open with... (apps for the file\n\
 \x20 type, fresh and other editors for text), Set as wallpaper, Extract here / List\n\

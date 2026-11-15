@@ -127,6 +127,11 @@ impl DictationState {
     }
 }
 
+/// Whether dictation can be offered: a provider command is set or tetron-stt is installed.
+pub fn available(cfg: &crate::config::Config) -> bool {
+    !cfg.dictation_command.trim().is_empty() || crate::catalog::is_installed("tetron-stt")
+}
+
 /// The program and arguments that start the provider: `<command> serve [options]`
 /// from the `dictation_*` settings (the provider's own defaults for unset ones).
 pub fn provider_command(cfg: &crate::config::Config) -> (String, Vec<String>) {

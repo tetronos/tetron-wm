@@ -1461,6 +1461,17 @@ impl SessionCore {
                 }
                 self.reload_to_general();
             }
+            Some(crate::settings::SettingsAction::DownloadDictationModels) => {
+                let (program, _) = crate::dictation::provider_command(&self.cfg);
+                if crate::dictation::available(&self.cfg) {
+                    let dir = dirs::home_dir().unwrap_or_default();
+                    self.run_in_window("Dictation models".into(), format!("{} models download", crate::systems::sh_quote(&program)), dir);
+                } else {
+                    let text = format!("Dictation needs {program}, an optional addon.\n\n  Install it from the Store, then try again.\n");
+                    let script = format!("printf '%s' {}; printf '\nPress Enter to close. '; read _k", crate::systems::sh_quote(&text));
+                    self.launch_in("Dictation models".into(), "sh".into(), vec!["-c".into(), script], None);
+                }
+            }
             Some(crate::settings::SettingsAction::ReloadConfig) => {
                 crate::dbg_log("config: reload requested from Settings");
                 self.reload_to_general();
@@ -2587,7 +2598,7 @@ impl SessionCore {
 
     /// Whether the mic should be offered: a provider command is set or tetron-stt is installed.
     fn dictation_available(&self) -> bool {
-        !self.cfg.dictation_command.trim().is_empty() || crate::catalog::is_installed("tetron-stt")
+        crate::dictation::available(&self.cfg)
     }
 
     /// The one line overlay at the bottom of the screen: live text or a note.
