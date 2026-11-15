@@ -28,6 +28,8 @@ pub enum SegmentKind {
     Wifi,
     Tetron,
     Select,
+    /// A desktop cast is running (`CAST n`, n = viewers); a click stops it.
+    Cast,
     Clipboard,
     Bell,
     /// The `ⓘ` menu: session info, links, and the segments placed in (or
@@ -282,6 +284,11 @@ pub fn tray_layout(
     }
     if select_mode {
         texts.push((SegmentKind::Select, "SELECT".to_string()));
+    }
+    // Casting shows the whole desktop to whoever holds the URL: the marker is never
+    // shed or moved into the Info menu, so it is always visible while it runs.
+    if let Some(n) = crate::cast::viewers_if_active() {
+        texts.push((SegmentKind::Cast, format!("CAST {n}")));
     }
     if let Some((n, paused)) = clip {
         let tail = if paused { crate::glyphs::get(crate::glyphs::Glyph::Paused).to_string() } else { n.to_string() }; // ‖ when paused
@@ -661,7 +668,7 @@ impl Tray {
             SegmentKind::Bluetooth => self.render_bluetooth(w, h, anchor_x, state),
             SegmentKind::Tetron => self.render_tetron(w, h, anchor_x, state),
             // The clipboard popover is the session's `ClipMenu` overlay, not a tray popover.
-            SegmentKind::Clipboard | SegmentKind::Select => Rendered::default(),
+            SegmentKind::Clipboard | SegmentKind::Select | SegmentKind::Cast => Rendered::default(),
             SegmentKind::Clock => self.render_calendar(w, h, anchor_x, state),
             SegmentKind::Bell => self.render_bell(w, anchor_x),
             SegmentKind::Cpu => self.render_lines(w, h, anchor_x, "CPU", SegmentKind::Cpu, &[

@@ -317,6 +317,18 @@ pub fn stop() -> bool {
     match v { Some(v) => { v.stop(); crate::dbg_log("cast: stopped"); true } None => false }
 }
 
+/// Viewers of the running cast, or `None` when no cast runs (for the tray marker).
+pub fn viewers_if_active() -> Option<usize> {
+    if !active() { return None; }
+    CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(|v| v.shared.viewers())
+}
+
+/// Start the TV cast, or stop it while one runs (leader key, menu item); the
+/// error text, if any, comes back for the caller to show.
+pub fn toggle_tv(cfg: &crate::config::Config) -> Result<String, String> {
+    if active() { stop_all(); Ok("stopped".into()) } else { start_tv(cfg, None).map(|d| format!("casting on {d}")) }
+}
+
 /// One line for `tetron-wm cast status`.
 pub fn status() -> String {
     match CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {

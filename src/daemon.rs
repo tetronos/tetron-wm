@@ -451,6 +451,7 @@ fn serve_client_inner(
         core.poll_themes();
         core.poll_apps_download();
         core.poll_catalog_file();
+        core.poll_cast_errors();
         crate::theme::export_store_colors();
         core.poll_update_check();
         core.tick_screensaver();

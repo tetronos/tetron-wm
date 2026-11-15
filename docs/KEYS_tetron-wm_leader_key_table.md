@@ -42,6 +42,7 @@ The leader key exists so tetron-wm shortcuts never collide with your terminal, t
 | `c` | `copy` | Copy the mouse selection to the clipboard (same as Ctrl+Shift+C where the terminal allows it) |
 | `v`, `p` | `paste` | Paste the clipboard into the focused app (same as Ctrl+Shift+V) |
 | `z` | `screensaver` | Start the screensaver (any key or mouse wakes it; effect from `screensaver` in the config) |
+| `D` | `cast` | Cast the desktop to the Chromecast (`cast_device`, through casttui or catt); casting already: stop it. The red `CAST n` marker in the menubar is clickable and stops it too |
 | `s` | `screenshot` | Save a PNG screenshot of the whole composited screen to `screenshot_dir` (default `~/Pictures`, else `$HOME`) |
 | `?`, `h` | `help` | Show the shortcut help screen |
 | `q` | `detach` | Detach the client; the daemon and all apps keep running |
@@ -60,7 +61,7 @@ These keys are unused after the leader and safe to bind in `[keys]` or to claim 
 | Type | Free |
 | --- | --- |
 | lowercase | `a b d e g j k o u` |
-| uppercase | `B D E F G H I J K L O P U V W X Y Z` |
+| uppercase | `B E F G H I J K L O P U V W X Y Z` |
 | digit | `0` |
 | symbols | `` ` ; ' / \ ! @ # $ % ^ & * ( ) _ + { } | : " < > ~ `` |
 
