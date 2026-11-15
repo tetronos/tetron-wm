@@ -24,7 +24,7 @@ While a cast runs, a red `CAST` stays in the menubar. It is never moved into the
 
 ## Settings
 
-Both optional, in `config.toml` or `--help`. `cast_command`: the program that serves and casts the desktop, empty uses `casttui` (it must speak `--cells`, see the protocol below). `cast_fps`: at most this many updates per second, default 15. The device is `cast_device` (also used by the right-click file cast), empty uses casttui's remembered device. The leader key is the `cast` action in `[keys]` (default `o`). Full table in `docs/CONFIG.md`.
+Both optional, in `config.toml`, `--help`, or **Settings → Cast** (device, updates per second, and whether casttui is installed). `cast_command`: the program that serves and casts the desktop, empty uses `casttui` (it must speak `--cells`, see the protocol below). `cast_fps`: at most this many updates per second, default 15. The device is `cast_device` (also used by the right-click file cast), empty uses casttui's remembered device. The leader key is the `cast` action in `[keys]` (default `o`). Full table in `docs/CONFIG.md`.
 
 ## Picture quality and size
 
