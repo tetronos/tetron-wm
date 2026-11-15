@@ -1035,6 +1035,7 @@ mod tests {
             clipboard: None,
             notice: None,
             fullscreen: None,
+            dictate: None,
         }
     }
 

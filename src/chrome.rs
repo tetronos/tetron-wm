@@ -114,7 +114,9 @@ pub fn render_menubar(width: i32, items: &[DockItem], segments: &[crate::tray::S
     // power button moved into the launcher's system section).
     let tray_left = menubar_tray_left(width, segments);
     for s in segments {
-        if s.kind == crate::tray::SegmentKind::Cast {
+        if s.kind == crate::tray::SegmentKind::Mic && s.text.starts_with("MIC ON") {
+            buf.write_str(s.rect.x, 0, &s.text, t.accent_fg, t.accent);
+        } else if s.kind == crate::tray::SegmentKind::Cast {
             buf.write_str(s.rect.x, 0, &s.text, crate::cell::Rgba::rgb(255, 255, 255), t.error);
         } else {
             buf.write_str(s.rect.x, 0, &s.text, t.text, t.menubar_bg);

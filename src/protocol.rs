@@ -56,6 +56,10 @@ pub struct FrameMsg {
     /// then reattaches. Only sent to a client that reported `fb_console`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fullscreen: Option<Vec<String>>,
+    /// A dictation command from the daemon (a click on the tray mic): `toggle` or
+    /// `mode`. The client forwards it to its provider. One frame only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dictate: Option<String>,
 }
 
 /// A run of changed cells on one row, left to right from `x`, that share

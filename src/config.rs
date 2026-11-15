@@ -132,6 +132,17 @@ pub struct Config {
     pub cast_command: String,
     /// At most this many desktop cast updates per second (1 to 60).
     pub cast_fps: u32,
+    /// The dictation provider program (it must speak the JSON lines protocol, see
+    /// docs): empty = `tetron-stt`. Started as `<command> serve ...` on the first toggle.
+    pub dictation_command: String,
+    /// Starting mode: `segment` (live text, commits on pauses) or `final`.
+    pub dictation_mode: String,
+    /// Seconds of silence that end a segment.
+    pub dictation_pause: f32,
+    /// A trailing phrase that presses Enter; empty disables it.
+    pub dictation_enter_word: String,
+    /// CPU threads for the provider; 0 lets it choose.
+    pub dictation_threads: u32,
     /// Force 24-bit ("truecolor") SGR output on/off. Unset = auto-detect from the
     /// terminal (known truecolor terminals + `COLORTERM`). Set `true` when your
     /// terminal supports truecolor but does not advertise it (many set
@@ -382,6 +393,11 @@ impl Default for Config {
             cast_device: String::new(),
             cast_command: String::new(),
             cast_fps: 15,
+            dictation_command: String::new(),
+            dictation_mode: "segment".into(),
+            dictation_pause: 1.2,
+            dictation_enter_word: "make it so".into(),
+            dictation_threads: 0,
             truecolor: None,
             wallpaper: default_wallpaper(),
             wallpaper_enabled: true,
