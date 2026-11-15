@@ -64,6 +64,10 @@ pub enum SettingsAction {
     /// Dictation section: download the speech models (runs the provider's
     /// `models download` in a window; about 0.9 GB, never automatic).
     DownloadDictationModels,
+    /// Cast section: install casttui (a window runs the install, like the Apps tab).
+    InstallCast,
+    /// Dictation section: install tetron-stt.
+    InstallDictation,
     /// Install the latest version.
     InstallUpdate,
     /// Empty the clipboard history (memory and disk).
@@ -567,6 +571,18 @@ impl Settings {
         }
     }
 
+    /// casttui is not installed (and no cast command is configured): the Cast
+    /// section then has an Install row.
+    fn cast_missing(&self) -> bool {
+        !crate::cast::available(&self.cfg)
+    }
+
+    /// tetron-stt is not installed (and no provider command is configured): the
+    /// Dictation section then has an Install row. Independent of the on/off switch.
+    fn dictation_missing(&self) -> bool {
+        self.cfg.dictation_command.trim().is_empty() && !crate::catalog::is_installed("tetron-stt")
+    }
+
     /// Number of interactive rows in the current section.
     fn item_count(&self) -> usize {
         match self.section {
@@ -581,8 +597,8 @@ impl Settings {
             SOUND => 4,                        // sound: volume, mute, output, mixer
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
             GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
-            CAST => 2,                         // cast: device, updates per second
-            DICTATION => 6,                    // dictation: on/off, mode, pause, enter word, threads, download models
+            CAST => 2 + self.cast_missing() as usize,           // cast: device, updates per second [, install casttui]
+            DICTATION => 6 + self.dictation_missing() as usize, // dictation: on/off, mode, pause, enter word, threads, download models [, install tetron-stt]
             _ => 0,                            // About
         }
     }
@@ -902,6 +918,7 @@ impl Settings {
             (CAST, 0) if dir == 0 => {
                 self.text = Some(TextEdit { target: TextTarget::CastDevice, buf: self.cfg.cast_device.clone(), error: false, fresh: false });
             }
+            (CAST, 2) if dir == 0 && self.cast_missing() => self.action = Some(SettingsAction::InstallCast),
             (CAST, 1) => {
                 const RATES: [u32; 5] = [5, 10, 15, 30, 60];
                 let cur = RATES.iter().position(|r| *r == self.cfg.cast_fps).unwrap_or(2);
@@ -927,6 +944,7 @@ impl Settings {
                 self.cfg.dictation_threads = THREADS[next];
             }
             (DICTATION, 5) if dir == 0 => self.action = Some(SettingsAction::DownloadDictationModels),
+            (DICTATION, 6) if dir == 0 && self.dictation_missing() => self.action = Some(SettingsAction::InstallDictation),
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -1424,7 +1442,10 @@ impl Settings {
                 };
                 self.row(&mut buf, cx, 3, 0, "Device", dev);
                 self.row(&mut buf, cx, 4, 1, "Updates per second", format!("\u{25C2} {} \u{25B8}", self.cfg.cast_fps));
-                let (have, color) = if crate::cast::available(&self.cfg) { ("casttui: installed", green()) } else { ("casttui: not installed (sudo apt install casttui)", red()) };
+                if self.cast_missing() {
+                    self.row(&mut buf, cx, 5, 2, crate::packaging::Addon::Casttui.label(), "Enter or click".into());
+                }
+                let (have, color) = if crate::cast::available(&self.cfg) { ("casttui: installed", green()) } else { ("casttui: not installed (use Install casttui below)", red()) };
                 buf.write_str(cx, 6, have, color, pal_bg());
                 buf.write_str(cx, 7, &format!("Cast: {}", crate::cast::status()), pal_fg(), pal_bg());
                 buf.write_str(cx, 9, "Casting the desktop is an optional addon. Leader o starts and", pal_dim(), pal_bg());
@@ -1445,7 +1466,10 @@ impl Settings {
                 self.row(&mut buf, cx, 6, 3, "Enter word", word);
                 self.row(&mut buf, cx, 7, 4, "CPU threads", format!("\u{25C2} {threads} \u{25B8}"));
                 self.row(&mut buf, cx, 8, 5, "Download models", "Enter (about 0.9 GB)".into());
-                let (have, color) = if crate::dictation::available(&self.cfg) { ("tetron-stt: installed", green()) } else { ("tetron-stt: not installed (install it from the Store)", red()) };
+                if self.dictation_missing() {
+                    self.row(&mut buf, cx, 9, 6, crate::packaging::Addon::TetronStt.label(), "Enter or click".into());
+                }
+                let (have, color) = if crate::dictation::available(&self.cfg) { ("tetron-stt: installed", green()) } else { ("tetron-stt: not installed (use Install tetron-stt above)", red()) };
                 buf.write_str(cx, 10, have, color, pal_bg());
                 buf.write_str(cx, 12, "Dictation is an optional addon. Off hides MIC in the menubar", pal_dim(), pal_bg());
                 buf.write_str(cx, 13, "and stops the provider. On: leader d starts and stops listening,", pal_dim(), pal_bg());
@@ -1793,6 +1817,41 @@ mod tests {
         for c in t.chars() {
             s.type_char(c);
         }
+    }
+
+    #[test]
+    fn cast_and_dictation_sections_offer_install_when_the_addon_is_missing() {
+        // A command that does not exist keeps the addon "installed" checks honest: leave the
+        // command empty and test through the rows the section reports for a missing addon.
+        let mut s = Settings::new(Config { cast_command: String::new(), ..Config::default() });
+        s.enter_section(CAST);
+        if s.cast_missing() {
+            assert_eq!(s.item_count(), 3, "device, rate, install");
+            s.sel = 2;
+            s.toggle();
+            assert!(matches!(s.take_action(), Some(SettingsAction::InstallCast)));
+            let buf = s.render(100, 30);
+            let text: String = (0..30).flat_map(|y| (0..100).map(move |x| (x, y))).map(|(x, y)| buf.get(x, y).unwrap().ch).collect();
+            assert!(text.contains("Install casttui"), "{text}");
+        } else {
+            assert_eq!(s.item_count(), 2, "installed: no install row");
+        }
+        let mut s = Settings::new(Config::default());
+        s.enter_section(DICTATION);
+        if s.dictation_missing() {
+            assert_eq!(s.item_count(), 7);
+            s.sel = 6;
+            s.toggle();
+            assert!(matches!(s.take_action(), Some(SettingsAction::InstallDictation)));
+        } else {
+            assert_eq!(s.item_count(), 6);
+        }
+        // A configured command counts as installed: no install row.
+        let mut s = Settings::new(Config { cast_command: "/opt/x/casttui".into(), dictation_command: "/opt/x/stt".into(), ..Config::default() });
+        s.enter_section(CAST);
+        assert_eq!(s.item_count(), 2);
+        s.enter_section(DICTATION);
+        assert_eq!(s.item_count(), 6);
     }
 
     #[test]
