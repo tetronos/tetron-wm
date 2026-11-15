@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.10] — 2026-11-14
+
 ### Changed
 - The app catalog moved to tetron-appstore (https://github.com/tetronos/tetron-appstore): the `tetron-catalog` library (now a git dependency), the built-in catalog, the imported lists, our app corrections and the import, merge and recipe scripts. tetron-wm keeps its app sets (`lists/tetron.toml` holds only those, `scripts/gen_suite_lists.py` takes app details from the catalog it is built with). The published lists keep their format.
 
