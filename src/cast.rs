@@ -259,10 +259,10 @@ pub fn demo_buffer(tick: u32, w: i32, h: i32) -> CellBuffer {
     }
     let (fg, bg) = (Rgba::rgb(255, 255, 255), Rgba::rgb(0, 0, 0));
     if w > 30 && h > 6 {
-        b.write_str(2, 1, "\u{250c}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2510}", fg, bg);
+        b.write_str(2, 1, &format!("{}{}{}", "\u{250c}", "\u{2500}".repeat(16), "\u{2510}"), fg, bg);
         b.write_str(2, 2, "\u{2502} tetron-wm demo \u{2502}", fg, bg);
         b.write_str(2, 3, &format!("\u{2502} tick {tick:<9}\u{2502}"), fg, bg);
-        b.write_str(2, 4, "\u{2514}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2518}", fg, bg);
+        b.write_str(2, 4, &format!("{}{}{}", "\u{2514}", "\u{2500}".repeat(16), "\u{2518}"), fg, bg);
     }
     b
 }
