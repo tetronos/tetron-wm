@@ -718,8 +718,7 @@ impl<F: FsOps> FileManager<F> {
             A::CastTo => self.action = path.map(FileManagerAction::Cast),
             A::NewFolder => self.begin_new_folder(),
             A::Unpin | A::CleanUp => {}
-            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
-            | A::StoreInstall(_) | A::OpenLink(..) | A::CopyLink(..) => {}
+            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => {}
         }
     }
 

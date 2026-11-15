@@ -10,7 +10,7 @@ fn client_msg_roundtrips_json() {
         ClientMsg::MouseDown(Point::new(3, 4)),
         ClientMsg::Key(vec![1, 2, 3]),
         ClientMsg::Resize { w: 80, h: 24, takeover: false },
-        ClientMsg::StoreChar('z'),
+        ClientMsg::OpenStore,
         ClientMsg::Shutdown,
     ] {
         let s = serde_json::to_string(&msg).unwrap();

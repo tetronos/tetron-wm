@@ -1,7 +1,7 @@
 //! The app catalog for tetron-wm: everything from the shared `tetron-catalog`
 //! crate (WMCAT-008), plus what is tetron-wm's own: launcher entries for the
 //! catalogued apps that are installed. The Update list fetch is
-//! [`crate::listfetch`].
+//! tetron-appstore (WMCAT-004).
 
 pub use tetron_catalog::*;
 

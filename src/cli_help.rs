@@ -13,7 +13,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("tile_gap", "0", "cells of gutter between tiled windows"),
     ("auto_tile", "false", "auto-arrange all windows into the grid"),
     ("launch_maximized", "false", "open new app windows maximized"),
-    ("store_app", "tetron-appstore", "the Store program; \"\" or not installed = the built-in Store"),
+    ("store_app", "tetron-appstore", "the Store program; a missing one is offered for install"),
     ("theme", "midnight", "built-in (midnight, gruvbox, pastoral, windows) or themes/<name>.toml stem (nord, dracula, dawn, newmoon, contrast, mocha, hotdog, dorfic: suite installer --themes)"),
     ("theme_dir", "<config>/themes", "directory of *.toml theme files"),
     ("terminal_bg", "theme", "terminal default background (#rrggbb or name)"),
@@ -194,8 +194,8 @@ STORE (leader S, or the launcher):\n\
 \x20 The Store is tetron-appstore (store_app), its own program in a window named Store; it\n\
 \x20 works in any terminal too. Type to search (from:trove, from:awesome, from:tetron show one\n\
 \x20 list), Enter installs or launches, Alt+O or a right click opens the app menu (open or\n\
-\x20 copy the project and prebuilt-binaries links), F5 updates the list. Without it\n\
-\x20 (store_app = \"\" or not installed) tetron-wm opens its built-in Store.\n\n\
+\x20 copy the project and prebuilt-binaries links), F5 updates the list. When it is not\n\
+\x20 installed, opening the Store opens a window that installs it.\n\n\
 LAUNCHER SYSTEM SECTION (click the top-left button):\n\
 \x20 Systems  switch to a saved remote machine over ssh\n\
 \x20 Detach   leave; apps keep running        Reload  restart the UI, apps keep running\n\

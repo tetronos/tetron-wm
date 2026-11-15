@@ -57,19 +57,20 @@ class TiersAndSets(Requirement):
 class UpdateListFetch(Requirement):
     """REQUIREMENT-ID: WMCAT-004
 
-    The Store's Update list button (row 0, also F5) fetches the catalog from
-    a versioned location keyed by the core minor of this tetron-wm,
-    `https://tetronos.github.io/apt/lists/<major.minor>/catalog.json`, never
-    from a moving branch, on a worker thread through `run_capped`, only on
-    that press (no automatic or periodic fetch). The download is used only
-    when it parses, its schema is the one this binary knows, it has apps and
-    its suite list has rows; it is then kept in
-    `~/.local/share/tetron-wm/catalog.json` and replaces the built-in copy
-    for the Store, the launcher and Settings > General > Apps (WMINST-007).
-    Otherwise the built-in copy stays, the reason is shown in the Store and
-    logged. The cached copy is read at start and used while it passes the
-    same checks. Settings > General > Apps hands the suite script the list it
-    used (`--apps-list FILE`); the suite script run on its own fetches
+    The Store's Update list (tetron-appstore: the row 0 button and F5)
+    fetches the catalog from a versioned location keyed by the core minor,
+    `https://tetronos.github.io/apt/lists/<major.minor>/catalog.json`,
+    never from a moving branch, on a worker thread, only on that press (no
+    automatic or periodic fetch). The download is used only when it parses,
+    its schema is the one the program knows, it has apps and its suite list
+    has rows; it is then kept in `~/.local/share/tetron-wm/catalog.json`
+    (`tetron_catalog::install`, atomic rename) and replaces the built-in
+    copy. tetron-wm reads that cached copy at start while it passes the same
+    checks, and re-reads it when it changes (WMCAT-009), for the launcher, the
+    assistant's agents and Settings > General > Apps (WMINST-007).
+    Otherwise the built-in copy stays and the reason is shown and logged.
+    Settings > General > Apps hands the suite script the list it used
+    (`--apps-list FILE`); the suite script run on its own fetches
     `suite-apps.txt` from the same versioned location, then from the
     repository, so a list for a newer core never reaches an older one.
     """
@@ -123,17 +124,17 @@ class PrebuiltReleaseLink(Requirement):
 class StoreAppMenu(Requirement):
     """REQUIREMENT-ID: WMCAT-007
 
-    Depends on WMCAT-006. In the Store, a right-click on an app's row (which
-    selects it) or on its details, or Alt+O for the selected app, opens a menu
-    (the shared right-click menu of `src/contextmenu.rs`, drawn and hit-tested
-    like the title bar menu, driven by the same arrow, Enter and Esc keys):
-    Install (Launch when installed), Open project page, Copy project link,
-    and for an app with a releases page Open releases page and Copy releases
-    link. A left click on the project link or the "Prebuilt" line in the
-    details opens the menu of that link alone (Open, Copy). Copy puts the link
-    in the clipboard, which reaches the real terminal by OSC 52. Open runs the
-    first installed terminal web browser (tetron-browser, w3m, lynx, links,
-    elinks) with the link as its argument in a new window; with none
+    Depends on WMCAT-006. In the Store (tetron-appstore), a right-click on an
+    app's row (which selects it) or on its details, or Alt+O for the selected
+    app, opens a menu kept inside the Store's window, driven by the arrow,
+    Enter and Esc keys and the mouse: Install (Launch when installed), Open
+    project page, Copy project link, and for an app with a releases page Open
+    releases page and Copy releases link. A left click on the project link or
+    the "Prebuilt" line in the details opens the menu of that link alone
+    (Open, Copy). Copy puts the link in the clipboard by OSC 52, which
+    tetron-wm records and passes on to the real terminal. Open runs the first
+    installed terminal web browser (tetron-browser, w3m, lynx, links,
+    elinks) with the link, in a tetron-wm window inside tetron-wm; with none
     installed the Open entries are left out. The Store's status line says
     what was done. The install-method choice (one entry per way an app can be
     installed here) is meant to join this menu.
@@ -179,8 +180,7 @@ class StandaloneStoreHooks(Requirement):
       `tetron-wm msg`.
     - Catalog: when the shared catalog file (`cache_path`, which the Store's
       Update list writes) changes, the daemon re-reads it within a second
-      (`reload_if_changed`), rebuilds the launcher and refreshes an open
-      built-in Store.
+      (`reload_if_changed`) and rebuilds the launcher.
     """
 
 
@@ -194,25 +194,26 @@ class ListedBy(Requirement):
     otherwise). Typing `from:NAME` in the search shows only the apps whose
     shown lists match NAME (any case, any part, so `from:trove` works), and
     combines with the other words typed. The catalog's `sources` field carries
-    the lists; a catalog without it shows no line. Shown by tetron-appstore;
-    tetron-wm's built-in Store, which phase 3 removes, does not.
+    the lists; a catalog without it shows no line. Shown by tetron-appstore.
     """
 
 
 class StoreOpensTheApp(Requirement):
     """REQUIREMENT-ID: WMCAT-011
 
-    Depends on WMCAT-009. tetron-wm opens the Store as the standalone
-    program: every way to open it (leader S, the launcher's Store entry and
-    `@store`, `tetron-wm msg '"OpenStore"'`, the assistant when its agent is
-    missing, Settings and the tray opening it for one app) runs the command in
-    the config key `store_app` (default `tetron-appstore`) in a window named
-    "Store", with the app's name as its argument when opened for one app.
-    With a Store window of that program open, opening the Store focuses it
-    instead of starting a second one; opening it for one app replaces it with
-    one started for that app (a running program can not be handed a search).
-    When `store_app` is empty, or its command is not installed, the built-in
-    Store opens as before, so no one is left without a Store. Every choice is
-    logged.
+    Depends on WMCAT-009. The Store is the standalone program; tetron-wm has
+    no Store of its own. Every way to open it (leader S, the launcher's Store
+    entry and `@store`, `tetron-wm msg '"OpenStore"'`, the assistant when its
+    agent is missing, Settings and the tray opening it for one app) runs the
+    command in the config key `store_app` (default `tetron-appstore`; empty
+    means the default) in a window named "Store", with the app's name as its
+    argument when opened for one app. With a Store window of that program
+    open, opening the Store focuses it instead of starting a second one;
+    opening it for one app replaces it with one started for that app (a
+    running program can not be handed a search). When the program is not
+    installed, tetron-wm opens a window titled "install: tetron-appstore"
+    that installs it with its install.sh (the latest release, checked against
+    its SHA256, into `~/.local/bin`) and says to press leader S again; closing
+    it rescans the installed apps. Every choice is logged.
     """
 

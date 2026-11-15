@@ -110,7 +110,7 @@ real terminal              composites frames, routes input    survives UI reload
   arms the post-update safety dialog ("restart the app server, closes your
   apps") instead of letting users' sessions break silently. Never bump
   `MIN_COMPAT` casually: it forces users through an app-closing restart.
-- **New windowed widgets** follow the Store/Settings/Logs pattern:
+- **New windowed widgets** follow the Settings/Logs pattern:
   a `WinContent` variant + `focused_is_X()` flag + `ClientMsg::X*` variants +
   a routing branch in `client.rs`. Widgets are pure state+render; they never
   touch sockets.

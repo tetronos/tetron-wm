@@ -87,8 +87,8 @@ pub struct Config {
     /// Open new app windows maximized (filling the work area).
     #[serde(default)]
     pub launch_maximized: bool,
-    /// The Store program (WMCAT-011), run in a window named "Store". Empty, or
-    /// a command that is not installed: the built-in Store.
+    /// The Store program (WMCAT-011), run in a window named "Store". Empty
+    /// means tetron-appstore; a missing one is offered for install.
     #[serde(default = "default_store_app")]
     pub store_app: String,
     /// Full screen video, images and PDFs (right-click items, the viewer `f` key).

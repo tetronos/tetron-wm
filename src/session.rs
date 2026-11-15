@@ -112,7 +112,6 @@ use crate::apphost::{AppHost, AppId, LocalAppHost};
 use crate::launcher::Launcher;
 use crate::settings::Settings;
 use crate::activity::Activity;
-use crate::store::Store;
 use crate::window::WindowId;
 use crate::wm::{WindowManager, render_window};
 use std::collections::HashMap;
@@ -144,6 +143,15 @@ struct WinMeta {
 /// `Some((ssh_target, port))` a saved remote system.
 type FmBackend = Option<(String, Option<u16>)>;
 
+/// The window tetron-wm opens when the Store program is missing (WMCAT-011):
+/// tetron-appstore's install.sh (latest release, SHA256-checked, into
+/// ~/.local/bin), then a shell so the output stays readable.
+const STORE_INSTALL: &str = "clear; echo 'The Store is its own program, tetron-appstore. Installing it...'; echo; \
+curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-appstore/main/install.sh | sh \
+&& echo && echo 'Done. Close this window (x), then press the leader and S to open the Store.' \
+|| { echo; echo 'Could not install it. See https://github.com/tetronos/tetron-appstore'; }; \
+echo; exec \"$SHELL\"";
+
 /// The content hosted by a window: a PTY-backed app or a native Tetron-wm widget.
 ///
 /// This is the [`WindowContent`](../../docs) seam — the window manager, chrome,
@@ -151,15 +159,13 @@ type FmBackend = Option<(String, Option<u16>)>;
 enum WinContent {
     /// A PTY-backed child process, identified by its `AppId` in the session's `LocalAppHost`.
     App(AppId),
-    /// The native app store browser.
-    Store(Store),
     /// The native settings panel (boxed: by far the largest variant, and there
     /// is at most one settings window).
     Settings(Box<Settings>),
     /// The built-in image viewer (Kitty graphics, chafa cells or half blocks).
     ImageView(Box<crate::imageview::ImageView>),
     /// The native file manager (local disk or a remote system over ssh).
-    FileManager(crate::filemanager::DynFileManager),
+    FileManager(Box<crate::filemanager::DynFileManager>),
     /// The native log viewer (tail of the log + clipboard copy).
     Logs(crate::logsview::LogsView),
     /// The activity monitor — a live table of hosted apps with kill-app controls.
@@ -172,7 +178,6 @@ impl WinContent {
     fn render(&self, host: &dyn AppHost, w: i32, h: i32) -> crate::buffer::CellBuffer {
         match self {
             WinContent::App(id) => host.snapshot(*id).unwrap_or_else(|| crate::buffer::CellBuffer::new(w, h)),
-            WinContent::Store(s) => s.render(w, h),
             WinContent::Settings(s) => s.render(w, h),
             WinContent::ImageView(v) => v.render(w, h),
             WinContent::FileManager(f) => f.render(w, h),
@@ -289,23 +294,6 @@ pub enum ClientMsg {
     LauncherEsc,
     /// Open the store window (or focus it if already open).
     OpenStore,
-    /// Store: move selection up / down.
-    StoreUp,
-    StoreDown,
-    /// Store: previous / next category.
-    StorePrevCategory,
-    StoreNextCategory,
-    /// Store: type into / edit the search query.
-    StoreChar(char),
-    StoreBackspace,
-    /// Store: install or launch the selected app (Enter).
-    StoreActivate,
-    /// Store: close the store window (Escape).
-    StoreClose,
-    /// Store: Update list (F5, or the row 0 button), WMCAT-004.
-    StoreUpdateList,
-    /// Open the Store menu of the selected app (Alt+O, WMCAT-007).
-    StoreMenu,
     /// Open the settings window (or focus it if already open).
     OpenSettings,
     /// Settings: move selection up / down.
@@ -620,7 +608,6 @@ pub struct SessionCore {
     /// control thread (see `clipboard.rs`).
     clip: crate::clipboard::SharedClip,
     /// The store window's id, if open (so it can be re-focused, not re-opened).
-    store_win: Option<WindowId>,
     /// The settings window's id, if open.
     settings_win: Option<WindowId>,
     /// The file-manager window's id, if open.
@@ -707,7 +694,6 @@ pub struct SessionCore {
     /// Settings > General > Apps download size worker, read by [`Self::poll_apps_download`].
     apps_download_job: Option<std::sync::mpsc::Receiver<Option<crate::packaging::AptEstimate>>>,
     /// A running Store Update list fetch (WMCAT-004).
-    list_job: Option<std::sync::mpsc::Receiver<String>>,
     /// Modal "are you sure?" shown when closing an app window (which kills it).
     confirm_close: ConfirmClose,
     /// Keyboard window picker (leader f): modal numbered window list.
@@ -798,7 +784,6 @@ impl SessionCore {
             clipmenu: crate::clipmenu::ClipMenu::default(),
             clip_persist_path: None,
             clip: crate::clipboard::new_shared(Self::clip_limits(&cfg), cfg.clipboard_history),
-            store_win: None,
             settings_win: None,
             filemanager_win: None,
             remote_fms: HashMap::new(),
@@ -832,7 +817,6 @@ impl SessionCore {
             power_job: None,
             theme_job: None,
             apps_download_job: None,
-            list_job: None,
             update_check: None,
             confirm_close: ConfirmClose::new(),
             win_picker: crate::winpicker::WinPicker::new(),
@@ -1528,49 +1512,12 @@ impl SessionCore {
         }
     }
 
-    /// Store > Update list: fetch the catalog on a worker thread (one at a time).
-    fn start_list_update(&mut self) {
-        if self.list_job.is_some() {
-            return;
-        }
-        self.list_job = Some(crate::listfetch::spawn());
-        for c in self.contents.values_mut() {
-            if let WinContent::Store(s) = c {
-                s.update_started();
-            }
-        }
-    }
-
-    /// Hand a finished Update list to every open Store and rebuild the launcher
-    /// from the catalog now in use (call once per daemon tick).
     /// The shared catalog file changed (tetron-appstore's Update list,
-    /// WMCAT-009): refresh the launcher and any open Store.
+    /// WMCAT-009): rebuild the launcher from it (call once per daemon tick).
     pub fn poll_catalog_file(&mut self) {
-        if !crate::catalog::reload_if_changed() {
-            return;
+        if crate::catalog::reload_if_changed() {
+            self.refresh_installed_apps();
         }
-        for c in self.contents.values_mut() {
-            if let WinContent::Store(s) = c {
-                s.update_done("List updated by tetron-appstore");
-            }
-        }
-        self.refresh_installed_apps();
-    }
-
-    pub fn poll_lists(&mut self) {
-        let Some(rx) = self.list_job.as_ref() else { return };
-        let msg = match rx.try_recv() {
-            Ok(m) => m,
-            Err(std::sync::mpsc::TryRecvError::Empty) => return,
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => "Update list stopped".into(),
-        };
-        self.list_job = None;
-        for c in self.contents.values_mut() {
-            if let WinContent::Store(s) = c {
-                s.update_done(&msg);
-            }
-        }
-        self.refresh_installed_apps();
     }
 
     /// Hand the Apps confirmation's download size to the open Settings panels
@@ -1713,48 +1660,7 @@ impl SessionCore {
                 self.rename = Some((id, String::new()));
             }
             A::CloseWindow => self.request_close(id),
-            A::StoreInstall(_) => {
-                self.focus_window(id);
-                self.store_activate();
-            }
-            A::OpenLink(label, url) => {
-                let browser = crate::catalog::WEB_BROWSERS.iter().find(|b| crate::catalog::is_installed(b));
-                let msg = match browser {
-                    Some(b) => {
-                        self.launch(url.clone(), (*b).to_string(), vec![url.clone()]);
-                        format!("{label}: opened in {b}")
-                    }
-                    None => format!("{label}: no terminal web browser installed"),
-                };
-                crate::dbg_log(&format!("store: {msg} ({url})"));
-                self.store_status(id, &msg);
-            }
-            A::CopyLink(label, url) => {
-                self.pending_clipboard = Some(url.clone());
-                self.clip_record(&url, crate::clipboard::ClipSource::Copy);
-                self.store_status(id, &format!("{label}: copied"));
-            }
             _ => {}
-        }
-    }
-
-    /// Show `msg` in Store window `id`'s status line.
-    fn store_status(&mut self, id: WindowId, msg: &str) {
-        if let Some(WinContent::Store(s)) = self.contents.get_mut(&id) {
-            s.set_status(msg);
-        }
-    }
-
-    /// Open the Store menu (WMCAT-007) of Store window `id`'s selected app at
-    /// screen point `at`, through the title bar menu overlay (same keys, hover
-    /// and click capture).
-    fn open_store_menu(&mut self, id: WindowId, links: crate::contextmenu::StoreLinks, at: Point) {
-        let Some(WinContent::Store(s)) = self.contents.get(&id) else { return };
-        let Some(app) = s.selected_app() else { return };
-        let browser = crate::catalog::WEB_BROWSERS.iter().any(|b| crate::catalog::is_installed(b));
-        let items = crate::contextmenu::store_actions(app, links, crate::catalog::is_installed(&app.bin), browser);
-        if !items.is_empty() {
-            self.win_menu = Some((id, crate::contextmenu::ContextMenu::new(at, items)));
         }
     }
 
@@ -3481,30 +3387,6 @@ or a remote-side error — its authorized_keys was left untouched)",
             }
             ClientMsg::LauncherEsc => self.launcher.close(),
             ClientMsg::OpenStore => self.open_store(),
-            ClientMsg::StoreUp => { if let Some(s) = self.focused_store_mut() { s.move_up(); } }
-            ClientMsg::StoreDown => { if let Some(s) = self.focused_store_mut() { s.move_down(); } }
-            ClientMsg::StorePrevCategory => { if let Some(s) = self.focused_store_mut() { s.prev_category(); } }
-            ClientMsg::StoreNextCategory => { if let Some(s) = self.focused_store_mut() { s.next_category(); } }
-            ClientMsg::StoreChar(c) => { if let Some(s) = self.focused_store_mut() { s.type_char(c); } }
-            ClientMsg::StoreBackspace => { if let Some(s) = self.focused_store_mut() { s.backspace(); } }
-            ClientMsg::StoreActivate => self.store_activate(),
-            ClientMsg::StoreUpdateList => self.start_list_update(),
-            ClientMsg::StoreMenu => {
-                // Alt+O: the app menu, anchored in the details beside the list.
-                if let Some(id) = self.wm.focused().filter(|id| matches!(self.contents.get(id), Some(WinContent::Store(_)))) {
-                    if let Some(cr) = self.wm.get(id).map(|w| w.content_rect()) {
-                        let at = Point::new(cr.x + crate::store::details_x(), cr.y + 3);
-                        self.open_store_menu(id, crate::contextmenu::StoreLinks::App, at);
-                    }
-                }
-            }
-            ClientMsg::StoreClose => {
-                if let Some(id) = self.wm.focused() {
-                    if matches!(self.contents.get(&id), Some(WinContent::Store(_))) {
-                        self.close(id);
-                    }
-                }
-            }
             ClientMsg::OpenSettings => self.open_settings(),
             // Up / Down in the section list change section, which can arm the
             // Sound refresh, so both drain.
@@ -3762,18 +3644,6 @@ or a remote-side error — its authorized_keys was left untouched)",
                         if self.wm.get(id).is_some_and(|w| !w.minimized && w.titlebar_rect().contains(p)) {
                             self.wm.raise(id);
                             self.win_menu = Some((id, crate::contextmenu::ContextMenu::new(p, crate::contextmenu::window_actions())));
-                            return;
-                        }
-                    }
-                }
-                // Right-clicking an app in the Store opens its menu (WMCAT-007).
-                if !overlay_open {
-                    if let Some((id, cr)) = self.topmost_window_content_at(p) {
-                        if let Some(WinContent::Store(s)) = self.contents.get_mut(&id) {
-                            self.wm.raise(id);
-                            if s.right_click(Point::new(p.x - cr.x, p.y - cr.y), cr.w, cr.h) {
-                                self.open_store_menu(id, crate::contextmenu::StoreLinks::App, p);
-                            }
                             return;
                         }
                     }
@@ -4288,25 +4158,16 @@ or a remote-side error — its authorized_keys was left untouched)",
     /// Open the Store filtered to one app (Settings > AI > Agent on an agent
     /// that is not installed, the tray's "Get … (Store)" items).
     fn open_store_for(&mut self, app: &str) {
-        if self.open_store_app(Some(app)) {
-            return;
-        }
-        self.open_builtin_store();
-        if let Some(WinContent::Store(st)) = self.store_win.and_then(|id| self.contents.get_mut(&id)) {
-            st.set_query(app);
-        }
+        self.open_store_app(Some(app));
     }
 
-    /// Open the Store, or focus it if it is already open (WMCAT-011): the
-    /// `store_app` program when it is installed, else the built-in one.
+    /// Open the Store, or focus it if it is already open (WMCAT-011).
     fn open_store(&mut self) {
-        if !self.open_store_app(None) {
-            self.open_builtin_store();
-        }
+        self.open_store_app(None);
     }
 
     /// The window of a running Store program (WMCAT-011): an app window named
-    /// "Store" (the built-in Store's window holds no app).
+    /// "Store".
     pub fn store_app_window(&self) -> Option<WindowId> {
         self.app_keys
             .iter()
@@ -4314,24 +4175,27 @@ or a remote-side error — its authorized_keys was left untouched)",
             .map(|(id, _)| *id)
     }
 
-    /// Open the `store_app` program in a window named "Store", for `query`
-    /// when given (WMCAT-011). False when it is not set or not installed, so
-    /// the caller opens the built-in Store.
-    fn open_store_app(&mut self, query: Option<&str>) -> bool {
-        let cmd = self.cfg.store_app.trim().to_string();
-        if cmd.is_empty() {
-            return false;
-        }
+    /// The Store program: `store_app`, or tetron-appstore when it is empty.
+    fn store_command(&self) -> String {
+        let c = self.cfg.store_app.trim();
+        if c.is_empty() { "tetron-appstore".into() } else { c.to_string() }
+    }
+
+    /// Open the Store program in a window named "Store", for `query` when
+    /// given (WMCAT-011). Not installed: a window that installs it.
+    fn open_store_app(&mut self, query: Option<&str>) {
+        let cmd = self.store_command();
         if !crate::catalog::is_installed(&cmd) {
-            crate::dbg_log(&format!("store: '{cmd}' (store_app) is not installed; opening the built-in Store"));
-            return false;
+            crate::dbg_log(&format!("store: '{cmd}' is not installed; opening a window that installs tetron-appstore"));
+            self.launch("install: tetron-appstore".into(), "sh".into(), vec!["-lc".into(), STORE_INSTALL.into()]);
+            return;
         }
         match (self.store_app_window(), query) {
             (Some(id), None) => {
                 crate::dbg_log(&format!("store: focusing the open {cmd} window"));
                 self.wm.raise(id);
                 self.focus_window(id);
-                return true;
+                return;
             }
             (Some(id), Some(q)) => {
                 crate::dbg_log(&format!("store: replacing the open {cmd} window with one for '{q}'"));
@@ -4342,43 +4206,6 @@ or a remote-side error — its authorized_keys was left untouched)",
         let args: Vec<String> = query.map(|q| vec![q.to_string()]).unwrap_or_default();
         crate::dbg_log(&format!("store: opening {cmd} {}", args.join(" ")));
         self.launch("Store".into(), cmd, args);
-        true
-    }
-
-    /// tetron-wm's built-in Store window, focused when already open.
-    fn open_builtin_store(&mut self) {
-        if let Some(id) = self.store_win {
-            if self.contents.contains_key(&id) {
-                self.wm.unminimize(id);
-                return;
-            }
-        }
-        let w = 84.min((self.w - 4).max(40));
-        let h = 28.min((self.h - 4).max(12));
-        let rect = Rect::new((self.w - w) / 2, 2, w, h);
-        let id = self.wm.add_window("Store".into(), rect);
-        self.app_keys.insert(id, "Store".into());
-        self.contents.insert(id, WinContent::Store(Store::new()));
-        self.titles.push((id, "Store".into()));
-        self.store_win = Some(id);
-    }
-
-    /// `true` when the focused window hosts the store browser (the front-end
-    /// routes keyboard input to the store in this case).
-    pub fn focused_is_store(&self) -> bool {
-        self.wm
-            .focused()
-            .and_then(|id| self.contents.get(&id))
-            .map(|c| matches!(c, WinContent::Store(_)))
-            .unwrap_or(false)
-    }
-
-    fn focused_store_mut(&mut self) -> Option<&mut Store> {
-        let id = self.wm.focused()?;
-        match self.contents.get_mut(&id)? {
-            WinContent::Store(s) => Some(s),
-            _ => None,
-        }
     }
 
     /// Assign already-loaded thumbnails to the focused file manager's image
@@ -4747,7 +4574,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         self.app_keys.insert(id, "Files".into());
         let mut fm = crate::filemanager::DynFileManager::new_local(root, self.cfg.default_apps.clone());
         fm.set_code_dir(crate::assistant::code_dir(&self.cfg));
-        self.contents.insert(id, WinContent::FileManager(fm));
+        self.contents.insert(id, WinContent::FileManager(Box::new(fm)));
         self.titles.push((id, "Files".into()));
         self.filemanager_win = Some(id);
         self.refresh_fm_thumbnails();
@@ -4797,12 +4624,12 @@ or a remote-side error — its authorized_keys was left untouched)",
         self.app_keys.insert(id, title.clone());
         self.contents.insert(
             id,
-            WinContent::FileManager(crate::filemanager::DynFileManager::new_remote(
+            WinContent::FileManager(Box::new(crate::filemanager::DynFileManager::new_remote(
                 sys.host.clone(),
                 sys.port,
                 home,
                 self.cfg.default_apps.clone(),
-            )),
+            ))),
         );
         self.titles.push((id, title));
         self.remote_fms.insert(id, (sys.name.clone(), sys.host, sys.port));
@@ -5148,31 +4975,6 @@ or a remote-side error — its authorized_keys was left untouched)",
     fn desktop_commit(&mut self) {
         if self.desktop.overlay_commit() {
             self.reload_desktop();
-        }
-    }
-
-    /// Enter on a store row: launch the app if installed, else install it (the
-    /// install command runs visibly in a new shell window).
-    fn store_activate(&mut self) {
-        let app = self.focused_store_mut().and_then(|s| s.selected_app());
-        let Some(app) = app else { return };
-        if crate::catalog::is_installed(&app.bin) {
-            // Coding agents (flagged, or in the AI category) prompt for a dir.
-            let requires_cwd = crate::catalog::recipe(&app.name).map(|r| r.requires_cwd).unwrap_or(false)
-                || app.category == "AI";
-            // CLI-flagged apps get the same `sh -lc … --help; exec $SHELL` wrapper
-            // as launcher-driven launches (see `cli_wrap` / `launch_entry`).
-            let (command, args) = if app.cli { cli_wrap(&app.bin, &[]) } else { (app.bin.clone(), Vec::new()) };
-            self.launch_maybe_cwd(app.name.clone(), command, args, requires_cwd, None);
-        } else {
-            // Run the install visibly, then drop into a shell so the output (and
-            // any errors) stay on screen. Closing the window triggers a $PATH
-            // re-scan + launcher rebuild (see `reap_dead`).
-            let cmd = crate::catalog::install::install_command(app);
-            let wrapped = format!(
-                "{cmd}; echo; echo '── install finished — close this window (x) to refresh ──'; exec \"$SHELL\""
-            );
-            self.launch(format!("install: {}", app.name), "sh".into(), vec!["-lc".into(), wrapped]);
         }
     }
 
@@ -5950,8 +5752,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                     f.begin_empty_trash();
                 }
             }
-            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
-            | A::StoreInstall(_) | A::OpenLink(..) | A::CopyLink(..) => self.desktop.cancel_overlay(),
+            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => self.desktop.cancel_overlay(),
         }
     }
 
@@ -6027,16 +5828,14 @@ or a remote-side error — its authorized_keys was left untouched)",
             }
             Action::FocusAndForward { id, local } => {
                 self.wm.raise(id);
-                // The store handles content clicks (category/row/install); PTY apps
-                // are keyboard-first for now, so raising is enough for them.
+                // Native panels handle content clicks; PTY apps get the mouse
+                // through their own terminal mouse mode.
                 let cr = self.wm.get(id).map(|w| w.content_rect());
-                let mut store_click = crate::store::StoreClick::None;
                 let mut settings_changed = false;
                 let mut fm_clicked = false;
                 let mut activity_kill: Option<u64> = None;
                 if let Some(cr) = cr {
                     match self.contents.get_mut(&id) {
-                        Some(WinContent::Store(s)) => store_click = s.handle_click(local, cr.w, cr.h),
                         Some(WinContent::Settings(s)) => settings_changed = s.handle_click(local, cr.w, cr.h),
                         // The mouse path carries no modifiers, so a click is a plain
                         // single-select / toolbar-nav (Ctrl/Shift-select and
@@ -6057,15 +5856,6 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
                 if let Some(app_id) = activity_kill {
                     self.apphost.kill(AppId(app_id));
-                }
-                if store_click == crate::store::StoreClick::UpdateList {
-                    self.start_list_update();
-                }
-                if store_click == crate::store::StoreClick::Activate {
-                    self.store_activate();
-                }
-                if let crate::store::StoreClick::Menu(links) = store_click {
-                    self.open_store_menu(id, links, p);
                 }
                 if settings_changed {
                     // A click can have armed an Updates action (Check / Install);
@@ -6200,9 +5990,6 @@ or a remote-side error — its authorized_keys was left untouched)",
         if let Some(WinContent::App(aid)) = self.contents.remove(&id) {
             self.apphost.kill(aid);
             self.apphost.remove(aid);
-        }
-        if self.store_win == Some(id) {
-            self.store_win = None;
         }
         if self.settings_win == Some(id) {
             self.settings_win = None;

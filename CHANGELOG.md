@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Removed (breaking)
+- tetron-wm's built-in Store. The Store is tetron-appstore only (https://github.com/tetronos/tetron-appstore, in the desktop set); when it is not installed, opening the Store opens a window that installs it with its install.sh. `store_app = ""` now means tetron-appstore. tetron-wm no longer downloads the catalog itself: the Store's Update list writes the shared copy, which tetron-wm re-reads when it changes. About 1,000 lines go (the Store window, its keys and menu, its control messages, the Update list fetch).
+
 ## [0.15.9] — 2026-11-14
 
 ### Changed (breaking)
