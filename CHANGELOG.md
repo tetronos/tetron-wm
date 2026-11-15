@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.13] — 2026-11-15
+
 ### Added
 - **Settings → Dictation → Dictation** (and `dictation_enabled`) switches dictation off: the `MIC` tray segment disappears, a running provider is stopped so the microphone is released, text is no longer pasted, and the leader keys `d` and `D` say dictation is off.
 
