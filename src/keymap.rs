@@ -56,7 +56,7 @@ pub const DEFAULTS: &[(&str, &[&str], &str)] = &[
     ("context_menu", &["."], "right-click menu for the selected file (Files or desktop), arrows and Enter pick"),
     ("auto_tile", &["T"], "toggle auto-tile"),
     ("screensaver", &["z"], "start the screensaver (any key or mouse wakes it)"),
-    ("cast", &["D"], "cast the desktop to the Chromecast (stops it while casting)"),
+    ("cast", &["o"], "cast the desktop to the Chromecast (stops it while casting)"),
     ("screenshot", &["s"], "save a screenshot (PNG) of the whole screen"),
     ("detach", &["q"], "detach (apps keep running)"),
     ("shutdown", &["Q"], "quit tetron-wm (closes every app)"),

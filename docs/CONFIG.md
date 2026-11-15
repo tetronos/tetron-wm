@@ -156,7 +156,7 @@ Press the leader (`ctrl+space`), release it, then the key. Rebind any action und
 | `tile`        | `t`          | tile all windows into the grid                                         |
 | `auto_tile`   | `T`          | toggle auto-tile                                                       |
 | `screensaver` | `z`          | start the screensaver (any key or mouse wakes it)                      |
-| `cast`        | `D`          | cast the desktop to the Chromecast (stops it while casting)            |
+| `cast`        | `o`          | cast the desktop to the Chromecast (stops it while casting)            |
 | `screenshot`  | `s`          | save a screenshot (PNG) of the whole screen                            |
 | `detach`      | `q`          | detach (apps keep running)                                             |
 | `shutdown`    | `Q`          | quit tetron-wm (closes every app)                                      |
