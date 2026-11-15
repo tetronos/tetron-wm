@@ -392,7 +392,7 @@ fn run_tool(program: &str, args: &[String], secs: u64) -> Result<(), String> {
 /// the log; on any failure the viewer is stopped again.
 pub fn start_tv(cfg: &crate::config::Config, device: Option<&str>) -> Result<String, String> {
     let device = device.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(cfg.cast_device.trim()).to_string();
-    let (program, tool) = pick_tool(&cfg.cast_command, |p| crate::catalog::is_installed(p))
+    let (program, tool) = pick_tool(&cfg.cast_command, crate::catalog::is_installed)
         .ok_or("casttui or catt is needed to cast (install casttui, or `uv tool install catt`)")?;
     let url = start(Some(&device), cfg.cast_port, cfg.cast_fps, cfg.cast_idle_stop)?;
     crate::dbg_log(&format!("cast: asking {program} to load the page on '{}'", if device.is_empty() { "the default device" } else { &device }));
