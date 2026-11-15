@@ -221,6 +221,50 @@ echo; printf 'Press Enter to close. '; read _",
     )
 }
 
+/// An optional addon the Settings tabs can install (Cast, Dictation).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Addon {
+    Casttui,
+    TetronStt,
+}
+
+impl Addon {
+    pub fn package(self) -> &'static str {
+        match self {
+            Addon::Casttui => "casttui",
+            Addon::TetronStt => "tetron-stt",
+        }
+    }
+
+    /// Settings row label.
+    pub fn label(self) -> &'static str {
+        match self {
+            Addon::Casttui => "Install casttui",
+            Addon::TetronStt => "Install tetron-stt",
+        }
+    }
+}
+
+/// The terminal command that installs an addon from a Settings tab, like the
+/// Apps tab installs apps: from the tetronos (or distribution) apt repository
+/// when apt has a candidate for the package, else from the addon's own
+/// release (casttui with uv, tetron-stt as the release binary in
+/// `~/.local/bin`). Meant for `run_in_window`, which reports the exit status and waits for Enter.
+pub fn addon_install_command(addon: Addon) -> String {
+    let pkg = addon.package();
+    let fallback = match addon {
+        Addon::Casttui => "if command -v uv >/dev/null; then uv tool install --upgrade git+https://github.com/tetronos/casttui; \
+else echo 'No apt package for casttui here and uv is not installed. Install uv (https://docs.astral.sh/uv/), then try again.'; false; fi",
+        Addon::TetronStt => "case $(uname -m) in x86_64) t=x86_64-unknown-linux-gnu;; aarch64) t=aarch64-unknown-linux-gnu;; *) echo \"No tetron-stt build for $(uname -m).\"; t=;; esac; \
+if [ -n \"$t\" ]; then mkdir -p ~/.local/bin && curl -fsSL https://github.com/tetronos/tetron-stt/releases/latest/download/tetron-stt-$t.tar.gz | tar xz -C ~/.local/bin tetron-stt; else false; fi",
+    };
+    format!(
+        "clear; echo 'Installing {pkg}…'; echo; \
+if command -v apt-get >/dev/null && apt-cache policy {pkg} 2>/dev/null | grep -q 'Candidate: [0-9]'; then sudo apt-get install -y {pkg}; \
+else {fallback}; fi",
+    )
+}
+
 /// The git tag of this binary's release (`v0.15.6`).
 pub fn release_tag() -> String {
     format!("v{}", env!("CARGO_PKG_VERSION"))
@@ -595,6 +639,19 @@ rm -rf \"$d\"; echo; fi; fi; "
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn addon_install_uses_apt_when_it_has_the_package_else_the_release() {
+        let c = addon_install_command(Addon::Casttui);
+        assert!(c.contains("apt-cache policy casttui") && c.contains("sudo apt-get install -y casttui"));
+        assert!(c.contains("uv tool install --upgrade git+https://github.com/tetronos/casttui"), "{c}");
+        let t = addon_install_command(Addon::TetronStt);
+        assert!(t.contains("sudo apt-get install -y tetron-stt"));
+        assert!(t.contains("releases/latest/download/tetron-stt-$t.tar.gz") && t.contains("~/.local/bin"), "{t}");
+        assert!(!c.contains("read _") && !t.contains("read _"), "run_in_window adds the Enter prompt and reports the exit status");
+        assert_eq!(Addon::Casttui.label(), "Install casttui");
+        assert_eq!(Addon::TetronStt.label(), "Install tetron-stt");
+    }
+
     use super::*;
 
     fn host(linux: bool, graphical: bool, mouse: bool, packaged: bool) -> Host {

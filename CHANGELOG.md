@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+- Settings > Cast and Settings > Dictation have an Install row (Enter or click) when casttui or tetron-stt is not installed. It runs the install in a window like the other Settings actions: apt when the package is available, else casttui with uv and the tetron-stt release binary in `~/.local/bin`.
+
 ## [0.15.13] — 2026-11-15
 
 ### Added

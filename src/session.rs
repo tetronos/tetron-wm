@@ -1472,6 +1472,16 @@ impl SessionCore {
                     self.launch_in("Dictation models".into(), "sh".into(), vec!["-c".into(), script], None);
                 }
             }
+            Some(crate::settings::SettingsAction::InstallCast) => {
+                let a = crate::packaging::Addon::Casttui;
+                let dir = dirs::home_dir().unwrap_or_default();
+                self.run_in_window(format!("Install {}", a.package()), crate::packaging::addon_install_command(a), dir);
+            }
+            Some(crate::settings::SettingsAction::InstallDictation) => {
+                let a = crate::packaging::Addon::TetronStt;
+                let dir = dirs::home_dir().unwrap_or_default();
+                self.run_in_window(format!("Install {}", a.package()), crate::packaging::addon_install_command(a), dir);
+            }
             Some(crate::settings::SettingsAction::ReloadConfig) => {
                 crate::dbg_log("config: reload requested from Settings");
                 self.reload_to_general();
