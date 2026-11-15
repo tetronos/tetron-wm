@@ -497,6 +497,12 @@ pub enum ClientMsg {
     /// Ask the daemon for its [`crate::protocol::StatusReply`] (`tetron-wm ls`).
     /// Answered by the control thread; never reaches `apply`'s state.
     Status,
+    /// Start the cast viewer and return its URL (answered by the control thread).
+    CastStart { device: Option<String> },
+    /// Stop the cast viewer (answered by the control thread).
+    CastStop,
+    /// One line about the cast (answered by the control thread).
+    CastStatus,
     /// A raw mouse event destined for the focused app's PTY (passthrough).
     MouseInput(crate::mouse::MouseInput),
     /// Scroll the scrollback of the PTY window under `p` by `lines`
@@ -3816,7 +3822,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::LaunchWarnNo => self.launch_warn.cancel(),
             ClientMsg::Shutdown => self.shutdown = true,
             ClientMsg::Reload => self.reload = true,
-            ClientMsg::Status => {} // answered by the daemon's control thread
+            ClientMsg::Status | ClientMsg::CastStart { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
                 match (mode, self.saver.is_some()) {

@@ -142,7 +142,7 @@ fn main() -> std::io::Result<()> {
             println!("{}", path.display());
             ctl(&tetron_wm::session::ClientMsg::Screenshot(path.to_string_lossy().into_owned()))
         }
-        Some("cast") if rest.first().map(String::as_str) == Some("--demo") => cast_demo(),
+        Some("cast") => cast_cmd(&rest),
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
@@ -725,8 +725,7 @@ fn kill_app(args: &[String]) -> std::io::Result<()> {
 /// `tetron-wm cast --demo`: serve an animated test grid on the LAN address so the
 /// cast page can be checked in a browser. The URL holds a secret token.
 fn cast_demo() -> std::io::Result<()> {
-    use std::net::UdpSocket;
-    let ip = UdpSocket::bind("0.0.0.0:0").and_then(|s| { s.connect("192.0.2.1:9")?; s.local_addr() }).map(|a| a.ip()).unwrap_or_else(|_| "127.0.0.1".parse().unwrap());
+    let ip = tetron_wm::cast::lan_ip(None);
     let v = tetron_wm::cast::Viewer::start(ip, 0, None, 15)?;
     eprintln!("warning: this URL shows the stream to anyone who has it; Ctrl+C stops");
     println!("{}", v.url(&ip.to_string()));
@@ -735,5 +734,38 @@ fn cast_demo() -> std::io::Result<()> {
         v.shared.publish(std::sync::Arc::new(tetron_wm::cast::demo_buffer(t, 100, 30)), Some(((t % 100) as i32, 5)));
         t = t.wrapping_add(1);
         std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}
+
+/// `tetron-wm cast --url | off | status | --demo`. `--url` starts the viewer in
+/// the running daemon and prints its URL (a secret: it shows the whole desktop).
+fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
+    use tetron_wm::session::ClientMsg;
+    let msg = match rest.first().map(String::as_str) {
+        Some("--demo") => return cast_demo(),
+        Some("--url") => ClientMsg::CastStart { device: rest.get(1).cloned() },
+        Some("off") => ClientMsg::CastStop,
+        Some("status") => ClientMsg::CastStatus,
+        _ => {
+            eprintln!("usage: tetron-wm cast --url [DEVICE_IP] | off | status | --demo");
+            return Ok(());
+        }
+    };
+    let Some(reply) = tetron_wm::protocol::query_control_line(&msg) else {
+        eprintln!("tetron-wm: no daemon running, or it is too old (run `tetron-wm reload`)");
+        std::process::exit(1);
+    };
+    match reply.strip_prefix("ok ") {
+        Some(body) => {
+            if matches!(msg, ClientMsg::CastStart { .. }) {
+                eprintln!("warning: anyone with this URL sees your whole desktop; `tetron-wm cast off` stops it");
+            }
+            println!("{body}");
+            Ok(())
+        }
+        None => {
+            eprintln!("tetron-wm: {}", reply.strip_prefix("error ").unwrap_or(&reply));
+            std::process::exit(1);
+        }
     }
 }

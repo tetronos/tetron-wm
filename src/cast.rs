@@ -32,11 +32,12 @@ pub struct Shared {
     cv: Condvar,
     stop: AtomicBool,
     viewers: AtomicUsize,
+    detached: AtomicBool,
 }
 
 impl Shared {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self { slot: Mutex::new(None), cv: Condvar::new(), stop: AtomicBool::new(false), viewers: AtomicUsize::new(0) })
+        Arc::new(Self { slot: Mutex::new(None), cv: Condvar::new(), stop: AtomicBool::new(false), viewers: AtomicUsize::new(0), detached: AtomicBool::new(false) })
     }
     /// Publish a frame: an `Arc` swap and a wake up, never a socket write.
     pub fn publish(&self, buf: Arc<CellBuffer>, cursor: Option<(i32, i32)>) {
@@ -44,6 +45,10 @@ impl Shared {
         let gen = g.as_ref().map_or(1, |s| s.gen + 1);
         *g = Some(Snapshot { gen, buf, cursor });
         self.cv.notify_all();
+    }
+    /// The session has no attached client: viewers show an overlay instead of a frozen frame.
+    pub fn set_detached(&self, d: bool) {
+        if self.detached.swap(d, Ordering::Relaxed) != d { self.cv.notify_all(); }
     }
     pub fn viewers(&self) -> usize { self.viewers.load(Ordering::Relaxed) }
     pub fn stop(&self) { self.stop.store(true, Ordering::Relaxed); self.cv.notify_all(); }
@@ -212,6 +217,7 @@ fn stream_events(s: &mut TcpStream, sh: &Shared, gap: Duration) {
     let _ = s.set_write_timeout(Some(Duration::from_secs(10)));
     if write!(s, "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n").is_err() { return; }
     let mut sent: Option<Snapshot> = None;
+    let mut shown_detached = false;
     let mut last_send = Instant::now();
     let mut last_beat = Instant::now();
     loop {
@@ -219,6 +225,12 @@ fn stream_events(s: &mut TcpStream, sh: &Shared, gap: Duration) {
             let mut g = sh.slot.lock().unwrap();
             loop {
                 if sh.stopped() { drop(g); let _ = s.write_all(sse(&serde_json::json!({"t":"status","state":"stopped"})).as_bytes()); return; }
+                let det = sh.detached.load(Ordering::Relaxed);
+                if det != shown_detached {
+                    shown_detached = det;
+                    let st = sse(&serde_json::json!({"t":"status","state": if det { "detached" } else { "ok" }}));
+                    if s.write_all(st.as_bytes()).is_err() { return; }
+                }
                 if let Some(cur) = g.as_ref() {
                     if sent.as_ref().is_none_or(|p| p.gen != cur.gen) { break g.clone(); }
                 }
@@ -242,6 +254,91 @@ fn stream_events(s: &mut TcpStream, sh: &Shared, gap: Duration) {
         sent = Some(snap);
         last_send = Instant::now();
         last_beat = Instant::now();
+    }
+}
+
+// ---- the one cast of this daemon -------------------------------------------
+
+static CURRENT: Mutex<Option<Arc<Viewer>>> = Mutex::new(None);
+static ACTIVE: AtomicBool = AtomicBool::new(false);
+static WANT_FULL: AtomicBool = AtomicBool::new(true);
+
+/// Whether a cast is running: one atomic load, so idle sessions pay nothing.
+pub fn active() -> bool { ACTIVE.load(Ordering::Relaxed) }
+
+/// True once after a cast starts: the render loop must publish a frame even if
+/// the screen is unchanged.
+pub fn take_want_full() -> bool { active() && WANT_FULL.swap(false, Ordering::Relaxed) }
+
+/// Publish the composited screen (a clone of it) to the viewers. The cursor is
+/// already drawn into the cells by the compositor.
+pub fn publish_frame(buf: &CellBuffer) {
+    if let Some(v) = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        v.shared.publish(Arc::new(buf.clone()), None);
+    }
+}
+
+/// Mark the session attached or detached.
+pub fn set_detached(d: bool) {
+    if let Some(v) = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() { v.shared.set_detached(d); }
+}
+
+/// The local address that routes toward `device` (a UDP connect sends no packet),
+/// or toward the default route when `device` is not an IP.
+pub fn lan_ip(device: Option<&str>) -> IpAddr {
+    let target: IpAddr = device.and_then(|d| d.trim().parse().ok()).unwrap_or_else(|| "192.0.2.1".parse().unwrap());
+    std::net::UdpSocket::bind("0.0.0.0:0")
+        .and_then(|s| { s.connect(SocketAddr::new(target, 9))?; s.local_addr() })
+        .map(|a| a.ip())
+        .unwrap_or_else(|_| "127.0.0.1".parse().unwrap())
+}
+
+/// Start the viewer (or return the running one's URL). Returns the URL, which
+/// holds the secret token.
+pub fn start(device: Option<&str>, port: u16, fps: u32, idle_stop: u64) -> Result<String, String> {
+    let mut cur = CURRENT.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(v) = cur.as_ref() { return Ok(v.url(&lan_ip(device).to_string())); }
+    let ip = lan_ip(device);
+    let allow = device.and_then(|d| d.trim().parse::<IpAddr>().ok());
+    let v = Arc::new(Viewer::start(ip, port, allow, fps).map_err(|e| format!("cannot start the viewer: {e}"))?);
+    let url = v.url(&ip.to_string());
+    crate::dbg_log(&format!("cast: serving on {ip}:{}", v.port));
+    *cur = Some(v.clone());
+    WANT_FULL.store(true, Ordering::Relaxed);
+    ACTIVE.store(true, Ordering::Relaxed);
+    std::thread::spawn(move || watch(v, idle_stop));
+    Ok(url)
+}
+
+/// Stop the cast: viewers get a "cast stopped" overlay and the listener closes.
+pub fn stop() -> bool {
+    let v = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).take();
+    ACTIVE.store(false, Ordering::Relaxed);
+    match v { Some(v) => { v.stop(); crate::dbg_log("cast: stopped"); true } None => false }
+}
+
+/// One line for `tetron-wm cast status`.
+pub fn status() -> String {
+    match CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        Some(v) => format!("casting, {} viewer(s)", v.shared.viewers()),
+        None => "off".into(),
+    }
+}
+
+/// Ends the cast after `idle_stop` seconds with no viewer (0 = never) or 60 s detached.
+fn watch(v: Arc<Viewer>, idle_stop: u64) {
+    let (mut no_viewer, mut detached) = (Instant::now(), Instant::now());
+    loop {
+        std::thread::sleep(Duration::from_secs(1));
+        if v.shared.stopped() { return; }
+        if v.shared.viewers() > 0 { no_viewer = Instant::now(); }
+        if !v.shared.detached.load(Ordering::Relaxed) { detached = Instant::now(); }
+        if (idle_stop > 0 && no_viewer.elapsed().as_secs() >= idle_stop) || detached.elapsed().as_secs() >= 60 {
+            crate::dbg_log("cast: idle, stopping");
+            let mine = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref().is_some_and(|c| Arc::ptr_eq(c, &v));
+            if mine { stop(); } else { v.stop(); }
+            return;
+        }
     }
 }
 
@@ -357,6 +454,20 @@ mod tests {
         let ev = get(addr, &format!("GET /{t}/events HTTP/1.1\r\n\r\n"));
         assert!(ev.contains("text/event-stream") && ev.contains("\"hello\"") && ev.contains("\"full\""), "{ev}");
         v.stop();
+    }
+
+    #[test]
+    fn manager_start_status_stop_cycle() {
+        assert_eq!(status(), "off");
+        assert!(!active());
+        let url = start(Some("127.0.0.1"), 0, 15, 0).unwrap();
+        assert!(url.starts_with("http://127.0.0.1:") && url.ends_with('/'));
+        assert!(active() && take_want_full() && !take_want_full(), "one forced full frame per start");
+        assert_eq!(start(Some("127.0.0.1"), 0, 15, 0).unwrap(), url, "a second start returns the same URL");
+        assert!(status().starts_with("casting"));
+        assert!(stop() && !stop());
+        assert!(!active());
+        assert_eq!(status(), "off");
     }
 
     #[test]
