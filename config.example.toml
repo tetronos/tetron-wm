@@ -102,6 +102,11 @@ colors = "auto"
 ## Chromecast for the right-click "Cast to Chromecast" (video, audio, images; needs
 ## catt installed): a device name or IP, as catt -d takes it. "" = catt's default.
 cast_device = ""
+## Casting the desktop (`tetron-wm cast`, an optional addon that needs casttui): the
+## program that serves and casts the screen. "" = casttui.
+cast_command = ""
+## Desktop cast updates per second (1 to 60).
+cast_fps = 15
 ## Image viewer: "auto" (Kitty graphics when the terminal has them, never on a
 ## bare console; otherwise colored cells via chafa, or half blocks without it),
 ## "graphics", or "cells". In the viewer, m switches for that window.

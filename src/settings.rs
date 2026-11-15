@@ -20,7 +20,7 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "Cast", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
@@ -35,7 +35,8 @@ const TERMINAL: usize = 7;
 const SOUND: usize = 8;
 const DISPLAY: usize = 9;
 const GENERAL: usize = 10;
-// About is last (index 11) and has no rows.
+const CAST: usize = 11;
+// About is last (index 12) and has no rows.
 
 /// Roles listed in the Default Apps section (config key, label).
 const DEFAULT_APP_ROLES: &[(&str, &str)] = &[
@@ -152,6 +153,8 @@ enum TextTarget {
     AgentCommand,
     /// AI → Working folder → Other folder… (a path).
     AiCwd,
+    /// Cast → Device (a name or IP; empty = the cast program's own default).
+    CastDevice,
 }
 
 /// The open text box: its target, the in-progress text, and whether the last
@@ -572,6 +575,7 @@ impl Settings {
             SOUND => 4,                        // sound: volume, mute, output, mixer
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
             GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
+            CAST => 2,                         // cast: device, updates per second
             _ => 0,                            // About
         }
     }
@@ -887,6 +891,16 @@ impl Settings {
             (ASSISTANT, 1) if dir == 0 => self.open_agent_picker(),
             (ASSISTANT, 2) if dir == 0 => self.open_cwd_picker(),
             (ASSISTANT, 3) => self.cfg.assistant_mcp = flip(self.cfg.assistant_mcp, dir),
+            // Cast section: the device is free text (Enter opens the box); the rate cycles.
+            (CAST, 0) if dir == 0 => {
+                self.text = Some(TextEdit { target: TextTarget::CastDevice, buf: self.cfg.cast_device.clone(), error: false, fresh: false });
+            }
+            (CAST, 1) => {
+                const RATES: [u32; 5] = [5, 10, 15, 30, 60];
+                let cur = RATES.iter().position(|r| *r == self.cfg.cast_fps).unwrap_or(2);
+                let next = if dir == -1 { (cur + RATES.len() - 1) % RATES.len() } else { (cur + 1) % RATES.len() };
+                self.cfg.cast_fps = RATES[next];
+            }
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -1102,6 +1116,10 @@ impl Settings {
             TextTarget::AiCwd => {
                 self.cfg.assistant_cwd = (!s.is_empty()).then_some(s);
             }
+            // Empty = the cast program's own default device.
+            TextTarget::CastDevice => {
+                self.cfg.cast_device = s;
+            }
             TextTarget::TermBg | TextTarget::TermFg => {
                 let val = if s.is_empty() {
                     None
@@ -1143,7 +1161,7 @@ impl Settings {
         if let Some(t) = self.text.as_ref() {
             // The wallpaper name commits on click-away; a half-typed color is
             // discarded instead (committing it would stage a wrong color).
-            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd) {
+            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd | TextTarget::CastDevice) {
                 self.commit_text();
                 return true;
             }
@@ -1369,6 +1387,22 @@ impl Settings {
             TERMINAL => self.render_terminal(&mut buf, cx),
             SOUND => self.render_sound(&mut buf, cx),
             DISPLAY => self.render_display(&mut buf, cx),
+            CAST => {
+                let dev = match self.text.as_ref().filter(|t| t.target == TextTarget::CastDevice) {
+                    Some(t) => format!("{}\u{2588}", t.buf),
+                    None if self.cfg.cast_device.trim().is_empty() => "(casttui's own default) \u{25BE}".to_string(),
+                    None => format!("{} \u{25BE}", self.cfg.cast_device),
+                };
+                self.row(&mut buf, cx, 3, 0, "Device", dev);
+                self.row(&mut buf, cx, 4, 1, "Updates per second", format!("\u{25C2} {} \u{25B8}", self.cfg.cast_fps));
+                let (have, color) = if crate::cast::available(&self.cfg) { ("casttui: installed", green()) } else { ("casttui: not installed (sudo apt install casttui)", red()) };
+                buf.write_str(cx, 6, have, color, pal_bg());
+                buf.write_str(cx, 7, &format!("Cast: {}", crate::cast::status()), pal_fg(), pal_bg());
+                buf.write_str(cx, 9, "Casting the desktop is an optional addon. Leader o starts and", pal_dim(), pal_bg());
+                buf.write_str(cx, 10, "stops it; the red CAST marker in the menubar stops it too.", pal_dim(), pal_bg());
+                buf.write_str(cx, 11, "Same as: tetron-wm cast | cast off | cast status | cast --url", pal_dim(), pal_bg());
+                buf.write_str(cx, 12, "Device: a name or IP; empty uses casttui's remembered device.", pal_dim(), pal_bg());
+            }
             GENERAL => match self.apps_dlg.as_ref() {
                 Some(d) => {
                     // The dialog draws its own title over the section's.
@@ -1708,6 +1742,28 @@ mod tests {
         for c in t.chars() {
             s.type_char(c);
         }
+    }
+
+    #[test]
+    fn cast_section_edits_the_device_and_cycles_the_rate() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(CAST);
+        assert_eq!(SECTIONS[CAST], "Cast");
+        assert_eq!(s.config().cast_fps, 15);
+        s.sel = 1;
+        s.right();
+        assert_eq!(s.config().cast_fps, 30);
+        s.left();
+        s.left();
+        assert_eq!(s.config().cast_fps, 10);
+        s.sel = 0;
+        s.toggle(); // Enter opens the text box
+        for c in "Living Room".chars() { s.type_char(c); }
+        s.commit_text();
+        assert_eq!(s.config().cast_device, "Living Room");
+        let buf = s.render(100, 30);
+        let text: String = (0..30).flat_map(|y| (0..100).map(move |x| (x, y))).map(|(x, y)| buf.get(x, y).unwrap().ch).collect();
+        assert!(text.contains("Living Room") && text.contains("casttui:"), "the section shows the device and casttui state");
     }
 
     #[test]

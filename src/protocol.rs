@@ -468,3 +468,18 @@ pub fn query_status() -> Option<StatusReply> {
     std::io::BufReader::new(s).read_line(&mut line).ok().filter(|n| *n > 0)?;
     serde_json::from_str(line.trim()).ok()
 }
+
+/// Send `msg` to the daemon's control socket and read its one line reply.
+/// `None`: no daemon, or one that does not answer (an older build).
+pub fn query_control_line(msg: &crate::session::ClientMsg, wait_secs: u64) -> Option<String> {
+    use std::io::{BufRead, Write};
+    let mut s = std::os::unix::net::UnixStream::connect(daemon_ctl_path()).ok()?;
+    s.set_read_timeout(Some(std::time::Duration::from_secs(wait_secs))).ok()?;
+    let mut buf = serde_json::to_vec(msg).ok()?;
+    buf.push(b'\n');
+    s.write_all(&buf).ok()?;
+    let _ = s.shutdown(std::net::Shutdown::Write);
+    let mut line = String::new();
+    let n = std::io::BufReader::new(s).read_line(&mut line).ok()?;
+    (n > 0).then(|| line.trim().to_string())
+}

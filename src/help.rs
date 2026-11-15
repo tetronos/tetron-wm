@@ -39,6 +39,7 @@ pub fn help_sections() -> &'static [HelpSection] {
                 (".", "right-click menu (Files, desktop)"),
                 ("i", "Info menu (version, Logs, Settings)"),
                 ("s", "save a screenshot (PNG)"),
+                ("o", "cast the desktop to a Chromecast (needs casttui); again stops it"),
                 ("1–9", "send window to cell N"),
             ],
             notes: &[],

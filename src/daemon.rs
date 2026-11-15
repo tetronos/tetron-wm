@@ -323,9 +323,11 @@ fn serve_client(
     core.apply(ClientMsg::Caps(crate::display::ClientCaps::default()));
     status.attach_gen.fetch_add(1, Relaxed);
     status.attached.store(true, Relaxed);
+    crate::cast::set_detached(false);
     let next = serve_client_inner(core, comp, client, ctl, ctl_queue, conns, status);
     // On takeover the next client re-sets this at once.
     status.attached.store(false, Relaxed);
+    crate::cast::set_detached(true);
     status.publish(core.window_count(), || core.window_titles());
     next
 }
@@ -449,6 +451,7 @@ fn serve_client_inner(
         core.poll_themes();
         core.poll_apps_download();
         core.poll_catalog_file();
+        core.poll_cast_errors();
         crate::theme::export_store_colors();
         core.poll_update_check();
         core.tick_screensaver();
@@ -467,7 +470,9 @@ fn serve_client_inner(
         // theme's desktop fill, so when all three match the last composite the
         // screen is unchanged: skip composite, diff and commit.
         let bg = crate::theme::current().desktop_bg;
+        let cast_full = crate::cast::take_want_full();
         let unchanged = !clear_pending
+            && !cast_full
             && shot.is_none()
             && prev.as_ref().is_some_and(|(l, c, b)| *c == frame.cursor && *b == bg && same_layers(l, &frame.layers));
         let changes = if unchanged {
@@ -483,6 +488,7 @@ fn serve_client_inner(
                     }
                 }
             }
+            if crate::cast::active() { crate::cast::publish_frame(composed); }
             comp.diff()
         };
         let had_changes = !changes.is_empty();
@@ -723,6 +729,24 @@ fn serve_control(
                         buf.push(b'\n');
                         let _ = std::io::Write::write_all(r.get_mut(), &buf);
                     }
+                }
+                // Cast control: one text line back (the URL holds a secret token). The
+                // TV cast can take 20 s, so it runs on its own thread.
+                Ok(m @ (ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus)) => {
+                    let Ok(mut out) = r.get_ref().try_clone() else { continue };
+                    std::thread::spawn(move || {
+                        let cfg = crate::config::Config::load();
+                        let line = match m {
+                            ClientMsg::CastTv { device, browser } => match crate::cast::start(&cfg, device.as_deref(), browser) {
+                                Ok(first) => format!("ok {first}"),
+                                Err(e) => format!("error {e}"),
+                            },
+                            ClientMsg::CastStop => if crate::cast::stop() { "ok stopped".into() } else { "ok off".into() },
+                            _ => format!("ok {}", crate::cast::status()),
+                        };
+                        let _ = std::io::Write::write_all(&mut out, format!("{line}\n").as_bytes());
+                        wake();
+                    });
                 }
                 // Clipboard requests are answered right here (one JSON line back),
                 // so they work with no client attached and never wait on a frame.

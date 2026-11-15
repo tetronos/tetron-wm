@@ -127,6 +127,11 @@ pub struct Config {
     /// The Chromecast for the right-click "Cast to Chromecast": a device name
     /// or IP, as catt's `-d` takes it. Empty = catt's own default device.
     pub cast_device: String,
+    /// The program that serves and casts the desktop (it must speak
+    /// `--cells`, see docs): empty = `casttui`.
+    pub cast_command: String,
+    /// At most this many desktop cast updates per second (1 to 60).
+    pub cast_fps: u32,
     /// Force 24-bit ("truecolor") SGR output on/off. Unset = auto-detect from the
     /// terminal (known truecolor terminals + `COLORTERM`). Set `true` when your
     /// terminal supports truecolor but does not advertise it (many set
@@ -375,6 +380,8 @@ impl Default for Config {
             image_viewer: "auto".into(),
             colors: "auto".into(),
             cast_device: String::new(),
+            cast_command: String::new(),
+            cast_fps: 15,
             truecolor: None,
             wallpaper: default_wallpaper(),
             wallpaper_enabled: true,

@@ -20,6 +20,7 @@ pub mod window;
 pub mod winpicker;
 pub mod wm;
 pub mod chrome;
+pub mod cast;
 pub mod catalog;
 pub mod settings;
 pub mod appsdlg;

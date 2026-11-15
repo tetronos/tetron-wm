@@ -420,6 +420,7 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (Some("tile"), _) => send(&mut out_stream, &ClientMsg::TileAll)?,
                             (Some("context_menu"), _) => send(&mut out_stream, &ClientMsg::ContextMenuOpen)?,
                             (Some("screensaver"), _) => send(&mut out_stream, &ClientMsg::Screensaver { mode: crate::screensaver::SaverMode::Toggle, effect: None })?,
+                            (Some("cast"), _) => send(&mut out_stream, &ClientMsg::CastToggle)?,
                             (Some("screenshot"), _) => send(&mut out_stream, &ClientMsg::Screenshot(String::new()))?,
                             (Some("auto_tile"), _) => send(&mut out_stream, &ClientMsg::ToggleAutoTile)?,
                             (Some("detach"), _) => break,                       // detach (apps persist)

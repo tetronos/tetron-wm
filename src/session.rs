@@ -497,6 +497,15 @@ pub enum ClientMsg {
     /// Ask the daemon for its [`crate::protocol::StatusReply`] (`tetron-wm ls`).
     /// Answered by the control thread; never reaches `apply`'s state.
     Status,
+    /// Stop the cast viewer (answered by the control thread).
+    CastStop,
+    /// Leader key / menu item: start the TV cast, or stop it while one runs.
+    CastToggle,
+    /// Start the cast through casttui (answered by the control thread): to the
+    /// Chromecast, or with `browser` a URL for a browser on the LAN.
+    CastTv { device: Option<String>, #[serde(default)] browser: bool },
+    /// One line about the cast (answered by the control thread).
+    CastStatus,
     /// A raw mouse event destined for the focused app's PTY (passthrough).
     MouseInput(crate::mouse::MouseInput),
     /// Scroll the scrollback of the PTY window under `p` by `lines`
@@ -693,6 +702,8 @@ pub struct SessionCore {
     theme_job: Option<std::sync::mpsc::Receiver<crate::themefetch::Msg>>,
     /// Settings > General > Apps download size worker, read by [`Self::poll_apps_download`].
     apps_download_job: Option<std::sync::mpsc::Receiver<Option<crate::packaging::AptEstimate>>>,
+    /// Failures of the desktop cast worker, shown as a window by `poll_cast_errors`.
+    cast_errors: (std::sync::mpsc::Sender<String>, std::sync::mpsc::Receiver<String>),
     /// A running Store Update list fetch (WMCAT-004).
     /// Modal "are you sure?" shown when closing an app window (which kills it).
     confirm_close: ConfirmClose,
@@ -817,6 +828,7 @@ impl SessionCore {
             power_job: None,
             theme_job: None,
             apps_download_job: None,
+            cast_errors: std::sync::mpsc::channel(),
             update_check: None,
             confirm_close: ConfirmClose::new(),
             win_picker: crate::winpicker::WinPicker::new(),
@@ -2526,6 +2538,29 @@ impl SessionCore {
         }
     }
 
+    /// Start the TV cast, or stop it while one runs. The cast command can take
+    /// 20 s, so it runs on a worker; a failure comes back as a window saying why.
+    fn cast_toggle(&mut self) {
+        let cfg = self.cfg.clone();
+        let tx = self.cast_errors.0.clone();
+        std::thread::spawn(move || {
+            if let Err(e) = crate::cast::toggle(&cfg) {
+                crate::dbg_log(&format!("cast: {e}"));
+                let _ = tx.send(e);
+                crate::daemon::wake();
+            }
+        });
+    }
+
+    /// Open a window for a cast failure reported by the worker.
+    pub fn poll_cast_errors(&mut self) {
+        while let Ok(e) = self.cast_errors.1.try_recv() {
+            let text = format!("Casting the desktop failed.\n\n  {e}\n");
+            let script = format!("printf '%s' {}; printf '\nPress Enter to close. '; read _k", crate::systems::sh_quote(&text));
+            self.launch_in("Cast".into(), "sh".into(), vec!["-c".into(), script], None);
+        }
+    }
+
     /// A screenshot that could not be written opens a window saying why, so
     /// leader s never fails silently (the reason used to reach only the log).
     pub fn report_screenshot_failure(&mut self, path: &str, err: &str) {
@@ -2608,6 +2643,7 @@ or a remote-side error — its authorized_keys was left untouched)",
     /// that aren't already listed.
     fn build_launcher_apps(cfg: &Config, systems: &[crate::systems::RemoteSystem]) -> Vec<AppEntry> {
         // Pinned tetron-wm actions first (open the store / settings windows).
+        let cast_entry = crate::cast::available(cfg).then(|| AppEntry { name: "Cast desktop".into(), command: "@cast".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None });
         let mut apps = vec![
             AppEntry { name: "Store".into(), command: "@store".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Settings".into(), command: "@settings".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
@@ -2619,6 +2655,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             AppEntry { name: "Screensaver".into(), command: "@screensaver".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Help".into(), command: "@help".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
         ];
+        apps.extend(cast_entry);
         // Suspend / Reboot / Power off: the launcher's bottom "Power" submenu,
         // only for actions this computer can actually carry out.
         for kind in crate::powerctl::Kind::ALL {
@@ -3816,7 +3853,8 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::LaunchWarnNo => self.launch_warn.cancel(),
             ClientMsg::Shutdown => self.shutdown = true,
             ClientMsg::Reload => self.reload = true,
-            ClientMsg::Status => {} // answered by the daemon's control thread
+            ClientMsg::Status | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
+            ClientMsg::CastToggle => self.cast_toggle(),
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
                 match (mode, self.saver.is_some()) {
@@ -5000,6 +5038,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             "@screenshot" => { self.launcher.close(); self.request_screenshot(String::new()); }
+            "@cast" => { self.launcher.close(); self.cast_toggle(); }
             "@help" => { self.launcher.close(); self.open_help(); }
             "@screensaver" => { self.launcher.close(); self.screensaver_on(None); }
             "@image" => { if let Some(p) = e.args.first().cloned() { self.open_image(p); } }
@@ -5504,6 +5543,10 @@ or a remote-side error — its authorized_keys was left untouched)",
             // A click on the SELECT marker cancels select mode.
             if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Select && s.rect.contains(p)) {
                 self.select_mode = false;
+                return;
+            }
+            if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Cast && s.rect.contains(p)) {
+                self.cast_toggle(); // casting: a click stops it
                 return;
             }
             if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Clipboard && s.rect.contains(p)) {

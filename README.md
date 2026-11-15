@@ -179,6 +179,7 @@ On Debian and Ubuntu, tetron-wm installed by apt (the `.deb`) is updated through
 - [config.example.toml](config.example.toml): a ready-to-copy config with every option at its default
 - [docs/FEATURES_tetron-wm_what_it_can_do.md](docs/FEATURES_tetron-wm_what_it_can_do.md): everything tetron-wm can do, by task
 - [docs/KEYS_tetron-wm_leader_key_table.md](docs/KEYS_tetron-wm_leader_key_table.md): the leader key table
+- [docs/HOWTO_tetron-wm_cast_the_desktop_to_a_chromecast.md](docs/HOWTO_tetron-wm_cast_the_desktop_to_a_chromecast.md): casting the desktop to a Chromecast (optional, needs casttui)
 - [docs/DEPENDENCIES_tetron-wm_recommended_installs.md](docs/DEPENDENCIES_tetron-wm_recommended_installs.md): optional programs per feature
 - [docs/SETUP_tetron-wm_bare_console_kmscon.md](docs/SETUP_tetron-wm_bare_console_kmscon.md): the bare console setup
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release

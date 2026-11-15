@@ -142,6 +142,7 @@ fn main() -> std::io::Result<()> {
             println!("{}", path.display());
             ctl(&tetron_wm::session::ClientMsg::Screenshot(path.to_string_lossy().into_owned()))
         }
+        Some("cast") => cast_cmd(&rest),
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
@@ -719,4 +720,39 @@ fn kill_app(args: &[String]) -> std::io::Result<()> {
         println!("tetron-wm kill-app: sent kill to {} app(s)", to_kill.len());
     }
     Ok(())
+}
+
+/// `tetron-wm cast [--device NAME] | --url | off | status | --demo`. With no flag the
+/// desktop goes to the Chromecast (`cast_device`) through casttui or catt. `--url` starts the viewer in
+/// the running daemon and prints its URL (a secret: it shows the whole desktop).
+fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
+    use tetron_wm::session::ClientMsg;
+    let msg = match rest.first().map(String::as_str) {
+        Some("--url") => ClientMsg::CastTv { device: None, browser: true },
+        Some("off") => ClientMsg::CastStop,
+        None => ClientMsg::CastTv { device: None, browser: false },
+        Some("--device") if rest.get(1).is_some() => ClientMsg::CastTv { device: rest.get(1).cloned(), browser: false },
+        Some("status") => ClientMsg::CastStatus,
+        _ => {
+            eprintln!("usage: tetron-wm cast [--device NAME] | --url | off | status");
+            return Ok(());
+        }
+    };
+    let Some(reply) = tetron_wm::protocol::query_control_line(&msg, 40) else {
+        eprintln!("tetron-wm: no daemon running, or it is too old (run `tetron-wm reload`)");
+        std::process::exit(1);
+    };
+    match reply.strip_prefix("ok ") {
+        Some(body) => {
+            if matches!(msg, ClientMsg::CastTv { browser: true, .. }) {
+                eprintln!("warning: anyone with this URL sees your whole desktop; `tetron-wm cast off` stops it");
+            }
+            println!("{body}");
+            Ok(())
+        }
+        None => {
+            eprintln!("tetron-wm: {}", reply.strip_prefix("error ").unwrap_or(&reply));
+            std::process::exit(1);
+        }
+    }
 }

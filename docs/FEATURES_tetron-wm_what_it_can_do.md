@@ -57,6 +57,7 @@ Keys below are leader sequences: press `Ctrl+Space`, release, then the key. The 
 - **Color depth.** Detected from the terminal: truecolor, 256, 16 on the bare console, black and white with `NO_COLOR`. Force it with `TETRON_WM_COLORS=mono|16|256|truecolor`. Themes adapt by role, so the desktop, windows and selection stay distinct even in 16 colors, and a theme file can pin its 16-color choices with a `[vt16]` table and set the 16 colors apps see with an `[ansi]` table.
 - **Screensaver.** On demand only: leader `z`, the launcher, or `tetron-wm screensaver`. Any key or mouse movement wakes it.
 - **Screenshots.** Leader `s` or `tetron-wm screenshot` saves a PNG of the whole screen.
+- **Cast the desktop** (optional addon, needs [casttui](https://tetronos.github.io/casttui/)). Leader `o`, the launcher item or `tetron-wm cast` puts the live desktop on a Chromecast, sharp, with almost no CPU; a red `CAST` marker in the menubar is always visible while it runs and stops it when clicked. `tetron-wm cast --url` shows it in a browser on the LAN. See [docs/HOWTO_tetron-wm_cast_the_desktop_to_a_chromecast.md](docs/HOWTO_tetron-wm_cast_the_desktop_to_a_chromecast.md).
 
 ## Clipboard
 
