@@ -142,6 +142,7 @@ fn main() -> std::io::Result<()> {
             println!("{}", path.display());
             ctl(&tetron_wm::session::ClientMsg::Screenshot(path.to_string_lossy().into_owned()))
         }
+        Some("cast") if rest.first().map(String::as_str) == Some("--demo") => cast_demo(),
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
@@ -719,4 +720,20 @@ fn kill_app(args: &[String]) -> std::io::Result<()> {
         println!("tetron-wm kill-app: sent kill to {} app(s)", to_kill.len());
     }
     Ok(())
+}
+
+/// `tetron-wm cast --demo`: serve an animated test grid on the LAN address so the
+/// cast page can be checked in a browser. The URL holds a secret token.
+fn cast_demo() -> std::io::Result<()> {
+    use std::net::UdpSocket;
+    let ip = UdpSocket::bind("0.0.0.0:0").and_then(|s| { s.connect("192.0.2.1:9")?; s.local_addr() }).map(|a| a.ip()).unwrap_or_else(|_| "127.0.0.1".parse().unwrap());
+    let v = tetron_wm::cast::Viewer::start(ip, 0, None, 15)?;
+    eprintln!("warning: this URL shows the stream to anyone who has it; Ctrl+C stops");
+    println!("{}", v.url(&ip.to_string()));
+    let mut t = 0u32;
+    loop {
+        v.shared.publish(std::sync::Arc::new(tetron_wm::cast::demo_buffer(t, 100, 30)), Some(((t % 100) as i32, 5)));
+        t = t.wrapping_add(1);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 }
