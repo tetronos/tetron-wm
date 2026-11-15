@@ -737,7 +737,8 @@ fn cast_demo() -> std::io::Result<()> {
     }
 }
 
-/// `tetron-wm cast --url | off | status | --demo`. `--url` starts the viewer in
+/// `tetron-wm cast [--device NAME] | --url | off | status | --demo`. With no flag the
+/// desktop goes to the Chromecast (`cast_device`) through casttui or catt. `--url` starts the viewer in
 /// the running daemon and prints its URL (a secret: it shows the whole desktop).
 fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
     use tetron_wm::session::ClientMsg;
@@ -745,13 +746,15 @@ fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
         Some("--demo") => return cast_demo(),
         Some("--url") => ClientMsg::CastStart { device: rest.get(1).cloned() },
         Some("off") => ClientMsg::CastStop,
+        None => ClientMsg::CastTv { device: None },
+        Some("--device") if rest.get(1).is_some() => ClientMsg::CastTv { device: rest.get(1).cloned() },
         Some("status") => ClientMsg::CastStatus,
         _ => {
-            eprintln!("usage: tetron-wm cast --url [DEVICE_IP] | off | status | --demo");
+            eprintln!("usage: tetron-wm cast [--device NAME] | --url [DEVICE_IP] | off | status | --demo");
             return Ok(());
         }
     };
-    let Some(reply) = tetron_wm::protocol::query_control_line(&msg) else {
+    let Some(reply) = tetron_wm::protocol::query_control_line(&msg, 40) else {
         eprintln!("tetron-wm: no daemon running, or it is too old (run `tetron-wm reload`)");
         std::process::exit(1);
     };

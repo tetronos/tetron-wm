@@ -471,10 +471,10 @@ pub fn query_status() -> Option<StatusReply> {
 
 /// Send `msg` to the daemon's control socket and read its one line reply.
 /// `None`: no daemon, or one that does not answer (an older build).
-pub fn query_control_line(msg: &crate::session::ClientMsg) -> Option<String> {
+pub fn query_control_line(msg: &crate::session::ClientMsg, wait_secs: u64) -> Option<String> {
     use std::io::{BufRead, Write};
     let mut s = std::os::unix::net::UnixStream::connect(daemon_ctl_path()).ok()?;
-    s.set_read_timeout(Some(std::time::Duration::from_secs(3))).ok()?;
+    s.set_read_timeout(Some(std::time::Duration::from_secs(wait_secs))).ok()?;
     let mut buf = serde_json::to_vec(msg).ok()?;
     buf.push(b'\n');
     s.write_all(&buf).ok()?;

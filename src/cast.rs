@@ -336,10 +336,82 @@ fn watch(v: Arc<Viewer>, idle_stop: u64) {
         if (idle_stop > 0 && no_viewer.elapsed().as_secs() >= idle_stop) || detached.elapsed().as_secs() >= 60 {
             crate::dbg_log("cast: idle, stopping");
             let mine = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref().is_some_and(|c| Arc::ptr_eq(c, &v));
-            if mine { stop(); } else { v.stop(); }
+            if mine { stop_all(); } else { v.stop(); }
             return;
         }
     }
+}
+
+// ---- casting the viewer page to a Chromecast ---------------------------------
+
+/// Which command line the cast program speaks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Tool { Casttui, Catt }
+
+/// The program and its dialect: `configured` (empty = casttui if `have`, else catt).
+pub fn pick_tool(configured: &str, have: impl Fn(&str) -> bool) -> Option<(String, Tool)> {
+    let c = configured.trim();
+    let name = |p: &str| p.rsplit('/').next().unwrap_or(p).to_string();
+    if !c.is_empty() {
+        let tool = if name(c).starts_with("casttui") { Tool::Casttui } else { Tool::Catt };
+        return Some((c.to_string(), tool));
+    }
+    if have("casttui") { Some(("casttui".into(), Tool::Casttui)) }
+    else if have("catt") { Some(("catt".into(), Tool::Catt)) }
+    else { None }
+}
+
+/// Arguments that load `url` (`page`) or end the cast (`!page`) on `device`.
+pub fn tool_args(tool: Tool, device: &str, page: Option<&str>) -> Vec<String> {
+    let mut a: Vec<String> = Vec::new();
+    let d = device.trim();
+    if !d.is_empty() { a.push("-d".into()); a.push(d.into()); }
+    match (tool, page) {
+        (Tool::Casttui, Some(u)) => { a.push("--page".into()); a.push(u.into()); }
+        (Tool::Casttui, None) => a.push("--stop".into()),
+        (Tool::Catt, Some(u)) => { a.push("cast_site".into()); a.push(u.into()); }
+        (Tool::Catt, None) => a.push("stop".into()),
+    }
+    a
+}
+
+/// How to end the TV side of the running cast: program, dialect, device.
+static TV: Mutex<Option<(String, Tool, String)>> = Mutex::new(None);
+
+fn run_tool(program: &str, args: &[String], secs: u64) -> Result<(), String> {
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    match crate::system::run_capped_status(program, &refs, secs) {
+        crate::system::Capped::Done => Ok(()),
+        crate::system::Capped::Failed(e) => Err(if e.is_empty() { format!("{program} failed") } else { e }),
+        crate::system::Capped::StillRunning => Err(format!("{program} did not finish in {secs} s")),
+        crate::system::Capped::Missing(_) => Err(format!("{program} is not installed (casttui or catt is needed)")),
+    }
+}
+
+/// Start the viewer and put its page on the Chromecast. The URL never reaches
+/// the log; on any failure the viewer is stopped again.
+pub fn start_tv(cfg: &crate::config::Config, device: Option<&str>) -> Result<String, String> {
+    let device = device.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(cfg.cast_device.trim()).to_string();
+    let (program, tool) = pick_tool(&cfg.cast_command, |p| crate::catalog::is_installed(p))
+        .ok_or("casttui or catt is needed to cast (install casttui, or `uv tool install catt`)")?;
+    let url = start(Some(&device), cfg.cast_port, cfg.cast_fps, cfg.cast_idle_stop)?;
+    crate::dbg_log(&format!("cast: asking {program} to load the page on '{}'", if device.is_empty() { "the default device" } else { &device }));
+    match run_tool(&program, &tool_args(tool, &device, Some(&url)), 25) {
+        Ok(()) => {
+            *TV.lock().unwrap_or_else(|e| e.into_inner()) = Some((program, tool, device.clone()));
+            Ok(if device.is_empty() { "the default device".into() } else { device })
+        }
+        Err(e) => { stop(); Err(e) }
+    }
+}
+
+/// Stop the TV side (if this daemon started it) and the viewer.
+pub fn stop_all() -> bool {
+    let tv = TV.lock().unwrap_or_else(|e| e.into_inner()).take();
+    if let Some((program, tool, device)) = &tv {
+        if let Err(e) = run_tool(program, &tool_args(*tool, device, None), 25) { crate::dbg_log(&format!("cast: stopping the TV: {e}")); }
+    }
+    stop() || tv.is_some()
 }
 
 /// An animated test grid for `tetron-wm cast --demo`: a moving gradient, box
@@ -468,6 +540,19 @@ mod tests {
         assert!(stop() && !stop());
         assert!(!active());
         assert_eq!(status(), "off");
+    }
+
+    #[test]
+    fn tool_choice_and_arguments() {
+        assert_eq!(pick_tool("", |p| p == "casttui").unwrap(), ("casttui".into(), Tool::Casttui));
+        assert_eq!(pick_tool("", |p| p == "catt").unwrap(), ("catt".into(), Tool::Catt));
+        assert!(pick_tool("", |_| false).is_none());
+        assert_eq!(pick_tool("/opt/bin/casttui", |_| false).unwrap().1, Tool::Casttui);
+        assert_eq!(pick_tool("uvx-catt", |_| false).unwrap().1, Tool::Catt);
+        assert_eq!(tool_args(Tool::Casttui, "TV", Some("http://h/")), ["-d", "TV", "--page", "http://h/"]);
+        assert_eq!(tool_args(Tool::Casttui, " ", None), ["--stop"]);
+        assert_eq!(tool_args(Tool::Catt, "1.2.3.4", Some("u")), ["-d", "1.2.3.4", "cast_site", "u"]);
+        assert_eq!(tool_args(Tool::Catt, "", None), ["stop"]);
     }
 
     #[test]
