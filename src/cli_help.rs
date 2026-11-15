@@ -123,6 +123,9 @@ COMMANDS:\n\
 \x20                       @files [dir], @settings, @store, @activity, @logs, @image <file>\n\
 \x20 tile                  tile all windows into the grid\n\
 \x20 screenshot [file.png] save a PNG of the whole screen (needs an attached client)\n\
+\x20 cast [--device NAME]  cast the desktop to a Chromecast (optional: needs casttui); `cast off`\n\
+\x20                       stops it, `cast status` reports, `cast --url` prints a URL (a secret) to\n\
+\x20                       watch in a browser on the LAN. Leader o toggles; the red CAST marker stops it\n\
 \x20 screensaver [on|off|toggle|list] [effect]   cover the screen (default on); any key or mouse\n\
 \x20                       in the attached client wakes it. Effects: black, clock (see list)\n\
 \x20 config init           write the example config to ~/.config/tetron-wm/config.toml if no\n\
