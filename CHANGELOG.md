@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.14] — 2026-11-15
+
 - Launcher menu: names are no longer cut. A panel is as wide as its longest row including the `CLI` tag and the submenu marker (it left no room for them before, so the longest names, and every name next to a `CLI` tag, ended in an ellipsis), up to 48 cells (was 30).
 
 - Settings > Cast and Settings > Dictation have an Install row (Enter or click) when casttui or tetron-stt is not installed. It runs the install in a window like the other Settings actions: apt when the package is available, else casttui with uv and the tetron-stt release binary in `~/.local/bin`.
