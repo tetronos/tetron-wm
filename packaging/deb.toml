@@ -23,7 +23,7 @@ homepage = "https://github.com/tetronos/tetron-wm"
 # because trixie does not package them: kmscon, catt. tetron and tetron-tui are
 # our own .debs.
 suggests = [
-  "python3",                    # tetron-wm-startpage, tetron-aimode
+  "python3",                    # tetron-wm-startpage
   "curl",                       # Settings > Updates, Get more themes
   "chafa", "mpv", "poppler-utils", "mupdf-tools", "w3m", "fbi",
   "sshpass", "openssh-client", "sshfs", "unzip", "7zip", "age", "gpg",
@@ -42,11 +42,6 @@ mode = "0755"
 [[files]]
 src = "../scripts/tetron-wm-startpage"
 dst = "usr/bin/tetron-wm-startpage"
-mode = "0755"
-
-[[files]]
-src = "../scripts/tetron-aimode"
-dst = "usr/bin/tetron-aimode"
 mode = "0755"
 
 [[files]]

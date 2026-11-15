@@ -645,13 +645,23 @@ cast_tools_missing() {
   printf '%s' "$out"
 }
 
-# tetron-wm's own small apps from scripts/: Start Page (bookmarks start page,
-# opened in carbonyl or w3m) and AI Mode (Gemini Q&A). Single stdlib Python 3
-# files, fetched into ~/.local/bin; the launcher lists them once on PATH.
+# Small apps that are single stdlib Python 3 files, fetched into ~/.local/bin; the launcher
+# lists them once on PATH: Start Page (bookmarks start page, opened in carbonyl or w3m) from
+# this repository's scripts/, AI Mode (Gemini Q&A) from its own repository, tetronos/tetron-aimode.
 OWN_APPS="tetron-wm-startpage tetron-aimode"
+own_app_url() {
+  case "$1" in
+    tetron-aimode) printf '%s' "https://raw.githubusercontent.com/tetronos/tetron-aimode/main/tetron-aimode" ;;
+    *) printf '%s' "$RAW/scripts/$1" ;;
+  esac
+}
 own_apps_missing() {
   local a out=""
-  for a in $OWN_APPS; do have "$a" || [ -x "$HOME/.local/bin/$a" ] || out="${out:+$out }$a"; done
+  for a in $OWN_APPS; do
+    # AI Mode needs a Gemini key: a recommended app, not part of the essentials.
+    [ "$a" = tetron-aimode ] && [ "$(size_rank "$SIZE")" -lt 2 ] && continue
+    have "$a" || [ -x "$HOME/.local/bin/$a" ] || out="${out:+$out }$a"
+  done
   printf '%s' "$out"
 }
 
@@ -660,10 +670,10 @@ install_own_apps() {
   local a d="$HOME/.local/bin"; mkdir -p "$d"
   for a in $(own_apps_missing); do
     log "installing $a into $d"
-    if fetch "$RAW/scripts/$a" > "$d/$a.tmp" && [ -s "$d/$a.tmp" ]; then
+    if fetch "$(own_app_url "$a")" > "$d/$a.tmp" && [ -s "$d/$a.tmp" ]; then
       chmod +x "$d/$a.tmp" && mv "$d/$a.tmp" "$d/$a"
     else
-      rm -f "$d/$a.tmp"; warn "could not download $a from $RAW/scripts/$a"
+      rm -f "$d/$a.tmp"; warn "could not download $a from $(own_app_url "$a")"
     fi
   done
   [ -x "$d/tetron-aimode" ] && [ -z "${GEMINI_API_KEY:-}" ] && [ ! -s "$HOME/.config/aimode/key" ] &&

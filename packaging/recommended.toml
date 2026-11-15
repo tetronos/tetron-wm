@@ -21,6 +21,7 @@ license = "MIT"
 homepage = "https://github.com/tetronos/tetron-wm"
 depends = ["tetron-wm-essentials (>= {minor})"]
 recommends = [
+  "tetron-aimode",
   "duf",
   "smartmontools",
   "nvme-cli",
