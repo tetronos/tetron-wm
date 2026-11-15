@@ -1,6 +1,6 @@
 # How to cast the tetron-wm desktop to a Chromecast
 
-Casting is an optional addon. tetron-wm only streams its own screen, as lines of JSON, to the standard input of `casttui --cells`. [casttui](https://tetronos.github.io/casttui/) does everything else: it serves a web page that draws the cell grid sharply (no video encoding, almost no CPU), controls the Chromecast, and holds every network facing part, so tetron-wm itself opens no port. Without casttui installed the key, the launcher item and the settings stay hidden. casttui on its own can also cast a pixel desktop (X11, the console framebuffer) and any web page, see casttui `docs/HOWTO_casttui_cast_a_desktop_or_a_web_page_to_a_chromecast.md`.
+Casting is an optional addon. tetron-wm only streams its own screen, as lines of JSON, to the standard input of `casttui --cells`. [casttui](https://tetronos.github.io/casttui/) does everything else: it serves a web page that draws the cell grid sharply (no video encoding, almost no CPU), controls the Chromecast, and holds every network facing part, so tetron-wm itself opens no port. Without casttui installed the launcher item is hidden, and the leader key only shows a message saying casttui is needed. casttui on its own can also cast a pixel desktop (X11, the console framebuffer) and any web page, see casttui `docs/HOWTO_casttui_cast_a_desktop_or_a_web_page_to_a_chromecast.md`.
 
 ## What you need
 
