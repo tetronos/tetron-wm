@@ -732,20 +732,16 @@ fn serve_control(
                 }
                 // Cast control: one text line back (the URL holds a secret token). The
                 // TV cast can take 20 s, so it runs on its own thread.
-                Ok(m @ (ClientMsg::CastStart { .. } | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus)) => {
+                Ok(m @ (ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus)) => {
                     let Ok(mut out) = r.get_ref().try_clone() else { continue };
                     std::thread::spawn(move || {
                         let cfg = crate::config::Config::load();
                         let line = match m {
-                            ClientMsg::CastStart { device } => match crate::cast::start(device.as_deref(), cfg.cast_port, cfg.cast_fps, cfg.cast_idle_stop) {
-                                Ok(url) => format!("ok {url}"),
+                            ClientMsg::CastTv { device, browser } => match crate::cast::start(&cfg, device.as_deref(), browser) {
+                                Ok(first) => format!("ok {first}"),
                                 Err(e) => format!("error {e}"),
                             },
-                            ClientMsg::CastTv { device } => match crate::cast::start_tv(&cfg, device.as_deref()) {
-                                Ok(d) => format!("ok casting on {d}"),
-                                Err(e) => format!("error {e}"),
-                            },
-                            ClientMsg::CastStop => if crate::cast::stop_all() { "ok stopped".into() } else { "ok off".into() },
+                            ClientMsg::CastStop => if crate::cast::stop() { "ok stopped".into() } else { "ok off".into() },
                             _ => format!("ok {}", crate::cast::status()),
                         };
                         let _ = std::io::Write::write_all(&mut out, format!("{line}\n").as_bytes());

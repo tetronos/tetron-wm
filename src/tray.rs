@@ -28,7 +28,7 @@ pub enum SegmentKind {
     Wifi,
     Tetron,
     Select,
-    /// A desktop cast is running (`CAST n`, n = viewers); a click stops it.
+    /// A desktop cast is running (`CAST`); a click stops it.
     Cast,
     Clipboard,
     Bell,
@@ -287,8 +287,8 @@ pub fn tray_layout(
     }
     // Casting shows the whole desktop to whoever holds the URL: the marker is never
     // shed or moved into the Info menu, so it is always visible while it runs.
-    if let Some(n) = crate::cast::viewers_if_active() {
-        texts.push((SegmentKind::Cast, format!("CAST {n}")));
+    if crate::cast::active() {
+        texts.push((SegmentKind::Cast, "CAST".to_string()));
     }
     if let Some((n, paused)) = clip {
         let tail = if paused { crate::glyphs::get(crate::glyphs::Glyph::Paused).to_string() } else { n.to_string() }; // ‖ when paused

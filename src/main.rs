@@ -722,35 +722,19 @@ fn kill_app(args: &[String]) -> std::io::Result<()> {
     Ok(())
 }
 
-/// `tetron-wm cast --demo`: serve an animated test grid on the LAN address so the
-/// cast page can be checked in a browser. The URL holds a secret token.
-fn cast_demo() -> std::io::Result<()> {
-    let ip = tetron_wm::cast::lan_ip(None);
-    let v = tetron_wm::cast::Viewer::start(ip, 0, None, 15)?;
-    eprintln!("warning: this URL shows the stream to anyone who has it; Ctrl+C stops");
-    println!("{}", v.url(&ip.to_string()));
-    let mut t = 0u32;
-    loop {
-        v.shared.publish(std::sync::Arc::new(tetron_wm::cast::demo_buffer(t, 100, 30)), Some(((t % 100) as i32, 5)));
-        t = t.wrapping_add(1);
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
-
 /// `tetron-wm cast [--device NAME] | --url | off | status | --demo`. With no flag the
 /// desktop goes to the Chromecast (`cast_device`) through casttui or catt. `--url` starts the viewer in
 /// the running daemon and prints its URL (a secret: it shows the whole desktop).
 fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
     use tetron_wm::session::ClientMsg;
     let msg = match rest.first().map(String::as_str) {
-        Some("--demo") => return cast_demo(),
-        Some("--url") => ClientMsg::CastStart { device: rest.get(1).cloned() },
+        Some("--url") => ClientMsg::CastTv { device: None, browser: true },
         Some("off") => ClientMsg::CastStop,
-        None => ClientMsg::CastTv { device: None },
-        Some("--device") if rest.get(1).is_some() => ClientMsg::CastTv { device: rest.get(1).cloned() },
+        None => ClientMsg::CastTv { device: None, browser: false },
+        Some("--device") if rest.get(1).is_some() => ClientMsg::CastTv { device: rest.get(1).cloned(), browser: false },
         Some("status") => ClientMsg::CastStatus,
         _ => {
-            eprintln!("usage: tetron-wm cast [--device NAME] | --url [DEVICE_IP] | off | status | --demo");
+            eprintln!("usage: tetron-wm cast [--device NAME] | --url | off | status");
             return Ok(());
         }
     };
@@ -760,7 +744,7 @@ fn cast_cmd(rest: &[String]) -> std::io::Result<()> {
     };
     match reply.strip_prefix("ok ") {
         Some(body) => {
-            if matches!(msg, ClientMsg::CastStart { .. }) {
+            if matches!(msg, ClientMsg::CastTv { browser: true, .. }) {
                 eprintln!("warning: anyone with this URL sees your whole desktop; `tetron-wm cast off` stops it");
             }
             println!("{body}");

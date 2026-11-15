@@ -1,71 +1,34 @@
-//! Cast viewer: a tiny read only HTTP server that streams the composited cell
-//! buffer to a web page (for a Chromecast or any browser) as Server-Sent Events.
-//! Std only. GET only, an unguessable token in the path, LAN address only.
-//! The token and the full URL are never logged.
+//! Desktop cast: an optional addon seam. While a cast runs, the composited cell
+//! buffer is written as JSON lines (protocol v1, see docs) to the stdin of
+//! `casttui --cells`, which serves the page, controls the Chromecast and holds
+//! every network facing part. tetron-wm itself opens no port. Without casttui
+//! installed nothing here runs and the cast UI stays hidden.
+//!
+//! Events: `hello` (cols, rows), `full` / `diff` (`spans`, the packed form of
+//! `protocol::Span`), `cursor` (null: the compositor draws the cursor into the
+//! cells), `status` (`detached` | `ok` | `stopped`). The URL, which holds a
+//! secret token and is only ever printed by `--no-cast`, is never logged.
 
 use crate::buffer::CellBuffer;
 use crate::cell::Cell;
 use crate::compositor::CellChange;
-use crate::protocol::{pack_changes, Span};
-use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use crate::protocol::pack_changes;
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
-const PAGE: &str = include_str!("../assets/cast.html");
-const MAX_HEADER: usize = 8 * 1024;
-const MAX_VIEWERS: usize = 4;
-const HEARTBEAT: Duration = Duration::from_secs(15);
+/// Seconds without an attached terminal before the cast ends by itself.
+const DETACH_GRACE: u64 = 60;
+/// How long the sink program may take to report that the cast is up.
+const START_WAIT: Duration = Duration::from_secs(30);
 
 /// One published frame.
 #[derive(Clone)]
 pub struct Snapshot {
     pub gen: u64,
     pub buf: Arc<CellBuffer>,
-    pub cursor: Option<(i32, i32)>,
-}
-
-/// State shared by the publisher (render loop) and the viewer threads.
-pub struct Shared {
-    slot: Mutex<Option<Snapshot>>,
-    cv: Condvar,
-    stop: AtomicBool,
-    viewers: AtomicUsize,
-    detached: AtomicBool,
-}
-
-impl Shared {
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self { slot: Mutex::new(None), cv: Condvar::new(), stop: AtomicBool::new(false), viewers: AtomicUsize::new(0), detached: AtomicBool::new(false) })
-    }
-    /// Publish a frame: an `Arc` swap and a wake up, never a socket write.
-    pub fn publish(&self, buf: Arc<CellBuffer>, cursor: Option<(i32, i32)>) {
-        let mut g = self.slot.lock().unwrap();
-        let gen = g.as_ref().map_or(1, |s| s.gen + 1);
-        *g = Some(Snapshot { gen, buf, cursor });
-        self.cv.notify_all();
-    }
-    /// The session has no attached client: viewers show an overlay instead of a frozen frame.
-    pub fn set_detached(&self, d: bool) {
-        if self.detached.swap(d, Ordering::Relaxed) != d { self.cv.notify_all(); }
-    }
-    pub fn viewers(&self) -> usize { self.viewers.load(Ordering::Relaxed) }
-    pub fn stop(&self) { self.stop.store(true, Ordering::Relaxed); self.cv.notify_all(); }
-    fn stopped(&self) -> bool { self.stop.load(Ordering::Relaxed) }
-}
-
-/// 128 random bits as 32 hex digits, from the kernel.
-pub fn new_token() -> std::io::Result<String> {
-    let mut b = [0u8; 16];
-    std::fs::File::open("/dev/urandom")?.read_exact(&mut b)?;
-    Ok(b.iter().map(|x| format!("{x:02x}")).collect())
-}
-
-/// Compare without stopping at the first difference.
-pub fn token_eq(a: &str, b: &str) -> bool {
-    let (a, b) = (a.as_bytes(), b.as_bytes());
-    a.len() == b.len() && a.iter().zip(b).fold(0u8, |d, (x, y)| d | (x ^ y)) == 0
 }
 
 /// Cells of `new` that differ from `prev`; every cell when there is no `prev`
@@ -84,182 +47,37 @@ pub fn diff_buffers(prev: Option<&CellBuffer>, new: &CellBuffer) -> Vec<CellChan
     out
 }
 
-/// One SSE event carrying a JSON object.
-pub fn sse(v: &serde_json::Value) -> String { format!("data: {v}\n\n") }
+fn line(v: &serde_json::Value) -> String { format!("{v}\n") }
 
-fn spans_json(s: &[Span]) -> serde_json::Value { serde_json::to_value(s).unwrap_or_default() }
-
-/// The events to send a viewer that last received `prev` so that it shows `snap`.
+/// The lines that bring a sink that last received `prev` to `snap`.
 pub fn events_for(prev: Option<&Snapshot>, snap: &Snapshot) -> Vec<String> {
     let mut out = Vec::new();
     let resized = prev.is_none_or(|p| p.buf.width() != snap.buf.width() || p.buf.height() != snap.buf.height());
     if resized {
-        out.push(sse(&serde_json::json!({"t":"hello","v":1,"cols":snap.buf.width(),"rows":snap.buf.height()})));
+        out.push(line(&serde_json::json!({"t":"hello","v":1,"cols":snap.buf.width(),"rows":snap.buf.height()})));
     }
     let changes = diff_buffers(if resized { None } else { prev.map(|p| &*p.buf) }, &snap.buf);
     if !changes.is_empty() || resized {
         let t = if resized { "full" } else { "diff" };
-        out.push(sse(&serde_json::json!({"t":t,"spans":spans_json(&pack_changes(&changes))})));
+        let spans = serde_json::to_value(pack_changes(&changes)).unwrap_or_default();
+        out.push(line(&serde_json::json!({"t":t,"spans":spans})));
     }
-    if resized || prev.map(|p| p.cursor) != Some(snap.cursor) {
-        let (x, y) = snap.cursor.map_or((None, None), |(x, y)| (Some(x), Some(y)));
-        out.push(sse(&serde_json::json!({"t":"cursor","x":x,"y":y})));
+    if resized {
+        out.push(line(&serde_json::json!({"t":"cursor","x":null,"y":null})));
     }
     out
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Route { Page, Events }
-
-/// Route a request. `Err` is the status code to answer with: 405 for a method
-/// other than GET, 400 for a malformed line, 404 for anything else (no body).
-pub fn route(request_line: &str, token: &str) -> Result<Route, u16> {
-    let mut it = request_line.split(' ');
-    let (Some(method), Some(target), Some(ver), None) = (it.next(), it.next(), it.next(), it.next()) else { return Err(400) };
-    if !ver.starts_with("HTTP/1.") { return Err(400); }
-    if method != "GET" { return Err(405); }
-    let path = target.split(['?', '#']).next().unwrap_or("");
-    let Some(rest) = path.strip_prefix('/') else { return Err(404) };
-    let (tok, tail) = rest.split_once('/').unwrap_or((rest, "\u{0}"));
-    if !token_eq(tok, token) { return Err(404); }
-    match tail { "" => Ok(Route::Page), "events" => Ok(Route::Events), _ => Err(404) }
+/// State shared by the render loop (publisher) and the writer thread.
+struct Sink {
+    slot: Mutex<Option<Snapshot>>,
+    cv: Condvar,
+    stop: AtomicBool,
+    detached: AtomicBool,
+    done: AtomicBool,
 }
 
-fn status_text(code: u16) -> &'static str {
-    match code { 400 => "Bad Request", 405 => "Method Not Allowed", 503 => "Service Unavailable", _ => "Not Found" }
-}
-
-fn reject(s: &mut TcpStream, code: u16) {
-    let _ = write!(s, "HTTP/1.1 {code} {}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", status_text(code));
-}
-
-/// Read the request head (up to the blank line) with a size cap; the first line.
-fn read_request_line(s: &mut TcpStream) -> Option<String> {
-    let mut buf = Vec::new();
-    let mut b = [0u8; 512];
-    while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
-        let n = s.read(&mut b).ok()?;
-        if n == 0 { return None; }
-        buf.extend_from_slice(&b[..n]);
-        if buf.len() > MAX_HEADER { return None; }
-    }
-    let head = String::from_utf8_lossy(&buf).into_owned();
-    head.lines().next().map(str::to_string)
-}
-
-/// A running viewer server.
-pub struct Viewer {
-    pub shared: Arc<Shared>,
-    pub port: u16,
-    pub token: String,
-}
-
-impl Viewer {
-    /// Listen on `ip:port` (port 0 picks a free one). When `allow` is set, other
-    /// peers are refused, except loopback.
-    pub fn start(ip: IpAddr, port: u16, allow: Option<IpAddr>, fps: u32) -> std::io::Result<Viewer> {
-        let token = new_token()?;
-        let l = TcpListener::bind(SocketAddr::new(ip, port))?;
-        l.set_nonblocking(true)?;
-        let port = l.local_addr()?.port();
-        let shared = Shared::new();
-        let (sh, tok) = (shared.clone(), token.clone());
-        let gap = Duration::from_millis(1000 / u64::from(fps.clamp(1, 60)));
-        std::thread::spawn(move || accept_loop(l, sh, tok, allow, gap));
-        Ok(Viewer { shared, port, token })
-    }
-    pub fn url(&self, host: &str) -> String { format!("http://{host}:{}/{}/", self.port, self.token) }
-    pub fn stop(&self) { self.shared.stop(); }
-}
-
-fn accept_loop(l: TcpListener, sh: Arc<Shared>, token: String, allow: Option<IpAddr>, gap: Duration) {
-    while !sh.stopped() {
-        match l.accept() {
-            Ok((s, peer)) => {
-                let ok = allow.is_none_or(|a| peer.ip() == a || peer.ip().is_loopback());
-                if !ok {
-                    crate::dbg_log(&format!("cast: refused {}", peer.ip()));
-                    continue;
-                }
-                let (sh, token) = (sh.clone(), token.clone());
-                std::thread::spawn(move || serve_conn(s, peer, sh, token, gap));
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(Duration::from_millis(50)),
-            Err(_) => break,
-        }
-    }
-}
-
-fn serve_conn(mut s: TcpStream, peer: SocketAddr, sh: Arc<Shared>, token: String, gap: Duration) {
-    let _ = s.set_nonblocking(false);
-    let _ = s.set_read_timeout(Some(Duration::from_secs(5)));
-    let Some(line) = read_request_line(&mut s) else { return };
-    match route(&line, &token) {
-        Err(code) => reject(&mut s, code),
-        Ok(Route::Page) => {
-            let _ = write!(s, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{PAGE}", PAGE.len());
-        }
-        Ok(Route::Events) => {
-            if sh.viewers.fetch_add(1, Ordering::Relaxed) >= MAX_VIEWERS {
-                sh.viewers.fetch_sub(1, Ordering::Relaxed);
-                return reject(&mut s, 503);
-            }
-            crate::dbg_log(&format!("cast: viewer connected {}", peer.ip()));
-            stream_events(&mut s, &sh, gap);
-            sh.viewers.fetch_sub(1, Ordering::Relaxed);
-            crate::dbg_log(&format!("cast: viewer left {}", peer.ip()));
-        }
-    }
-}
-
-fn stream_events(s: &mut TcpStream, sh: &Shared, gap: Duration) {
-    let _ = s.set_read_timeout(None);
-    let _ = s.set_write_timeout(Some(Duration::from_secs(10)));
-    if write!(s, "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n").is_err() { return; }
-    let mut sent: Option<Snapshot> = None;
-    let mut shown_detached = false;
-    let mut last_send = Instant::now();
-    let mut last_beat = Instant::now();
-    loop {
-        let snap = {
-            let mut g = sh.slot.lock().unwrap();
-            loop {
-                if sh.stopped() { drop(g); let _ = s.write_all(sse(&serde_json::json!({"t":"status","state":"stopped"})).as_bytes()); return; }
-                let det = sh.detached.load(Ordering::Relaxed);
-                if det != shown_detached {
-                    shown_detached = det;
-                    let st = sse(&serde_json::json!({"t":"status","state": if det { "detached" } else { "ok" }}));
-                    if s.write_all(st.as_bytes()).is_err() { return; }
-                }
-                if let Some(cur) = g.as_ref() {
-                    if sent.as_ref().is_none_or(|p| p.gen != cur.gen) { break g.clone(); }
-                }
-                let (ng, to) = sh.cv.wait_timeout(g, HEARTBEAT).unwrap();
-                g = ng;
-                if to.timed_out() && last_beat.elapsed() >= HEARTBEAT {
-                    if s.write_all(b":\n\n").is_err() { return; }
-                    last_beat = Instant::now();
-                }
-            }
-        };
-        let Some(snap) = snap else { continue };
-        // Coalesce: wait out the frame gap, then diff against the newest snapshot.
-        let since = last_send.elapsed();
-        if since < gap { std::thread::sleep(gap - since); }
-        let snap = sh.slot.lock().unwrap().clone().unwrap_or(snap);
-        for ev in events_for(sent.as_ref(), &snap) {
-            if s.write_all(ev.as_bytes()).is_err() { return; }
-        }
-        let _ = s.flush();
-        sent = Some(snap);
-        last_send = Instant::now();
-        last_beat = Instant::now();
-    }
-}
-
-// ---- the one cast of this daemon -------------------------------------------
-
-static CURRENT: Mutex<Option<Arc<Viewer>>> = Mutex::new(None);
+static CURRENT: Mutex<Option<Arc<Sink>>> = Mutex::new(None);
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 static WANT_FULL: AtomicBool = AtomicBool::new(true);
 
@@ -270,217 +88,202 @@ pub fn active() -> bool { ACTIVE.load(Ordering::Relaxed) }
 /// the screen is unchanged.
 pub fn take_want_full() -> bool { active() && WANT_FULL.swap(false, Ordering::Relaxed) }
 
-/// Publish the composited screen (a clone of it) to the viewers. The cursor is
-/// already drawn into the cells by the compositor.
+fn current() -> Option<Arc<Sink>> { CURRENT.lock().unwrap_or_else(|e| e.into_inner()).clone() }
+
+/// Publish the composited screen (a clone of it): an `Arc` swap and a wake up,
+/// never a write to the sink. The cursor is already drawn into the cells.
 pub fn publish_frame(buf: &CellBuffer) {
-    if let Some(v) = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-        v.shared.publish(Arc::new(buf.clone()), None);
+    if let Some(s) = current() {
+        let mut g = s.slot.lock().unwrap_or_else(|e| e.into_inner());
+        let gen = g.as_ref().map_or(1, |x| x.gen + 1);
+        *g = Some(Snapshot { gen, buf: Arc::new(buf.clone()) });
+        s.cv.notify_all();
     }
 }
 
-/// Mark the session attached or detached.
+/// Mark the session attached or detached (viewers show an overlay when detached).
 pub fn set_detached(d: bool) {
-    if let Some(v) = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() { v.shared.set_detached(d); }
+    if let Some(s) = current() {
+        if s.detached.swap(d, Ordering::Relaxed) != d { s.cv.notify_all(); }
+    }
 }
 
-/// The local address that routes toward `device` (a UDP connect sends no packet),
-/// or toward the default route when `device` is not an IP.
-pub fn lan_ip(device: Option<&str>) -> IpAddr {
-    let target: IpAddr = device.and_then(|d| d.trim().parse().ok()).unwrap_or_else(|| "192.0.2.1".parse().unwrap());
-    std::net::UdpSocket::bind("0.0.0.0:0")
-        .and_then(|s| { s.connect(SocketAddr::new(target, 9))?; s.local_addr() })
-        .map(|a| a.ip())
-        .unwrap_or_else(|_| "127.0.0.1".parse().unwrap())
+/// Whether casting can be offered: a configured program, or casttui installed.
+pub fn available(cfg: &crate::config::Config) -> bool {
+    !cfg.cast_command.trim().is_empty() || crate::catalog::is_installed("casttui")
 }
 
-/// Start the viewer (or return the running one's URL). Returns the URL, which
-/// holds the secret token.
-pub fn start(device: Option<&str>, port: u16, fps: u32, idle_stop: u64) -> Result<String, String> {
-    let mut cur = CURRENT.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(v) = cur.as_ref() { return Ok(v.url(&lan_ip(device).to_string())); }
-    let ip = lan_ip(device);
-    let allow = device.and_then(|d| d.trim().parse::<IpAddr>().ok());
-    let v = Arc::new(Viewer::start(ip, port, allow, fps).map_err(|e| format!("cannot start the viewer: {e}"))?);
-    let url = v.url(&ip.to_string());
-    crate::dbg_log(&format!("cast: serving on {ip}:{}", v.port));
-    *cur = Some(v.clone());
+/// The program and arguments for a cast: `casttui --cells [--no-cast] [-d DEVICE]`.
+pub fn command_line(cfg: &crate::config::Config, device: Option<&str>, browser: bool) -> (String, Vec<String>) {
+    let program = match cfg.cast_command.trim() { "" => "casttui", p => p }.to_string();
+    let mut args = vec!["--cells".to_string()];
+    if browser {
+        args.push("--no-cast".into());
+    } else {
+        let d = device.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(cfg.cast_device.trim());
+        if !d.is_empty() { args.extend(["-d".to_string(), d.to_string()]); }
+    }
+    (program, args)
+}
+
+/// Start the sink program and begin streaming. Returns the program's first
+/// output line: `casting cells on DEVICE`, or with `browser` the URL (a secret).
+pub fn start(cfg: &crate::config::Config, device: Option<&str>, browser: bool) -> Result<String, String> {
+    if active() { return Err("already casting (tetron-wm cast off stops it)".into()); }
+    if !available(cfg) {
+        return Err("casting needs casttui (sudo apt install casttui)".into());
+    }
+    let (program, args) = command_line(cfg, device, browser);
+    crate::dbg_log(&format!("cast: starting {program} {}", args.join(" ")));
+    let mut child = Command::new(&program)
+        .args(&args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("cannot run {program}: {e}"))?;
+    let stdin = child.stdin.take().ok_or("no stdin")?;
+    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let stderr = child.stderr.take().ok_or("no stderr")?;
+    let sink = Arc::new(Sink {
+        slot: Mutex::new(None),
+        cv: Condvar::new(),
+        stop: AtomicBool::new(false),
+        detached: AtomicBool::new(false),
+        done: AtomicBool::new(false),
+    });
+    let last_err = Arc::new(Mutex::new(String::new()));
+    let le = last_err.clone();
+    std::thread::spawn(move || {
+        for l in BufReader::new(stderr).lines().map_while(Result::ok) {
+            if !l.trim().is_empty() { *le.lock().unwrap_or_else(|e| e.into_inner()) = l; }
+        }
+    });
+    // First stdout line to the caller; the rest is logged (never a URL).
+    let (tx, rx) = mpsc::channel::<String>();
+    let sk = sink.clone();
+    std::thread::spawn(move || {
+        let mut first = true;
+        for l in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if first { first = false; let _ = tx.send(l); }
+            else if !l.starts_with("http") { crate::dbg_log(&format!("cast: {l}")); }
+        }
+        // The sink program ended (TV switched, casttui --stop, crash): end the cast.
+        sk.stop.store(true, Ordering::Relaxed);
+        sk.cv.notify_all();
+    });
+    let first = match rx.recv_timeout(START_WAIT) {
+        Ok(l) => l,
+        Err(_) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            std::thread::sleep(Duration::from_millis(100)); // let the stderr reader finish
+            let e = last_err.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            return Err(if e.is_empty() { format!("{program} did not start the cast") } else { e.trim_start_matches("casttui: ").to_string() });
+        }
+    };
+    *CURRENT.lock().unwrap_or_else(|e| e.into_inner()) = Some(sink.clone());
     WANT_FULL.store(true, Ordering::Relaxed);
     ACTIVE.store(true, Ordering::Relaxed);
-    std::thread::spawn(move || watch(v, idle_stop));
-    Ok(url)
+    let gap = Duration::from_millis(1000 / u64::from(cfg.cast_fps.clamp(1, 60)));
+    std::thread::spawn(move || writer(sink, stdin, child, gap));
+    Ok(first)
 }
 
-/// Stop the cast: viewers get a "cast stopped" overlay and the listener closes.
-pub fn stop() -> bool {
-    let v = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).take();
+/// Write events to the sink until told to stop, the sink ends, or the terminal
+/// stays detached for DETACH_GRACE seconds; then close its stdin (casttui quits
+/// the TV app and exits) and reap it.
+fn writer(sink: Arc<Sink>, mut stdin: std::process::ChildStdin, mut child: std::process::Child, gap: Duration) {
+    let mut sent: Option<Snapshot> = None;
+    let mut shown_detached = false;
+    let mut detached_since = Instant::now();
+    let mut last_send = Instant::now() - gap;
+    'run: loop {
+        let snap = {
+            let mut g = sink.slot.lock().unwrap_or_else(|e| e.into_inner());
+            loop {
+                if sink.stop.load(Ordering::Relaxed) { break 'run; }
+                let det = sink.detached.load(Ordering::Relaxed);
+                if !det { detached_since = Instant::now(); }
+                if det && detached_since.elapsed().as_secs() >= DETACH_GRACE {
+                    crate::dbg_log("cast: no terminal attached, stopping");
+                    break 'run;
+                }
+                if det != shown_detached {
+                    shown_detached = det;
+                    let st = line(&serde_json::json!({"t":"status","state": if det { "detached" } else { "ok" }}));
+                    if stdin.write_all(st.as_bytes()).and_then(|()| stdin.flush()).is_err() { break 'run; }
+                }
+                if let Some(cur) = g.as_ref() {
+                    if sent.as_ref().is_none_or(|p| p.gen != cur.gen) { break g.clone(); }
+                }
+                g = sink.cv.wait_timeout(g, Duration::from_secs(1)).unwrap_or_else(|e| e.into_inner()).0;
+            }
+        };
+        let Some(snap) = snap else { continue };
+        let since = last_send.elapsed();
+        if since < gap { std::thread::sleep(gap - since); }
+        // Coalesce: diff against the newest snapshot, not the one that woke us.
+        let snap = sink.slot.lock().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or(snap);
+        for ev in events_for(sent.as_ref(), &snap) {
+            if stdin.write_all(ev.as_bytes()).is_err() { break 'run; }
+        }
+        if stdin.flush().is_err() { break 'run; }
+        sent = Some(snap);
+        last_send = Instant::now();
+    }
     ACTIVE.store(false, Ordering::Relaxed);
-    match v { Some(v) => { v.stop(); crate::dbg_log("cast: stopped"); true } None => false }
+    {
+        let mut cur = CURRENT.lock().unwrap_or_else(|e| e.into_inner());
+        if cur.as_ref().is_some_and(|c| Arc::ptr_eq(c, &sink)) { *cur = None; }
+    }
+    let _ = stdin.write_all(line(&serde_json::json!({"t":"status","state":"stopped"})).as_bytes());
+    drop(stdin); // EOF: casttui ends the cast on the TV and exits
+    let t0 = Instant::now();
+    while t0.elapsed() < Duration::from_secs(12) {
+        if matches!(child.try_wait(), Ok(Some(_))) { break; }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+    crate::dbg_log("cast: stopped");
+    sink.done.store(true, Ordering::Relaxed);
 }
 
-/// Viewers of the running cast, or `None` when no cast runs (for the tray marker).
-pub fn viewers_if_active() -> Option<usize> {
-    if !active() { return None; }
-    CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref().map(|v| v.shared.viewers())
-}
-
-/// Start the TV cast, or stop it while one runs (leader key, menu item); the
-/// error text, if any, comes back for the caller to show.
-pub fn toggle_tv(cfg: &crate::config::Config) -> Result<String, String> {
-    if active() { stop_all(); Ok("stopped".into()) } else { start_tv(cfg, None).map(|d| format!("casting on {d}")) }
+/// Stop the cast and wait (up to 15 s) for the TV side to be quit.
+pub fn stop() -> bool {
+    let Some(s) = current() else { return false };
+    s.stop.store(true, Ordering::Relaxed);
+    s.cv.notify_all();
+    let t0 = Instant::now();
+    while !s.done.load(Ordering::Relaxed) && t0.elapsed() < Duration::from_secs(15) {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    true
 }
 
 /// One line for `tetron-wm cast status`.
-pub fn status() -> String {
-    match CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-        Some(v) => format!("casting, {} viewer(s)", v.shared.viewers()),
-        None => "off".into(),
-    }
-}
+pub fn status() -> String { if active() { "casting".into() } else { "off".into() } }
 
-/// Ends the cast after `idle_stop` seconds with no viewer (0 = never) or 60 s detached.
-fn watch(v: Arc<Viewer>, idle_stop: u64) {
-    let (mut no_viewer, mut detached) = (Instant::now(), Instant::now());
-    loop {
-        std::thread::sleep(Duration::from_secs(1));
-        if v.shared.stopped() { return; }
-        if v.shared.viewers() > 0 { no_viewer = Instant::now(); }
-        if !v.shared.detached.load(Ordering::Relaxed) { detached = Instant::now(); }
-        if (idle_stop > 0 && no_viewer.elapsed().as_secs() >= idle_stop) || detached.elapsed().as_secs() >= 60 {
-            crate::dbg_log("cast: idle, stopping");
-            let mine = CURRENT.lock().unwrap_or_else(|e| e.into_inner()).as_ref().is_some_and(|c| Arc::ptr_eq(c, &v));
-            if mine { stop_all(); } else { v.stop(); }
-            return;
-        }
-    }
-}
-
-// ---- casting the viewer page to a Chromecast ---------------------------------
-
-/// Which command line the cast program speaks.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Tool { Casttui, Catt }
-
-/// The program and its dialect: `configured` (empty = casttui if `have`, else catt).
-pub fn pick_tool(configured: &str, have: impl Fn(&str) -> bool) -> Option<(String, Tool)> {
-    let c = configured.trim();
-    let name = |p: &str| p.rsplit('/').next().unwrap_or(p).to_string();
-    if !c.is_empty() {
-        let tool = if name(c).starts_with("casttui") { Tool::Casttui } else { Tool::Catt };
-        return Some((c.to_string(), tool));
-    }
-    if have("casttui") { Some(("casttui".into(), Tool::Casttui)) }
-    else if have("catt") { Some(("catt".into(), Tool::Catt)) }
-    else { None }
-}
-
-/// Arguments that load `url` (`page`) or end the cast (`!page`) on `device`.
-pub fn tool_args(tool: Tool, device: &str, page: Option<&str>) -> Vec<String> {
-    let mut a: Vec<String> = Vec::new();
-    let d = device.trim();
-    if !d.is_empty() { a.push("-d".into()); a.push(d.into()); }
-    match (tool, page) {
-        (Tool::Casttui, Some(u)) => { a.push("--page".into()); a.push(u.into()); }
-        (Tool::Casttui, None) => a.push("--stop".into()),
-        (Tool::Catt, Some(u)) => { a.push("cast_site".into()); a.push(u.into()); }
-        (Tool::Catt, None) => a.push("stop".into()),
-    }
-    a
-}
-
-/// How to end the TV side of the running cast: program, dialect, device.
-static TV: Mutex<Option<(String, Tool, String)>> = Mutex::new(None);
-
-fn run_tool(program: &str, args: &[String], secs: u64) -> Result<(), String> {
-    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    match crate::system::run_capped_status(program, &refs, secs) {
-        crate::system::Capped::Done => Ok(()),
-        crate::system::Capped::Failed(e) => Err(if e.is_empty() { format!("{program} failed") } else { e }),
-        crate::system::Capped::StillRunning => Err(format!("{program} did not finish in {secs} s")),
-        crate::system::Capped::Missing(_) => Err(format!("{program} is not installed (casttui or catt is needed)")),
-    }
-}
-
-/// Start the viewer and put its page on the Chromecast. The URL never reaches
-/// the log; on any failure the viewer is stopped again.
-pub fn start_tv(cfg: &crate::config::Config, device: Option<&str>) -> Result<String, String> {
-    let device = device.map(str::trim).filter(|d| !d.is_empty()).unwrap_or(cfg.cast_device.trim()).to_string();
-    let (program, tool) = pick_tool(&cfg.cast_command, crate::catalog::is_installed)
-        .ok_or("casttui or catt is needed to cast (install casttui, or `uv tool install catt`)")?;
-    let url = start(Some(&device), cfg.cast_port, cfg.cast_fps, cfg.cast_idle_stop)?;
-    crate::dbg_log(&format!("cast: asking {program} to load the page on '{}'", if device.is_empty() { "the default device" } else { &device }));
-    match run_tool(&program, &tool_args(tool, &device, Some(&url)), 25) {
-        Ok(()) => {
-            *TV.lock().unwrap_or_else(|e| e.into_inner()) = Some((program, tool, device.clone()));
-            Ok(if device.is_empty() { "the default device".into() } else { device })
-        }
-        Err(e) => { stop(); Err(e) }
-    }
-}
-
-/// Stop the TV side (if this daemon started it) and the viewer.
-pub fn stop_all() -> bool {
-    let tv = TV.lock().unwrap_or_else(|e| e.into_inner()).take();
-    if let Some((program, tool, device)) = &tv {
-        if let Err(e) = run_tool(program, &tool_args(*tool, device, None), 25) { crate::dbg_log(&format!("cast: stopping the TV: {e}")); }
-    }
-    stop() || tv.is_some()
-}
-
-/// An animated test grid for `tetron-wm cast --demo`: a moving gradient, box
-/// and block glyphs and some text, so the page can be checked without a session.
-pub fn demo_buffer(tick: u32, w: i32, h: i32) -> CellBuffer {
-    use crate::cell::Rgba;
-    let mut b = CellBuffer::new(w, h);
-    for y in 0..h {
-        for x in 0..w {
-            let v = ((x as u32 * 4 + y as u32 * 8 + tick * 6) % 255) as u8;
-            let ch = char::from_u32([0x2580, 0x2584, 0x2588, 0x2596, 0x259a, 0x2591][((x + y) as usize + tick as usize / 4) % 6]).unwrap_or('#');
-            b.set(x, y, Cell { ch, fg: Rgba::rgb(v, 255 - v, 160), bg: Rgba::rgb(20, v / 4, 60), attrs: Default::default() });
-        }
-    }
-    let (fg, bg) = (Rgba::rgb(255, 255, 255), Rgba::rgb(0, 0, 0));
-    if w > 30 && h > 6 {
-        b.write_str(2, 1, &format!("{}{}{}", "\u{250c}", "\u{2500}".repeat(16), "\u{2510}"), fg, bg);
-        b.write_str(2, 2, "\u{2502} tetron-wm demo \u{2502}", fg, bg);
-        b.write_str(2, 3, &format!("\u{2502} tick {tick:<9}\u{2502}"), fg, bg);
-        b.write_str(2, 4, &format!("{}{}{}", "\u{2514}", "\u{2500}".repeat(16), "\u{2518}"), fg, bg);
-    }
-    b
+/// Start the TV cast, or stop it while one runs (leader key, menu item).
+pub fn toggle(cfg: &crate::config::Config) -> Result<String, String> {
+    if active() { stop(); Ok("stopped".into()) } else { start(cfg, None, false) }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::Config;
 
-    const T: &str = "0123456789abcdef0123456789abcdef";
+    fn snap(gen: u64, b: CellBuffer) -> Snapshot { Snapshot { gen, buf: Arc::new(b) } }
 
-    #[test]
-    fn token_is_32_hex_and_unique() {
-        let (a, b) = (new_token().unwrap(), new_token().unwrap());
-        assert_eq!(a.len(), 32);
-        assert!(a.bytes().all(|c| c.is_ascii_hexdigit()));
-        assert_ne!(a, b);
-    }
-
-    #[test]
-    fn token_compare() {
-        assert!(token_eq(T, T));
-        assert!(!token_eq(T, "0123456789abcdef0123456789abcdee"));
-        assert!(!token_eq(T, "short"));
-    }
-
-    #[test]
-    fn routes() {
-        assert_eq!(route(&format!("GET /{T}/ HTTP/1.1"), T), Ok(Route::Page));
-        assert_eq!(route(&format!("GET /{T}/?x=1 HTTP/1.1"), T), Ok(Route::Page));
-        assert_eq!(route(&format!("GET /{T}/events HTTP/1.1"), T), Ok(Route::Events));
-        assert_eq!(route(&format!("GET /{T} HTTP/1.1"), T), Err(404), "relative events URL needs the slash");
-        assert_eq!(route("GET /wrong/ HTTP/1.1", T), Err(404));
-        assert_eq!(route(&format!("GET /{T}/other HTTP/1.1"), T), Err(404));
-        assert_eq!(route(&format!("POST /{T}/ HTTP/1.1"), T), Err(405));
-        assert_eq!(route("GET", T), Err(400));
-        assert_eq!(route("GET / FTP/1.0", T), Err(400));
-        assert_eq!(route(&format!("GET /{T}/ HTTP/1.1 extra"), T), Err(400));
+    fn script(dir: &std::path::Path, body: &str) -> String {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::create_dir_all(dir).unwrap();
+        let p = dir.join("sink.sh");
+        std::fs::write(&p, format!("#!/bin/sh\n{body}\n")).unwrap();
+        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+        p.to_string_lossy().into_owned()
     }
 
     #[test]
@@ -498,90 +301,61 @@ mod tests {
     #[test]
     fn events_hello_full_cursor_then_diff() {
         let mut buf = CellBuffer::new(3, 1);
-        let s1 = Snapshot { gen: 1, buf: Arc::new(buf.clone()), cursor: Some((0, 0)) };
+        let s1 = snap(1, buf.clone());
         let ev = events_for(None, &s1);
         assert_eq!(ev.len(), 3);
-        assert!(ev[0].contains("\"hello\"") && ev[0].contains("\"cols\":3"));
+        assert!(ev[0].contains("\"hello\"") && ev[0].contains("\"cols\":3") && ev[0].ends_with('\n'));
         assert!(ev[1].contains("\"full\""));
         assert!(ev[2].contains("\"cursor\""));
         buf.set(2, 0, Cell { ch: 'q', ..Cell::default() });
-        let s2 = Snapshot { gen: 2, buf: Arc::new(buf), cursor: Some((0, 0)) };
+        let s2 = snap(2, buf);
         let ev = events_for(Some(&s1), &s2);
-        assert_eq!(ev.len(), 1, "same cursor: only the diff");
+        assert_eq!(ev.len(), 1, "only the diff");
         assert!(ev[0].contains("\"diff\"") && ev[0].contains('q'));
         assert!(events_for(Some(&s2), &s2).is_empty(), "nothing changed, nothing sent");
-    }
-
-    fn get(addr: SocketAddr, req: &str) -> String {
-        let mut s = TcpStream::connect(addr).unwrap();
-        s.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
-        s.write_all(req.as_bytes()).unwrap();
-        let mut out = Vec::new();
-        let mut b = [0u8; 4096];
-        loop {
-            match s.read(&mut b) { Ok(0) | Err(_) => break, Ok(n) => out.extend_from_slice(&b[..n]) }
-            if String::from_utf8_lossy(&out).contains("\"cursor\"") { break; }
-        }
-        String::from_utf8_lossy(&out).into_owned()
+        assert_eq!(events_for(Some(&s2), &snap(3, CellBuffer::new(5, 2))).len(), 3, "a resize starts over");
     }
 
     #[test]
-    fn server_serves_page_stream_and_rejects() {
-        let v = Viewer::start("127.0.0.1".parse().unwrap(), 0, None, 60).unwrap();
-        let addr: SocketAddr = format!("127.0.0.1:{}", v.port).parse().unwrap();
-        let t = v.token.clone();
-        let page = get(addr, &format!("GET /{t}/ HTTP/1.1\r\nHost: x\r\n\r\n"));
-        assert!(page.starts_with("HTTP/1.1 200") && page.contains("EventSource"));
-        assert!(get(addr, "GET /nope/ HTTP/1.1\r\n\r\n").starts_with("HTTP/1.1 404"));
-        assert!(get(addr, &format!("POST /{t}/ HTTP/1.1\r\n\r\n")).starts_with("HTTP/1.1 405"));
-        v.shared.publish(Arc::new(demo_buffer(0, 20, 5)), Some((1, 1)));
-        let ev = get(addr, &format!("GET /{t}/events HTTP/1.1\r\n\r\n"));
-        assert!(ev.contains("text/event-stream") && ev.contains("\"hello\"") && ev.contains("\"full\""), "{ev}");
-        v.stop();
+    fn command_line_for_tv_and_browser() {
+        let mut c = Config { cast_device: "TV".into(), ..Config::default() };
+        assert_eq!(command_line(&c, None, false), ("casttui".into(), vec!["--cells".into(), "-d".into(), "TV".into()]));
+        assert_eq!(command_line(&c, Some(" 1.2.3.4 "), false).1, ["--cells", "-d", "1.2.3.4"]);
+        assert_eq!(command_line(&c, None, true).1, ["--cells", "--no-cast"], "the browser view needs no device");
+        c.cast_command = "/opt/x/casttui".into();
+        c.cast_device.clear();
+        assert_eq!(command_line(&c, None, false), ("/opt/x/casttui".into(), vec!["--cells".into()]));
     }
 
+    /// One test owns the global cast state: a failing sink first, then a fake sink
+    /// that reports it is up, records what it is sent, and must see EOF on stop.
     #[test]
-    fn manager_start_status_stop_cycle() {
+    fn a_failing_sink_reports_its_error_and_a_working_one_is_streamed_to_and_closed() {
+        let base = std::env::temp_dir().join(format!("tetron-wm-cast-test-{}", std::process::id()));
+        let mut cfg = Config { cast_fps: 60, ..Config::default() };
+
+        cfg.cast_command = script(&base.join("fail"), "echo 'casttui: no Chromecast found' >&2\nexit 1");
+        let e = start(&cfg, None, false).unwrap_err();
+        assert!(e.contains("no Chromecast found") && !active(), "{e}");
+
+        let out = base.join("out.txt");
+        cfg.cast_command = script(&base.join("ok"), &format!("echo 'casting cells on FAKE'\ncat > '{}'", out.display()));
         assert_eq!(status(), "off");
-        assert!(!active());
-        let url = start(Some("127.0.0.1"), 0, 15, 0).unwrap();
-        assert!(url.starts_with("http://127.0.0.1:") && url.ends_with('/'));
+        assert_eq!(start(&cfg, None, false).unwrap(), "casting cells on FAKE");
         assert!(active() && take_want_full() && !take_want_full(), "one forced full frame per start");
-        assert_eq!(start(Some("127.0.0.1"), 0, 15, 0).unwrap(), url, "a second start returns the same URL");
-        assert!(status().starts_with("casting"));
+        assert!(start(&cfg, None, false).is_err(), "a second start is refused");
+        let mut b = CellBuffer::new(4, 2);
+        publish_frame(&b);
+        b.set(0, 0, Cell { ch: 'Z', ..Cell::default() });
+        publish_frame(&b);
+        std::thread::sleep(Duration::from_millis(400));
+        set_detached(true);
+        std::thread::sleep(Duration::from_millis(1300));
         assert!(stop() && !stop());
-        assert!(!active());
-        assert_eq!(status(), "off");
-    }
-
-    #[test]
-    fn tool_choice_and_arguments() {
-        assert_eq!(pick_tool("", |p| p == "casttui").unwrap(), ("casttui".into(), Tool::Casttui));
-        assert_eq!(pick_tool("", |p| p == "catt").unwrap(), ("catt".into(), Tool::Catt));
-        assert!(pick_tool("", |_| false).is_none());
-        assert_eq!(pick_tool("/opt/bin/casttui", |_| false).unwrap().1, Tool::Casttui);
-        assert_eq!(pick_tool("uvx-catt", |_| false).unwrap().1, Tool::Catt);
-        assert_eq!(tool_args(Tool::Casttui, "TV", Some("http://h/")), ["-d", "TV", "--page", "http://h/"]);
-        assert_eq!(tool_args(Tool::Casttui, " ", None), ["--stop"]);
-        assert_eq!(tool_args(Tool::Catt, "1.2.3.4", Some("u")), ["-d", "1.2.3.4", "cast_site", "u"]);
-        assert_eq!(tool_args(Tool::Catt, "", None), ["stop"]);
-    }
-
-    #[test]
-    fn viewer_cap_is_enforced() {
-        let v = Viewer::start("127.0.0.1".parse().unwrap(), 0, None, 60).unwrap();
-        v.shared.publish(Arc::new(CellBuffer::new(2, 2)), None);
-        let addr: SocketAddr = format!("127.0.0.1:{}", v.port).parse().unwrap();
-        let req = format!("GET /{}/events HTTP/1.1\r\n\r\n", v.token);
-        let mut held = Vec::new();
-        for _ in 0..MAX_VIEWERS {
-            let mut s = TcpStream::connect(addr).unwrap();
-            s.write_all(req.as_bytes()).unwrap();
-            held.push(s);
-        }
-        let t0 = Instant::now();
-        while v.shared.viewers() < MAX_VIEWERS && t0.elapsed() < Duration::from_secs(3) { std::thread::sleep(Duration::from_millis(20)); }
-        assert!(get(addr, &req).starts_with("HTTP/1.1 503"));
-        v.stop();
+        assert!(!active() && status() == "off");
+        let got = std::fs::read_to_string(&out).unwrap();
+        assert!(got.contains("\"hello\"") && got.contains("\"full\"") && got.contains('Z'), "{got}");
+        assert!(got.contains("\"detached\"") && got.contains("\"stopped\""), "{got}");
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

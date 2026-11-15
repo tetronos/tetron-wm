@@ -497,14 +497,13 @@ pub enum ClientMsg {
     /// Ask the daemon for its [`crate::protocol::StatusReply`] (`tetron-wm ls`).
     /// Answered by the control thread; never reaches `apply`'s state.
     Status,
-    /// Start the cast viewer and return its URL (answered by the control thread).
-    CastStart { device: Option<String> },
     /// Stop the cast viewer (answered by the control thread).
     CastStop,
     /// Leader key / menu item: start the TV cast, or stop it while one runs.
     CastToggle,
-    /// Start the viewer and cast it to the Chromecast (answered by the control thread).
-    CastTv { device: Option<String> },
+    /// Start the cast through casttui (answered by the control thread): to the
+    /// Chromecast, or with `browser` a URL for a browser on the LAN.
+    CastTv { device: Option<String>, #[serde(default)] browser: bool },
     /// One line about the cast (answered by the control thread).
     CastStatus,
     /// A raw mouse event destined for the focused app's PTY (passthrough).
@@ -2545,7 +2544,7 @@ impl SessionCore {
         let cfg = self.cfg.clone();
         let tx = self.cast_errors.0.clone();
         std::thread::spawn(move || {
-            if let Err(e) = crate::cast::toggle_tv(&cfg) {
+            if let Err(e) = crate::cast::toggle(&cfg) {
                 crate::dbg_log(&format!("cast: {e}"));
                 let _ = tx.send(e);
                 crate::daemon::wake();
@@ -2644,6 +2643,7 @@ or a remote-side error — its authorized_keys was left untouched)",
     /// that aren't already listed.
     fn build_launcher_apps(cfg: &Config, systems: &[crate::systems::RemoteSystem]) -> Vec<AppEntry> {
         // Pinned tetron-wm actions first (open the store / settings windows).
+        let cast_entry = crate::cast::available(cfg).then(|| AppEntry { name: "Cast desktop".into(), command: "@cast".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None });
         let mut apps = vec![
             AppEntry { name: "Store".into(), command: "@store".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Settings".into(), command: "@settings".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
@@ -2651,11 +2651,11 @@ or a remote-side error — its authorized_keys was left untouched)",
             AppEntry { name: "Logs".into(), command: "@logs".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Activity".into(), command: "@activity".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Clipboard".into(), command: "@clipboard".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
-            AppEntry { name: "Cast desktop".into(), command: "@cast".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Screenshot".into(), command: "@screenshot".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Screensaver".into(), command: "@screensaver".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
             AppEntry { name: "Help".into(), command: "@help".into(), args: vec![], category: Some("tetron-wm".into()), requires_cwd: None, cwd: None, cli: None, warn: None },
         ];
+        apps.extend(cast_entry);
         // Suspend / Reboot / Power off: the launcher's bottom "Power" submenu,
         // only for actions this computer can actually carry out.
         for kind in crate::powerctl::Kind::ALL {
@@ -3853,7 +3853,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::LaunchWarnNo => self.launch_warn.cancel(),
             ClientMsg::Shutdown => self.shutdown = true,
             ClientMsg::Reload => self.reload = true,
-            ClientMsg::Status | ClientMsg::CastStart { .. } | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
+            ClientMsg::Status | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
             ClientMsg::CastToggle => self.cast_toggle(),
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
