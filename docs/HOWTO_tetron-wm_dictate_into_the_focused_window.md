@@ -1,6 +1,6 @@
 # How to dictate into the focused window
 
-Dictation is an optional addon. tetron-wm contains no speech code, no model and no audio library. It starts [tetron-stt](https://github.com/tetronos/tetron-stt) (`tetron-stt serve`) as a provider, shows what it hears, and types the finished text into the focused window, so it works with any program in a tetron-wm window: a shell, an editor, claude, opencode, pi. Without tetron-stt installed the leader keys only show a message saying it is needed.
+Dictation is an optional addon. tetron-wm contains no speech code, no model and no audio library. It starts [tetron-stt](https://github.com/tetronos/tetron-stt) (`tetron-stt serve`) as a provider, shows what it hears, and types the finished text into the focused window, so it works with any program in a tetron-wm window: a shell, an editor, claude, opencode, pi. Without tetron-stt installed the leader keys only show a message saying it is needed. To switch dictation off completely, even with tetron-stt installed, use **Settings → Dictation → Dictation**.
 
 ## What you need
 
@@ -19,7 +19,7 @@ Modes: `segment` (default) shows live text and commits it after each pause. `fin
 
 ## Settings
 
-In `config.toml`, `--help`, or **Settings → Dictation**. `dictation_command`: the provider program, empty uses `tetron-stt`. `dictation_mode`: `segment` or `final`. `dictation_pause`: seconds of silence that end a segment (1.2). `dictation_enter_word`: the spoken phrase that presses Enter, empty disables it. `dictation_threads`: CPU threads, 0 lets the provider choose. Changes apply the next time the provider starts: detach and attach, or `tetron-wm reload`. The keys are the `dictate` and `dictate_mode` actions in `[keys]`.
+In `config.toml`, `--help`, or **Settings → Dictation**. `dictation_enabled`: dictation on or off; off hides `MIC` in the menubar, stops the provider (the microphone is released) and makes the leader keys say it is off. `dictation_command`: the provider program, empty uses `tetron-stt`. `dictation_mode`: `segment` or `final`. `dictation_pause`: seconds of silence that end a segment (1.2). `dictation_enter_word`: the spoken phrase that presses Enter, empty disables it. `dictation_threads`: CPU threads, 0 lets the provider choose. Changes apply the next time the provider starts: detach and attach, or `tetron-wm reload`. The keys are the `dictate` and `dictate_mode` actions in `[keys]`.
 
 ## Over ssh
 

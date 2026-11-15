@@ -582,7 +582,7 @@ impl Settings {
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
             GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
             CAST => 2,                         // cast: device, updates per second
-            DICTATION => 5,                    // dictation: mode, pause, enter word, threads, download models
+            DICTATION => 6,                    // dictation: on/off, mode, pause, enter word, threads, download models
             _ => 0,                            // About
         }
     }
@@ -909,23 +909,24 @@ impl Settings {
                 self.cfg.cast_fps = RATES[next];
             }
             // Dictation section: provider options (applied when the provider starts).
-            (DICTATION, 0) => self.cfg.dictation_mode = cycle(&["segment", "final"], &self.cfg.dictation_mode, dir),
-            (DICTATION, 1) => {
+            (DICTATION, 0) => self.cfg.dictation_enabled = flip(self.cfg.dictation_enabled, dir),
+            (DICTATION, 1) => self.cfg.dictation_mode = cycle(&["segment", "final"], &self.cfg.dictation_mode, dir),
+            (DICTATION, 2) => {
                 const PAUSES: [f32; 5] = [0.8, 1.0, 1.2, 1.6, 2.0];
                 let cur = PAUSES.iter().position(|p| (*p - self.cfg.dictation_pause).abs() < 0.01).unwrap_or(2);
                 let next = if dir == -1 { (cur + PAUSES.len() - 1) % PAUSES.len() } else { (cur + 1) % PAUSES.len() };
                 self.cfg.dictation_pause = PAUSES[next];
             }
-            (DICTATION, 2) if dir == 0 => {
+            (DICTATION, 3) if dir == 0 => {
                 self.text = Some(TextEdit { target: TextTarget::DictationEnterWord, buf: self.cfg.dictation_enter_word.clone(), error: false, fresh: false });
             }
-            (DICTATION, 3) => {
+            (DICTATION, 4) => {
                 const THREADS: [u32; 5] = [0, 2, 4, 6, 8];
                 let cur = THREADS.iter().position(|t| *t == self.cfg.dictation_threads).unwrap_or(0);
                 let next = if dir == -1 { (cur + THREADS.len() - 1) % THREADS.len() } else { (cur + 1) % THREADS.len() };
                 self.cfg.dictation_threads = THREADS[next];
             }
-            (DICTATION, 4) if dir == 0 => self.action = Some(SettingsAction::DownloadDictationModels),
+            (DICTATION, 5) if dir == 0 => self.action = Some(SettingsAction::DownloadDictationModels),
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -1438,19 +1439,20 @@ impl Settings {
                     None => format!("{} \u{25BE}", self.cfg.dictation_enter_word),
                 };
                 let threads = if self.cfg.dictation_threads == 0 { "auto".to_string() } else { self.cfg.dictation_threads.to_string() };
-                self.row(&mut buf, cx, 3, 0, "Mode", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_mode));
-                self.row(&mut buf, cx, 4, 1, "Pause (seconds)", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_pause));
-                self.row(&mut buf, cx, 5, 2, "Enter word", word);
-                self.row(&mut buf, cx, 6, 3, "CPU threads", format!("\u{25C2} {threads} \u{25B8}"));
-                self.row(&mut buf, cx, 7, 4, "Download models", "Enter (about 0.9 GB)".into());
+                self.row(&mut buf, cx, 3, 0, "Dictation", toggle_val(self.cfg.dictation_enabled));
+                self.row(&mut buf, cx, 4, 1, "Mode", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_mode));
+                self.row(&mut buf, cx, 5, 2, "Pause (seconds)", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_pause));
+                self.row(&mut buf, cx, 6, 3, "Enter word", word);
+                self.row(&mut buf, cx, 7, 4, "CPU threads", format!("\u{25C2} {threads} \u{25B8}"));
+                self.row(&mut buf, cx, 8, 5, "Download models", "Enter (about 0.9 GB)".into());
                 let (have, color) = if crate::dictation::available(&self.cfg) { ("tetron-stt: installed", green()) } else { ("tetron-stt: not installed (install it from the Store)", red()) };
-                buf.write_str(cx, 9, have, color, pal_bg());
-                buf.write_str(cx, 11, "Dictation is an optional addon. Leader d starts and stops", pal_dim(), pal_bg());
-                buf.write_str(cx, 12, "listening, leader D switches mode, or click MIC in the menubar.", pal_dim(), pal_bg());
-                buf.write_str(cx, 13, "The text is typed into the focused window; saying the enter", pal_dim(), pal_bg());
-                buf.write_str(cx, 14, "word at the end presses Enter. Changes apply the next time", pal_dim(), pal_bg());
-                buf.write_str(cx, 15, "the provider starts (detach and attach, or tetron-wm reload).", pal_dim(), pal_bg());
-                buf.write_str(cx, 16, "Models are never downloaded without Download models.", pal_dim(), pal_bg());
+                buf.write_str(cx, 10, have, color, pal_bg());
+                buf.write_str(cx, 12, "Dictation is an optional addon. Off hides MIC in the menubar", pal_dim(), pal_bg());
+                buf.write_str(cx, 13, "and stops the provider. On: leader d starts and stops listening,", pal_dim(), pal_bg());
+                buf.write_str(cx, 14, "leader D switches mode, or click MIC. The text is typed into the", pal_dim(), pal_bg());
+                buf.write_str(cx, 15, "focused window; the enter word at the end presses Enter. Options", pal_dim(), pal_bg());
+                buf.write_str(cx, 16, "apply the next time the provider starts (reload or reattach).", pal_dim(), pal_bg());
+                buf.write_str(cx, 17, "Models are never downloaded without Download models.", pal_dim(), pal_bg());
             }
             GENERAL => match self.apps_dlg.as_ref() {
                 Some(d) => {
@@ -1820,22 +1822,28 @@ mod tests {
         let mut s = Settings::new(Config::default());
         s.enter_section(DICTATION);
         assert_eq!(SECTIONS[DICTATION], "Dictation");
+        assert!(s.config().dictation_enabled);
         s.sel = 0;
-        s.right();
-        assert_eq!(s.config().dictation_mode, "final");
+        s.toggle();
+        assert!(!s.config().dictation_enabled, "the first row switches dictation off");
+        s.toggle();
+        assert!(s.config().dictation_enabled);
         s.sel = 1;
         s.right();
+        assert_eq!(s.config().dictation_mode, "final");
+        s.sel = 2;
+        s.right();
         assert!((s.config().dictation_pause - 1.6).abs() < 0.01);
-        s.sel = 3;
+        s.sel = 4;
         s.right();
         assert_eq!(s.config().dictation_threads, 2);
-        s.sel = 2;
+        s.sel = 3;
         s.toggle();
         for _ in 0..12 { s.backspace(); }
         for c in "send it".chars() { s.type_char(c); }
         s.commit_text();
         assert_eq!(s.config().dictation_enter_word, "send it");
-        s.sel = 4;
+        s.sel = 5;
         s.toggle();
         assert_eq!(s.take_action(), Some(SettingsAction::DownloadDictationModels));
         let buf = s.render(100, 30);

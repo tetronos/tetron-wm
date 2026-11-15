@@ -107,7 +107,10 @@ cast_device = ""
 cast_command = ""
 ## Desktop cast updates per second (1 to 60).
 cast_fps = 15
-## Dictation (an optional addon that needs tetron-stt): the provider program, "" = tetron-stt.
+## Dictation (an optional addon that needs tetron-stt). false hides MIC in the menubar and
+## stops the provider.
+dictation_enabled = true
+## The provider program, "" = tetron-stt.
 dictation_command = ""
 ## Starting mode: "segment" (live text, committed on pauses) or "final".
 dictation_mode = "segment"

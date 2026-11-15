@@ -135,6 +135,10 @@ pub struct Config {
     /// The dictation provider program (it must speak the JSON lines protocol, see
     /// docs): empty = `tetron-stt`. Started as `<command> serve ...` on the first toggle.
     pub dictation_command: String,
+    /// Dictation on or off. Off hides the MIC tray segment, stops a running provider
+    /// and makes the leader keys say it is off. Default on (it only shows when
+    /// the addon is installed anyway).
+    pub dictation_enabled: bool,
     /// Starting mode: `segment` (live text, commits on pauses) or `final`.
     pub dictation_mode: String,
     /// Seconds of silence that end a segment.
@@ -394,6 +398,7 @@ impl Default for Config {
             cast_command: String::new(),
             cast_fps: 15,
             dictation_command: String::new(),
+            dictation_enabled: true,
             dictation_mode: "segment".into(),
             dictation_pause: 1.2,
             dictation_enter_word: "make it so".into(),

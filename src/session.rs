@@ -2575,6 +2575,11 @@ impl SessionCore {
     /// Apply what the dictation provider reported: a commit is pasted into the
     /// focused window (Enter follows when the provider says so).
     fn apply_dictation(&mut self, ev: crate::dictation::DictationEvent) {
+        // Switched off: nothing is pasted or shown, except the provider ending and the
+        // "dictation is off" note a key press produces.
+        if !self.cfg.dictation_enabled && !matches!(ev, crate::dictation::DictationEvent::Gone | crate::dictation::DictationEvent::Error(_)) {
+            return;
+        }
         if let Some((text, enter)) = self.dictation.apply(ev) {
             self.paste_to_focused(&text);
             if enter { self.enter_to_focused(); }
@@ -2593,6 +2598,11 @@ impl SessionCore {
 
     /// The provider command a tray click asked for, once.
     pub fn take_dictate_request(&mut self) -> Option<String> {
+        // Dictation was switched off while the provider ran: tell the client to stop it.
+        if !self.cfg.dictation_enabled && !self.dictation.state.is_empty() {
+            self.dictation.apply(crate::dictation::DictationEvent::Gone);
+            return Some("off".to_string());
+        }
         self.dictate_request.take().map(str::to_string)
     }
 
