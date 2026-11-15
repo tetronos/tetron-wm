@@ -30,6 +30,8 @@ pub enum SegmentKind {
     Select,
     /// A desktop cast is running (`CAST`); a click stops it.
     Cast,
+    /// The dictation mic (`MIC`); a click toggles listening.
+    Mic,
     Clipboard,
     Bell,
     /// The `ⓘ` menu: session info, links, and the segments placed in (or
@@ -225,6 +227,22 @@ pub fn tray_layout(
     select_mode: bool,
     placement: &Placement,
 ) -> TrayLayout {
+    tray_layout_with_mic(state, width, reserve, bells, clip, select_mode, placement, None)
+}
+
+/// [`tray_layout`] plus the dictation mic segment when `mic` is `Some(text)`
+/// (the addon is installed). The mic is never shed or moved into the Info menu.
+#[allow(clippy::too_many_arguments)]
+pub fn tray_layout_with_mic(
+    state: &SystemState,
+    width: i32,
+    reserve: i32,
+    bells: usize,
+    clip: Option<(usize, bool)>,
+    select_mode: bool,
+    placement: &Placement,
+    mic: Option<String>,
+) -> TrayLayout {
     // Display order, left→right.
     use crate::iconset::{status, Status};
     let mut texts: Vec<(SegmentKind, String)> = Vec::new();
@@ -284,6 +302,9 @@ pub fn tray_layout(
     }
     if select_mode {
         texts.push((SegmentKind::Select, "SELECT".to_string()));
+    }
+    if let Some(text) = mic {
+        texts.push((SegmentKind::Mic, text));
     }
     // Casting shows the whole desktop to whoever holds the URL: the marker is never
     // shed or moved into the Info menu, so it is always visible while it runs.
@@ -668,7 +689,7 @@ impl Tray {
             SegmentKind::Bluetooth => self.render_bluetooth(w, h, anchor_x, state),
             SegmentKind::Tetron => self.render_tetron(w, h, anchor_x, state),
             // The clipboard popover is the session's `ClipMenu` overlay, not a tray popover.
-            SegmentKind::Clipboard | SegmentKind::Select | SegmentKind::Cast => Rendered::default(),
+            SegmentKind::Clipboard | SegmentKind::Select | SegmentKind::Cast | SegmentKind::Mic => Rendered::default(),
             SegmentKind::Clock => self.render_calendar(w, h, anchor_x, state),
             SegmentKind::Bell => self.render_bell(w, anchor_x),
             SegmentKind::Cpu => self.render_lines(w, h, anchor_x, "CPU", SegmentKind::Cpu, &[

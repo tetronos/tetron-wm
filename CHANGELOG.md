@@ -6,6 +6,11 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.12] — 2026-11-15
+
+### Added
+- Dictation, an optional addon that needs [tetron-stt](https://github.com/tetronos/tetron-stt). Leader `d` (or a click on `MIC` in the menubar) starts and stops listening, leader `D` switches between live segments and one final pass. The client starts `tetron-stt serve` (it owns the microphone), the live text shows on the bottom line, and the finished text is pasted into the focused window, with Enter when the sentence ends with the enter word (default "make it so"). **Settings → Dictation** and the new `dictation_command`, `dictation_mode`, `dictation_pause`, `dictation_enter_word`, `dictation_threads` keys set the options; **Download models** fetches about 0.9 GB only when asked. tetron-wm has no speech code. New leader keys `d` (`dictate`) and `D` (`dictate_mode`); the planned screen dump no longer holds `d`. Remote tetron-wm over a system switch is not supported yet. Provider protocol in docs/HOWTO_tetron-wm_dictate_into_the_focused_window.md.
+
 ## [0.15.11] — 2026-11-15
 
 ### Added

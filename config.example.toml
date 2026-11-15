@@ -107,6 +107,16 @@ cast_device = ""
 cast_command = ""
 ## Desktop cast updates per second (1 to 60).
 cast_fps = 15
+## Dictation (an optional addon that needs tetron-stt): the provider program, "" = tetron-stt.
+dictation_command = ""
+## Starting mode: "segment" (live text, committed on pauses) or "final".
+dictation_mode = "segment"
+## Seconds of silence that end a dictated segment.
+dictation_pause = 1.2
+## A trailing spoken phrase that presses Enter; "" disables it.
+dictation_enter_word = "make it so"
+## CPU threads for dictation; 0 lets the provider choose.
+dictation_threads = 0
 ## Image viewer: "auto" (Kitty graphics when the terminal has them, never on a
 ## bare console; otherwise colored cells via chafa, or half blocks without it),
 ## "graphics", or "cells". In the viewer, m switches for that window.

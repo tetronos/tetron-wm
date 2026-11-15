@@ -244,6 +244,7 @@ fn notice_frame(notice: &str) -> Vec<u8> {
         clipboard: None,
         notice: Some(notice.to_string()),
         fullscreen: None,
+        dictate: None,
     })
     .unwrap_or_default();
     buf.push(b'\n');
@@ -563,6 +564,7 @@ fn serve_client_inner(
             clipboard,
             notice: None,
             fullscreen: core.fullscreen_spec(),
+            dictate: core.take_dictate_request(),
         })
             .unwrap_or_default();
         buf.push(b'\n');

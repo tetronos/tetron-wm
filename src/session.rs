@@ -501,6 +501,8 @@ pub enum ClientMsg {
     CastStop,
     /// Leader key / menu item: start the TV cast, or stop it while one runs.
     CastToggle,
+    /// What the client's dictation provider reported (see [`crate::dictation`]).
+    Dictation(crate::dictation::DictationEvent),
     /// Start the cast through casttui (answered by the control thread): to the
     /// Chromecast, or with `browser` a URL for a browser on the LAN.
     CastTv { device: Option<String>, #[serde(default)] browser: bool },
@@ -704,6 +706,10 @@ pub struct SessionCore {
     apps_download_job: Option<std::sync::mpsc::Receiver<Option<crate::packaging::AptEstimate>>>,
     /// Failures of the desktop cast worker, shown as a window by `poll_cast_errors`.
     cast_errors: (std::sync::mpsc::Sender<String>, std::sync::mpsc::Receiver<String>),
+    /// Dictation state reported by the client's provider, for the tray and overlay.
+    dictation: crate::dictation::DictationState,
+    /// A tray click asked for this provider command (`toggle`); the next frame carries it.
+    dictate_request: Option<&'static str>,
     /// A running Store Update list fetch (WMCAT-004).
     /// Modal "are you sure?" shown when closing an app window (which kills it).
     confirm_close: ConfirmClose,
@@ -829,6 +835,8 @@ impl SessionCore {
             theme_job: None,
             apps_download_job: None,
             cast_errors: std::sync::mpsc::channel(),
+            dictation: Default::default(),
+            dictate_request: None,
             update_check: None,
             confirm_close: ConfirmClose::new(),
             win_picker: crate::winpicker::WinPicker::new(),
@@ -1453,6 +1461,17 @@ impl SessionCore {
                 }
                 self.reload_to_general();
             }
+            Some(crate::settings::SettingsAction::DownloadDictationModels) => {
+                let (program, _) = crate::dictation::provider_command(&self.cfg);
+                if crate::dictation::available(&self.cfg) {
+                    let dir = dirs::home_dir().unwrap_or_default();
+                    self.run_in_window("Dictation models".into(), format!("{} models download", crate::systems::sh_quote(&program)), dir);
+                } else {
+                    let text = format!("Dictation needs {program}, an optional addon.\n\n  Install it from the Store, then try again.\n");
+                    let script = format!("printf '%s' {}; printf '\nPress Enter to close. '; read _k", crate::systems::sh_quote(&text));
+                    self.launch_in("Dictation models".into(), "sh".into(), vec!["-c".into(), script], None);
+                }
+            }
             Some(crate::settings::SettingsAction::ReloadConfig) => {
                 crate::dbg_log("config: reload requested from Settings");
                 self.reload_to_general();
@@ -2044,7 +2063,8 @@ impl SessionCore {
     fn tray_layout_now(&self) -> crate::tray::TrayLayout {
         let st = self.tray_state.read().unwrap();
         let placement = crate::tray::Placement::from_config(&self.cfg.tray_placement);
-        crate::tray::tray_layout(&st, self.w, 0, self.tray.notif_count(), self.clip_badge(), self.select_mode, &placement)
+        let mic = self.dictation_available().then(|| self.dictation.tray_text());
+        crate::tray::tray_layout_with_mic(&st, self.w, 0, self.tray.notif_count(), self.clip_badge(), self.select_mode, &placement, mic)
     }
 
     /// The current tray segments, laid out from the live snapshot.
@@ -2552,6 +2572,48 @@ impl SessionCore {
         });
     }
 
+    /// Apply what the dictation provider reported: a commit is pasted into the
+    /// focused window (Enter follows when the provider says so).
+    fn apply_dictation(&mut self, ev: crate::dictation::DictationEvent) {
+        if let Some((text, enter)) = self.dictation.apply(ev) {
+            self.paste_to_focused(&text);
+            if enter { self.enter_to_focused(); }
+        }
+    }
+
+    /// Press Enter in the focused app (after a dictated commit).
+    fn enter_to_focused(&mut self) {
+        if let Some(id) = self.wm.focused() {
+            if let Some(WinContent::App(aid)) = self.contents.get(&id) {
+                let aid = *aid;
+                self.apphost.input(aid, b"\r");
+            }
+        }
+    }
+
+    /// The provider command a tray click asked for, once.
+    pub fn take_dictate_request(&mut self) -> Option<String> {
+        self.dictate_request.take().map(str::to_string)
+    }
+
+    /// Whether the mic should be offered: a provider command is set or tetron-stt is installed.
+    fn dictation_available(&self) -> bool {
+        crate::dictation::available(&self.cfg)
+    }
+
+    /// The one line overlay at the bottom of the screen: live text or a note.
+    fn dictation_overlay(&self) -> Option<Layer> {
+        let (text, err) = self.dictation.overlay()?;
+        let t = crate::theme::current();
+        let w = self.w.max(1);
+        let shown: String = format!(" MIC {} ", text).chars().take(w as usize).collect();
+        let (fg, bg) = if err { (crate::cell::Rgba::rgb(255, 255, 255), t.error) } else { (t.accent_fg, t.accent) };
+        let mut buf = crate::buffer::CellBuffer::new(w, 1);
+        buf.fill(crate::cell::Cell { ch: ' ', fg, bg, attrs: Default::default() });
+        buf.write_str(0, 0, &shown, fg, bg);
+        Some(Layer { z: 990, origin: Point::new(0, self.h - 1), buf, opacity: 1.0, scissor: None })
+    }
+
     /// Open a window for a cast failure reported by the worker.
     pub fn poll_cast_errors(&mut self) {
         while let Ok(e) = self.cast_errors.1.try_recv() {
@@ -2961,6 +3023,12 @@ or a remote-side error — its authorized_keys was left untouched)",
 
     /// Return the currently focused [`WindowId`], if any.
     pub fn focused(&self) -> Option<WindowId> { self.wm.focused() }
+
+    /// Test helper: the tray segments as the session lays them out now.
+    #[doc(hidden)]
+    pub fn tray_segments_for_test(&self) -> Vec<crate::tray::Segment> {
+        self.tray_segments_now()
+    }
 
     /// Test helper: the focused window's outer rect (titlebar + borders).
     #[doc(hidden)]
@@ -3855,6 +3923,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::Reload => self.reload = true,
             ClientMsg::Status | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
             ClientMsg::CastToggle => self.cast_toggle(),
+            ClientMsg::Dictation(ev) => self.apply_dictation(ev),
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
                 match (mode, self.saver.is_some()) {
@@ -5545,6 +5614,10 @@ or a remote-side error — its authorized_keys was left untouched)",
                 self.select_mode = false;
                 return;
             }
+            if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Mic && s.rect.contains(p)) {
+                self.dictate_request = Some("toggle"); // the client owns the provider and the mic
+                return;
+            }
             if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Cast && s.rect.contains(p)) {
                 self.cast_toggle(); // casting: a click stops it
                 return;
@@ -6422,6 +6495,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         }
         sanitize_images(&mut images, self.w, self.h);
 
+        layers.extend(self.dictation_overlay());
         Frame { layers, cursor: Some(self.cursor), images }
     }
 
@@ -6548,6 +6622,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         images.retain(|p| overlay_rects.iter().all(|o| o.intersect(p.rect).is_none()));
         sanitize_images(&mut images, self.w, self.h);
 
+        layers.extend(self.dictation_overlay());
         Frame { layers, cursor: Some(self.cursor), images }
     }
 

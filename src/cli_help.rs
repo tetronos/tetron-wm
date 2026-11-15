@@ -26,6 +26,11 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("cast_device", "", "Chromecast for right-click Cast to Chromecast: a name or IP for catt -d; empty = catt's default device"),
     ("cast_command", "", "program that serves and casts the desktop (needs --cells, see docs); empty = casttui"),
     ("cast_fps", "15", "desktop cast updates per second (1 to 60)"),
+    ("dictation_command", "", "dictation provider program (JSON lines, see docs); empty = tetron-stt (optional addon)"),
+    ("dictation_mode", "segment", "starting dictation mode: segment (live text, commits on pauses) | final"),
+    ("dictation_pause", "1.2", "seconds of silence that end a dictated segment"),
+    ("dictation_enter_word", "make it so", "trailing spoken phrase that presses Enter; empty disables"),
+    ("dictation_threads", "0", "CPU threads for dictation; 0 lets the provider choose"),
     ("image_viewer", "auto", "image viewer: auto (Kitty graphics if the terminal has them, cells on a bare VT) | graphics | cells"),
     ("icon_style", "auto", "icon glyphs: auto (ascii on a bare console, else unicode) | ascii | unicode | nerd | emoji"),
     ("default_project_dir", "~", "root of the working-directory picker"),
@@ -172,6 +177,13 @@ SESSIONS:\n\
 \x20 Windows opened inside a session inherit it (TETRON_WM_SESSION), so tetron-wm commands run\n\
 \x20 in a window reach that window's session. Names: 1-32 chars of A-Z a-z 0-9 _ -.\n\
 \x20 The launcher button shows the session name with launcher_label = \"@session\".\n\n\
+DICTATION (optional addon, needs tetron-stt; models are downloaded only on request):\n\
+\x20 Leader d starts and stops listening, leader D switches between live segments and one\n\
+\x20 final pass, and a click on MIC in the menubar toggles. The live text shows on the bottom\n\
+\x20 line and the finished text is typed into the focused window; ending with the enter word\n\
+\x20 (default \"make it so\") presses Enter. Settings > Dictation sets the options and downloads\n\
+\x20 the models (about 0.9 GB); the dictation_* config keys are the same. The microphone is the\n\
+\x20 one on the computer where the client runs.\n\n\
 RIGHT-CLICK MENU (desktop icons and Files; leader . from the keyboard):\n\
 \x20 Open (video and audio play in the window with mpv), Open with... (apps for the file\n\
 \x20 type, fresh and other editors for text), Set as wallpaper, Extract here / List\n\

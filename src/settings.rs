@@ -20,7 +20,7 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "Cast", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "Cast", "Dictation", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
@@ -36,7 +36,8 @@ const SOUND: usize = 8;
 const DISPLAY: usize = 9;
 const GENERAL: usize = 10;
 const CAST: usize = 11;
-// About is last (index 12) and has no rows.
+const DICTATION: usize = 12;
+// About is last (index 13) and has no rows.
 
 /// Roles listed in the Default Apps section (config key, label).
 const DEFAULT_APP_ROLES: &[(&str, &str)] = &[
@@ -60,6 +61,9 @@ pub enum SettingsAction {
     RestartApphost,
     /// Check upstream for a newer commit.
     CheckUpdates,
+    /// Dictation section: download the speech models (runs the provider's
+    /// `models download` in a window; about 0.9 GB, never automatic).
+    DownloadDictationModels,
     /// Install the latest version.
     InstallUpdate,
     /// Empty the clipboard history (memory and disk).
@@ -155,6 +159,8 @@ enum TextTarget {
     AiCwd,
     /// Cast → Device (a name or IP; empty = the cast program's own default).
     CastDevice,
+    /// Dictation → Enter word (a spoken phrase; empty disables it).
+    DictationEnterWord,
 }
 
 /// The open text box: its target, the in-progress text, and whether the last
@@ -576,6 +582,7 @@ impl Settings {
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
             GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
             CAST => 2,                         // cast: device, updates per second
+            DICTATION => 5,                    // dictation: mode, pause, enter word, threads, download models
             _ => 0,                            // About
         }
     }
@@ -901,6 +908,24 @@ impl Settings {
                 let next = if dir == -1 { (cur + RATES.len() - 1) % RATES.len() } else { (cur + 1) % RATES.len() };
                 self.cfg.cast_fps = RATES[next];
             }
+            // Dictation section: provider options (applied when the provider starts).
+            (DICTATION, 0) => self.cfg.dictation_mode = cycle(&["segment", "final"], &self.cfg.dictation_mode, dir),
+            (DICTATION, 1) => {
+                const PAUSES: [f32; 5] = [0.8, 1.0, 1.2, 1.6, 2.0];
+                let cur = PAUSES.iter().position(|p| (*p - self.cfg.dictation_pause).abs() < 0.01).unwrap_or(2);
+                let next = if dir == -1 { (cur + PAUSES.len() - 1) % PAUSES.len() } else { (cur + 1) % PAUSES.len() };
+                self.cfg.dictation_pause = PAUSES[next];
+            }
+            (DICTATION, 2) if dir == 0 => {
+                self.text = Some(TextEdit { target: TextTarget::DictationEnterWord, buf: self.cfg.dictation_enter_word.clone(), error: false, fresh: false });
+            }
+            (DICTATION, 3) => {
+                const THREADS: [u32; 5] = [0, 2, 4, 6, 8];
+                let cur = THREADS.iter().position(|t| *t == self.cfg.dictation_threads).unwrap_or(0);
+                let next = if dir == -1 { (cur + THREADS.len() - 1) % THREADS.len() } else { (cur + 1) % THREADS.len() };
+                self.cfg.dictation_threads = THREADS[next];
+            }
+            (DICTATION, 4) if dir == 0 => self.action = Some(SettingsAction::DownloadDictationModels),
             // Clipboard section.
             (CLIPBOARD, 0) => self.cfg.clipboard_history = flip(self.cfg.clipboard_history, dir),
             (CLIPBOARD, 1) => self.cfg.clipboard_persist = flip(self.cfg.clipboard_persist, dir),
@@ -1120,6 +1145,9 @@ impl Settings {
             TextTarget::CastDevice => {
                 self.cfg.cast_device = s;
             }
+            TextTarget::DictationEnterWord => {
+                self.cfg.dictation_enter_word = s;
+            }
             TextTarget::TermBg | TextTarget::TermFg => {
                 let val = if s.is_empty() {
                     None
@@ -1161,7 +1189,7 @@ impl Settings {
         if let Some(t) = self.text.as_ref() {
             // The wallpaper name commits on click-away; a half-typed color is
             // discarded instead (committing it would stage a wrong color).
-            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd | TextTarget::CastDevice) {
+            if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd | TextTarget::CastDevice | TextTarget::DictationEnterWord) {
                 self.commit_text();
                 return true;
             }
@@ -1402,6 +1430,27 @@ impl Settings {
                 buf.write_str(cx, 10, "stops it; the red CAST marker in the menubar stops it too.", pal_dim(), pal_bg());
                 buf.write_str(cx, 11, "Same as: tetron-wm cast | cast off | cast status | cast --url", pal_dim(), pal_bg());
                 buf.write_str(cx, 12, "Device: a name or IP; empty uses casttui's remembered device.", pal_dim(), pal_bg());
+            }
+            DICTATION => {
+                let word = match self.text.as_ref().filter(|t| t.target == TextTarget::DictationEnterWord) {
+                    Some(t) => format!("{}\u{2588}", t.buf),
+                    None if self.cfg.dictation_enter_word.is_empty() => "(none) \u{25BE}".to_string(),
+                    None => format!("{} \u{25BE}", self.cfg.dictation_enter_word),
+                };
+                let threads = if self.cfg.dictation_threads == 0 { "auto".to_string() } else { self.cfg.dictation_threads.to_string() };
+                self.row(&mut buf, cx, 3, 0, "Mode", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_mode));
+                self.row(&mut buf, cx, 4, 1, "Pause (seconds)", format!("\u{25C2} {} \u{25B8}", self.cfg.dictation_pause));
+                self.row(&mut buf, cx, 5, 2, "Enter word", word);
+                self.row(&mut buf, cx, 6, 3, "CPU threads", format!("\u{25C2} {threads} \u{25B8}"));
+                self.row(&mut buf, cx, 7, 4, "Download models", "Enter (about 0.9 GB)".into());
+                let (have, color) = if crate::dictation::available(&self.cfg) { ("tetron-stt: installed", green()) } else { ("tetron-stt: not installed (install it from the Store)", red()) };
+                buf.write_str(cx, 9, have, color, pal_bg());
+                buf.write_str(cx, 11, "Dictation is an optional addon. Leader d starts and stops", pal_dim(), pal_bg());
+                buf.write_str(cx, 12, "listening, leader D switches mode, or click MIC in the menubar.", pal_dim(), pal_bg());
+                buf.write_str(cx, 13, "The text is typed into the focused window; saying the enter", pal_dim(), pal_bg());
+                buf.write_str(cx, 14, "word at the end presses Enter. Changes apply the next time", pal_dim(), pal_bg());
+                buf.write_str(cx, 15, "the provider starts (detach and attach, or tetron-wm reload).", pal_dim(), pal_bg());
+                buf.write_str(cx, 16, "Models are never downloaded without Download models.", pal_dim(), pal_bg());
             }
             GENERAL => match self.apps_dlg.as_ref() {
                 Some(d) => {
@@ -1764,6 +1813,34 @@ mod tests {
         let buf = s.render(100, 30);
         let text: String = (0..30).flat_map(|y| (0..100).map(move |x| (x, y))).map(|(x, y)| buf.get(x, y).unwrap().ch).collect();
         assert!(text.contains("Living Room") && text.contains("casttui:"), "the section shows the device and casttui state");
+    }
+
+    #[test]
+    fn dictation_section_cycles_options_edits_the_enter_word_and_downloads_models() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(DICTATION);
+        assert_eq!(SECTIONS[DICTATION], "Dictation");
+        s.sel = 0;
+        s.right();
+        assert_eq!(s.config().dictation_mode, "final");
+        s.sel = 1;
+        s.right();
+        assert!((s.config().dictation_pause - 1.6).abs() < 0.01);
+        s.sel = 3;
+        s.right();
+        assert_eq!(s.config().dictation_threads, 2);
+        s.sel = 2;
+        s.toggle();
+        for _ in 0..12 { s.backspace(); }
+        for c in "send it".chars() { s.type_char(c); }
+        s.commit_text();
+        assert_eq!(s.config().dictation_enter_word, "send it");
+        s.sel = 4;
+        s.toggle();
+        assert_eq!(s.take_action(), Some(SettingsAction::DownloadDictationModels));
+        let buf = s.render(100, 30);
+        let text: String = (0..30).flat_map(|y| (0..100).map(move |x| (x, y))).map(|(x, y)| buf.get(x, y).unwrap().ch).collect();
+        assert!(text.contains("send it") && text.contains("tetron-stt:"));
     }
 
     #[test]
