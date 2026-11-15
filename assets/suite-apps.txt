@@ -53,6 +53,7 @@ essentials:apps:fdfind|fd:fd-find:fd-find:fd:fd
 essentials:apps:man:man-db:man-db:man-db:
 essentials:apps:tldr:tealdeer:tealdeer:tealdeer:tealdeer
 essentials:apps:pulsemixer:pulsemixer::pulsemixer:
+recommended:apps:tetron-aimode:tetron-aimode:::
 recommended:apps:duf:duf:duf:duf:duf
 recommended:apps:smartctl:smartmontools:smartmontools:smartmontools:smartmontools
 recommended:apps:nvme:nvme-cli:nvme-cli:nvme-cli:

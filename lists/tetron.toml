@@ -419,6 +419,17 @@ brew = ""
 
 # Set recommended.
 
+# AI Mode is its own package (tetronos/tetron-aimode), not built into tetron-wm: it needs a
+# Gemini API key, so it is a recommended install. No distribution or Homebrew package; the
+# tetronos apt repository carries it, other installs fetch the single script (helpers).
+[[package]]
+name = "tetron-aimode"
+set = "recommended"
+check = "tetron-aimode"
+dnf = ""
+pacman = ""
+brew = ""
+
 [[package]]
 name = "duf"
 set = "recommended"
@@ -859,7 +870,7 @@ how = "Symbols Nerd Font: ~/.local/share/fonts on Linux, a Homebrew cask on macO
 [[script]]
 name = "helpers"
 set = "essentials"
-how = "tetron-wm-startpage and tetron-aimode from scripts/ into ~/.local/bin, only when tetron-wm is not the deb (the deb ships them)"
+how = "tetron-wm-startpage from scripts/ and tetron-aimode from github.com/tetronos/tetron-aimode into ~/.local/bin, only when they are not already installed (the tetron-wm deb ships the start page; tetron-aimode is its own deb in the recommended set)"
 
 [[script]]
 name = "opencode"
