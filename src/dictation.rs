@@ -127,9 +127,10 @@ impl DictationState {
     }
 }
 
-/// Whether dictation can be offered: a provider command is set or tetron-stt is installed.
+/// Whether dictation is on and can be offered: enabled, and a provider command is
+/// set or tetron-stt is installed.
 pub fn available(cfg: &crate::config::Config) -> bool {
-    !cfg.dictation_command.trim().is_empty() || crate::catalog::is_installed("tetron-stt")
+    cfg.dictation_enabled && (!cfg.dictation_command.trim().is_empty() || crate::catalog::is_installed("tetron-stt"))
 }
 
 /// The program and arguments that start the provider: `<command> serve [options]`
@@ -220,6 +221,14 @@ impl Drop for Provider {
 /// Turn a toggle or mode request into the provider command and send it, starting
 /// the provider first when none runs. Errors come back as an event for the daemon.
 pub fn dispatch(provider: &mut Option<Provider>, cfg: &crate::config::Config, what: &str, forward: &(impl Fn(DictationEvent) + Clone + Send + 'static)) {
+    // Switched off (Settings): stop the provider, and say so when a key asked for it.
+    if what == "off" || !cfg.dictation_enabled {
+        *provider = None; // Drop quits the process and frees the microphone
+        if what != "off" {
+            forward(DictationEvent::Error("dictation is off (Settings, Dictation)".into()));
+        }
+        return;
+    }
     if provider.as_mut().is_some_and(|p| !p.alive()) { *provider = None; }
     if provider.is_none() {
         match Provider::spawn(cfg, forward.clone()) {

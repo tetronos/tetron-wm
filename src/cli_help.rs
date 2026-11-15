@@ -26,6 +26,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
     ("cast_device", "", "Chromecast for right-click Cast to Chromecast: a name or IP for catt -d; empty = catt's default device"),
     ("cast_command", "", "program that serves and casts the desktop (needs --cells, see docs); empty = casttui"),
     ("cast_fps", "15", "desktop cast updates per second (1 to 60)"),
+    ("dictation_enabled", "true", "dictation on or off; off hides MIC in the menubar and stops the provider"),
     ("dictation_command", "", "dictation provider program (JSON lines, see docs); empty = tetron-stt (optional addon)"),
     ("dictation_mode", "segment", "starting dictation mode: segment (live text, commits on pauses) | final"),
     ("dictation_pause", "1.2", "seconds of silence that end a dictated segment"),
