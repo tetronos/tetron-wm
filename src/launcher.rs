@@ -37,6 +37,9 @@ enum MenuEntry {
     Separator,
 }
 
+/// The widest a menu panel grows (names longer than this are still cut with an ellipsis).
+const MENU_PANEL_MAX_W: i32 = 48;
+
 impl MenuEntry {
     fn label(&self) -> &str {
         match self {
@@ -44,6 +47,12 @@ impl MenuEntry {
             MenuEntry::Submenu { label, .. } => label,
             MenuEntry::Separator => "",
         }
+    }
+    /// Cells a row needs besides its name: the `CLI` tag (and its gap) for a CLI app, the
+    /// right-edge marker of an entry that opens more.
+    fn extra_w(&self) -> usize {
+        let cli = matches!(self, MenuEntry::Launch(a) if a.cli.unwrap_or(false));
+        (if cli { 4 } else { 0 }) + (if self.has_marker() { 2 } else { 0 })
     }
     fn is_submenu(&self) -> bool {
         matches!(self, MenuEntry::Submenu { .. })
@@ -447,8 +456,10 @@ impl Launcher {
         let mut x = 0;
         let mut prev_sel_y = 1; // panel 0 top
         for (k, (entries, sel)) in levels.iter().enumerate() {
-            let label_w = entries.iter().map(|e| e.label().chars().count()).max().unwrap_or(6) as i32;
-            let pw = (label_w + 4).clamp(12, 30); // +marker/padding/border
+            // The widest row: its name, plus the CLI tag and the "opens more" marker where it
+            // has them (draw_row leaves room for both, so the name is not cut).
+            let label_w = entries.iter().map(|e| e.label().chars().count() + e.extra_w()).max().unwrap_or(6) as i32;
+            let pw = (label_w + 4).clamp(12, MENU_PANEL_MAX_W).min(w.max(12)); // +marker/padding/border
             // Tall lists scroll: show only what fits below the menubar row.
             let (off, vis) = list_window(entries.len(), *sel, (h - 3).max(1) as usize);
             let ph = vis as i32 + 2; // border top/bottom
@@ -753,6 +764,30 @@ mod tests {
             app("epsilon", "Net"), app("zeta", "Net"),
             app("eta", "Games"), app("theta", "Games"),
         ]
+    }
+
+    #[test]
+    fn a_cli_app_name_is_not_cut_by_the_cli_tag() {
+        let mut cli = app("A fairly long program name", "Tools");
+        cli.cli = Some(true);
+        let mut l = Launcher::new(vec![cli, app("Short", "Tools")]);
+        l.toggle_menu();
+        let _ = l.render(120, 40);
+        let rects = l.panel_rects_for_test(120, 40);
+        let tools = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 1).map(|(_, _, r)| *r).unwrap();
+        l.hover(Point::new(tools.x + 1, tools.y)); // hovering the category opens its panel
+        let r = l.render(120, 40);
+        let text: String = r
+            .layers
+            .iter()
+            .flat_map(|ly| {
+                let b = &ly.buf;
+                (0..b.height()).flat_map(move |y| (0..b.width()).map(move |x| b.get(x, y).map(|c| c.ch).unwrap_or(' ')))
+            })
+            .collect();
+        assert!(text.contains("A fairly long program name"), "the whole name is drawn: {text}");
+        assert!(text.contains("CLI"));
+        assert!(!text.contains('\u{2026}'), "nothing is cut with an ellipsis");
     }
 
     #[test]
