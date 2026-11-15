@@ -6,16 +6,18 @@ Words used here: a **collection** is a named group of apps (`minimal`, `essentia
 
 ## 1. Where the app lists come from
 
+All catalog files are in tetron-appstore (https://github.com/tetronos/tetron-appstore); tetron-wm has its app sets.
+
 | File | Written by | Read by |
 |---|---|---|
-| `lists/tetron.toml` | hand edits, plus recipe blocks appended by `scripts/match_brew.py` (Homebrew formula index), `scripts/match_lang_recipes.py` (crates.io, PyPI, Go modules), `scripts/merge_recipes.py` (the derive-install-recipes workflow) and `scripts/derive_os.py` | the generators below |
-| `lists/awesome-tuis.json` | `scripts/import_awesome_tuis.py`, from the awesome-tuis list | `scripts/merge_catalog.py` |
-| `lists/terminaltrove.json` | `scripts/import_terminaltrove.py`, from the terminaltrove.com tool list (https://terminaltrove.com, fetched as the terminaltrove-stars data.json: https://carcaradotdev.github.io/terminaltrove-stars/data.json) | `scripts/merge_catalog.py` |
-| `lists/repology.json` | `scripts/match_repology.py`, from repology.org | `scripts/merge_catalog.py` |
-| `lists/releases.json` | `scripts/match_releases.py`, the GitHub repositories whose latest release has downloads (the Store links their releases page) | `scripts/merge_catalog.py` |
-| `assets/suite-apps.txt` | `scripts/gen_suite_lists.py` | carried inside the catalog; the suite installer |
-| `packaging/<collection>.toml` Recommends | `scripts/gen_suite_lists.py` | the collection packages |
-| `assets/catalog.json` | `scripts/merge_catalog.py` (awesome-tuis, then terminaltrove, then Repology names, then `lists/tetron.toml`, which wins) | compiled into tetron-wm; the Store; Settings |
+| tetron-wm `lists/tetron.toml` | hand edits: the app sets (`[[package]]`, `[[script]]`, `[[release]]`, and `[[app]]` name and set for a catalog app) | `scripts/gen_suite_lists.py` |
+| tetron-wm `assets/suite-apps.txt` | `scripts/gen_suite_lists.py` (catalog apps' commands and package names from the catalog tetron-wm is built with) | the suite installer; copied into tetron-appstore |
+| tetron-wm `packaging/<collection>.toml` Recommends | `scripts/gen_suite_lists.py` | the collection packages |
+| tetron-appstore `lists/tetron.toml` | hand edits (our corrections and additions), plus recipe blocks appended by `scripts/match_brew.py`, `scripts/match_lang_recipes.py`, `scripts/merge_recipes.py` and `scripts/derive_os.py` | `scripts/merge_catalog.py` |
+| tetron-appstore `lists/awesome-tuis.json`, `lists/terminaltrove.json` | `scripts/import_awesome_tuis.py`, `scripts/import_terminaltrove.py` | `scripts/merge_catalog.py` |
+| tetron-appstore `lists/repology.json`, `lists/releases.json` | `scripts/match_repology.py`, `scripts/match_releases.py` | `scripts/merge_catalog.py` |
+| tetron-appstore `assets/suite-apps.txt` | `scripts/sync_suite_list.sh` (a copy of tetron-wm's) | `scripts/merge_catalog.py` (sets and tiers; carried as `suite_apps`) |
+| tetron-appstore `assets/catalog.json` | `scripts/merge_catalog.py` | compiled into tetron-appstore and tetron-wm (the `tetron-catalog` library); published for Update list |
 
 `scripts/rebuild-app-sets.sh` runs the generators and their checks in one go after an edit of `lists/tetron.toml`.
 

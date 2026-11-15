@@ -86,9 +86,11 @@ class NoPlanningNotesInCommittedFiles(Constraint):
 class CatalogMerged(Constraint):
     """CONSTRAINT-ID: CON-WD07
 
-    `assets/catalog.json` equals what `scripts/merge_catalog.py` makes from
-    `lists/` and `assets/suite-apps.txt` (WMCAT-001, WMCAT-003), so a list
-    edit without merging fails the gate.
+    The catalog tetron-wm is built with (tetron-appstore's
+    `assets/catalog.json` at the commit Cargo.lock pins, WMCAT-001) carries
+    exactly this repository's `assets/suite-apps.txt` as its suite list
+    (WMCAT-003), so an app set edit that did not reach the catalog fails the
+    gate.
     ENFORCEMENT (reconcile.py): catalog.current is true.
     """
     constraint_id = "CON-WD07"

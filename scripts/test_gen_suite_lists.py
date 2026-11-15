@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_suite_lists as g  # noqa: E402
-import merge_catalog  # noqa: E402
+import json  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 # The checks of the suite script's hand-written lists before WMINST-001.
@@ -26,7 +26,7 @@ def gen(packages: str = "", apps=(), scripts: str = ""):
 class Generated(unittest.TestCase):
     ours = tomllib.loads((ROOT / "lists" / "tetron.toml").read_text(encoding="utf-8"))
     debs = {s: (g.PKG / f"{s}.toml").read_text() for s in g.SETS}
-    text, new = g.generate(ours, merge_catalog.merged_apps(), debs)
+    text, new = g.generate(ours, g.set_apps(ours, json.loads(g.catalog_file().read_text())["apps"]), debs)
     rows = [l.split(":") for l in text.splitlines() if l and not l.startswith("#")]
 
     def test_every_recommends_is_listed_unless_deb_only(self):

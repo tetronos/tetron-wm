@@ -1,5 +1,12 @@
 """App catalog requirements for tetron-wm (WMCAT-*): source lists, the merge,
-tiers and sets, and the Store's Update list fetch."""
+tiers and sets, and the Store's Update list fetch.
+
+The catalog lives in the tetron-appstore repository
+(https://github.com/tetronos/tetron-appstore, WMCAT-012): the paths `lists/`
+(except tetron-wm's app sets), `scripts/` for the import, merge and match
+scripts, `assets/catalog.json` and `crates/tetron-catalog` named below are
+there. tetron-wm keeps its app sets (`lists/tetron.toml`,
+`scripts/gen_suite_lists.py`, `assets/suite-apps.txt`)."""
 from libspec import Requirement
 
 
@@ -145,8 +152,9 @@ class CatalogLibrary(Requirement):
     """REQUIREMENT-ID: WMCAT-008
 
     The catalog code is a library crate of its own, `tetron-catalog` in
-    `crates/tetron-catalog` (a Cargo workspace member), so tetron-wm and the
-    standalone Store (tetron-appstore) use one copy. It holds the catalog
+    tetron-appstore's `crates/tetron-catalog` (a member of its Cargo
+    workspace), so tetron-wm (a git dependency, pinned by Cargo.lock) and the
+    standalone Store use one copy. It holds the catalog
     types, parsing and the built-in copy (`assets/catalog.json`), the cached
     Update list copy and its checks, lookups (recipe, category, CLI, URL),
     the `$PATH` scan of installed apps, the releases link (WMCAT-006), the
@@ -215,5 +223,28 @@ class StoreOpensTheApp(Requirement):
     that installs it with its install.sh (the latest release, checked against
     its SHA256, into `~/.local/bin`) and says to press leader S again; closing
     it rescans the installed apps. Every choice is logged.
+    """
+
+
+class CatalogInTheStoreRepo(Requirement):
+    """REQUIREMENT-ID: WMCAT-012
+
+    Depends on WMCAT-008 and WMINST-001. The catalog and its sources live in
+    tetron-appstore: the library, the built-in `assets/catalog.json`, the
+    imported lists, our corrections (`lists/tetron.toml` `[[app]]` blocks
+    and `exclude`), Repology and releases data and every import, merge and
+    match script, with CI checking that the catalog is current and a weekly
+    check of both imported lists. tetron-wm keeps its app sets: its
+    `lists/tetron.toml` holds `[[package]]`, `[[script]]` and `[[release]]`
+    entries and, for a catalog app in a set, an `[[app]]` with only its name
+    and set; `scripts/gen_suite_lists.py` takes such an app's command and
+    package names from the catalog tetron-wm is built with (located with
+    `cargo metadata`). tetron-appstore keeps a copy of tetron-wm's
+    `assets/suite-apps.txt` (`scripts/sync_suite_list.sh`), from which its
+    merge gives each app its set and tier and which the catalog carries as
+    `suite_apps`; tetron-wm's reconcile (CON-WD07) and a test fail when the
+    catalog tetron-wm is built with carries another suite list. The published
+    lists (`lists/<major.minor>/catalog.json`, `suite-apps.txt`) come from
+    tetron-appstore in the same format, so installed versions see no change.
     """
 

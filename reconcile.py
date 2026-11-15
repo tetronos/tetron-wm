@@ -70,18 +70,20 @@ def check_suite_apps() -> dict:
 
 
 def check_catalog() -> dict:
-    """CON-WD07: assets/catalog.json is what the merge makes from lists/, and its tests pass."""
-    import subprocess
-    gen = subprocess.run([sys.executable, "scripts/merge_catalog.py", "--check"], capture_output=True, text=True)
-    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_merge_catalog.py", "scripts/test_match_repology.py"],
-                           capture_output=True, text=True)
-    return {"current": gen.returncode == 0 and tests.returncode == 0,
-            "merge": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
+    """CON-WD07: the catalog tetron-wm is built with (tetron-appstore's, pinned
+    by Cargo.lock) carries exactly this repository's assets/suite-apps.txt."""
+    sys.path.insert(0, "scripts")
+    import gen_suite_lists
+    path = gen_suite_lists.catalog_file()
+    inside = json.loads(path.read_text(encoding="utf-8")).get("suite_apps", "")
+    ours = Path("assets/suite-apps.txt").read_text(encoding="utf-8")
+    return {"current": inside == ours, "catalog": str(path),
+            "fix": "" if inside == ours else "run scripts/sync_suite_list.sh in tetron-appstore, commit, push, then cargo update -p tetron-catalog here"}
 
 
 # CON-WD06. Files where these words are expected: the changelog (dates), lock
 # files and generated data, license text, .gitignore and the agent guide.
-NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "assets/catalog.json", "lists/awesome-tuis.json", "lists/terminaltrove.json", "lists/tetron.toml",
+NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "lists/tetron.toml",
                  "THIRD-PARTY-LICENSES.md", ".gitignore", "CLAUDE.md"}
 # Built from parts so this file does not match itself.
 OWNER = re.compile(r"(?<![$\w\"{])" + "US" + r"ER(?![\w])")

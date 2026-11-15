@@ -8,7 +8,8 @@ description = "A TUI desktop environment for the terminal"
 repository = "https://github.com/tetronos/tetron-wm"
 
 [dependencies]
-tetron-catalog = { path = "crates/tetron-catalog" }
+# The app catalog library, from tetron-appstore (WMCAT-008, WMCAT-012).
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore" }
 crossterm = "0.29"
 portable-pty = "0.9"
 serde = { version = "1", features = ["derive"] }
@@ -44,9 +45,4 @@ path = "src/main.rs"
 
 [dev-dependencies]
 # Tests read only the built-in catalog, never a downloaded one (WMCAT-008).
-tetron-catalog = { path = "crates/tetron-catalog", features = ["builtin-only"] }
-
-[workspace]
-members = [".", "crates/tetron-catalog"]
-# `cargo test` and `cargo clippy` cover the catalog crate too.
-default-members = [".", "crates/tetron-catalog"]
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", features = ["builtin-only"] }
