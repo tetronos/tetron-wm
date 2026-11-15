@@ -93,4 +93,12 @@ mod tests {
             assert!(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts").join(bin).is_file());
         }
     }
+
+    /// CON-WD07: the catalog tetron-wm is built with carries exactly this
+    /// repository's suite list (its app sets), so Settings > General > Apps
+    /// and the suite installer agree with the packages.
+    #[test]
+    fn built_in_catalog_carries_our_suite_list() {
+        assert_eq!(suite_apps(), include_str!("../assets/suite-apps.txt"));
+    }
 }

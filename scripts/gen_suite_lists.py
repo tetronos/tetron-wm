@@ -2,8 +2,10 @@
 """Generate the app set lists from lists/tetron.toml (WMINST-001).
 
 The sets are defined once, in the "App sets" section of lists/tetron.toml:
-[[package]] entries, [[app]] entries with `set` (package names from their
-merged pkg) and [[script]] entries. This writes:
+[[package]] entries, [[app]] entries with `set` (a catalog app by name: its
+command and package names come from the catalog tetron-wm is built with,
+tetron-appstore's assets/catalog.json at the commit Cargo.lock pins) and
+[[script]] entries. This writes:
 
 1. assets/suite-apps.txt, the suite installer's list: one line per package
 
@@ -29,13 +31,12 @@ merged pkg) and [[script]] entries. This writes:
     python3 scripts/gen_suite_lists.py           write both
     python3 scripts/gen_suite_lists.py --check   exit 1 if either is out of date
 """
+import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import merge_catalog  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PKG = ROOT / "packaging"
@@ -134,11 +135,39 @@ def generate(ours: dict, apps: list, debs: dict) -> tuple[str, dict]:
     return HEADER + "\n".join(lines) + "\n", out
 
 
+def catalog_file() -> Path:
+    """assets/catalog.json of the tetron-catalog library tetron-wm is built
+    with (a git dependency on tetron-appstore, pinned by Cargo.lock);
+    `TETRON_CATALOG_JSON` overrides it."""
+    import os
+    if os.environ.get("TETRON_CATALOG_JSON"):
+        return Path(os.environ["TETRON_CATALOG_JSON"])
+    meta = json.loads(subprocess.run(["cargo", "metadata", "--format-version", "1"], cwd=ROOT,
+                                     capture_output=True, text=True, check=True).stdout)
+    crate = next(Path(p["manifest_path"]) for p in meta["packages"] if p["name"] == "tetron-catalog")
+    return crate.parent.parent.parent / "assets" / "catalog.json"
+
+
+def set_apps(ours: dict, catalog: list) -> list:
+    """The catalog apps the app sets name, each with its set from ours."""
+    by_name = {a["name"].lower(): a for a in catalog}
+    out = []
+    for a in ours.get("app", []):
+        if set(a) - {"name", "set"}:
+            raise GenError(f"app {a.get('name')}: only name and set here; the rest is in tetron-appstore's lists/tetron.toml")
+        hit = by_name.get(a["name"].lower())
+        if hit is None:
+            raise GenError(f"app {a['name']}: not in the catalog ({catalog_file()})")
+        out.append(dict(hit, set=a["set"]))
+    return out
+
+
 def main(argv: list[str]) -> int:
     ours = tomllib.loads((ROOT / "lists" / "tetron.toml").read_text(encoding="utf-8"))
     debs = {s: (PKG / f"{s}.toml").read_text() for s in SETS}
     try:
-        text, new_debs = generate(ours, merge_catalog.merged_apps(), debs)
+        catalog = json.loads(catalog_file().read_text(encoding="utf-8"))["apps"]
+        text, new_debs = generate(ours, set_apps(ours, catalog), debs)
     except GenError as e:
         print(f"gen_suite_lists: {e}", file=sys.stderr)
         return 1

@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- The app catalog moved to tetron-appstore (https://github.com/tetronos/tetron-appstore): the `tetron-catalog` library (now a git dependency), the built-in catalog, the imported lists, our app corrections and the import, merge and recipe scripts. tetron-wm keeps its app sets (`lists/tetron.toml` holds only those, `scripts/gen_suite_lists.py` takes app details from the catalog it is built with). The published lists keep their format.
+
 ### Removed (breaking)
 - tetron-wm's built-in Store. The Store is tetron-appstore only (https://github.com/tetronos/tetron-appstore, in the desktop set); when it is not installed, opening the Store opens a window that installs it with its install.sh. `store_app = ""` now means tetron-appstore. tetron-wm no longer downloads the catalog itself: the Store's Update list writes the shared copy, which tetron-wm re-reads when it changes. About 1,000 lines go (the Store window, its keys and menu, its control messages, the Update list fetch).
 
