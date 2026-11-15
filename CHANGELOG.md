@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.15] — 2026-11-15
+
 - AI Mode (`tetron-aimode`) is its own package, [tetronos/tetron-aimode](https://github.com/tetronos/tetron-aimode), not built into the tetron-wm deb: it needs a Gemini API key. It is a member of the recommended size (`tetron-wm-recommended` Recommends it, the suite installer fetches it from its own repository for the recommended size and up), and the Store recipe points to it. The launcher entry is unchanged: it appears once `tetron-aimode` is on PATH. Installing the new deb with the old tetron-wm is refused by a Conflicts, so apt upgrades tetron-wm first.
 
 ## [0.15.14] — 2026-11-15
