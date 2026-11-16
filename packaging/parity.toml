@@ -21,7 +21,7 @@ step = "2"
 what = "config dir, config.toml seeded with every key at its default"
 deb = "none: tetron-wm runs on its built-in defaults without a file"
 iso = "none: as the deb"
-inapp = "Settings > General > Create from example"
+inapp = "Settings > Config Edit > Create from example"
 
 [[row]]
 step = "2a"
@@ -35,7 +35,7 @@ step = "2b"
 what = "the tools tetron-wm's features call (mpv, chafa, fbi, ...), part of the essentials size"
 deb = "tetron-wm-desktop (Recommends; tetron-wm-essentials depends on it)"
 iso = "tetron-wm-desktop"
-inapp = "Settings > General > Apps"
+inapp = "Settings > App Collections"
 iso_packages = ["tetron-wm-desktop", "mpv", "chafa", "fbi"]
 
 [[row]]
@@ -43,7 +43,7 @@ step = "2b"
 what = "apps of the essentials size that distributions package (git, tmux, ripgrep, ...)"
 deb = "tetron-wm-essentials (Recommends)"
 iso = "tetron-wm-essentials"
-inapp = "Settings > General > Apps"
+inapp = "Settings > App Collections"
 iso_packages = ["tetron-wm-essentials", "git", "tmux"]
 
 [[row]]
@@ -51,7 +51,7 @@ step = "2b"
 what = "apps of the recommended size (lazygit, neovim, podman, ...)"
 deb = "tetron-wm-recommended (Recommends)"
 iso = "tetron-wm-recommended"
-inapp = "Settings > General > Apps"
+inapp = "Settings > App Collections"
 iso_packages = ["tetron-wm-recommended"]
 
 [[row]]
@@ -59,14 +59,14 @@ step = "2b"
 what = "apps of the extras size (none yet)"
 deb = "tetron-wm-extras (Recommends)"
 iso = "none: the Desktop ISO installs the essentials and recommended sizes"
-inapp = "Settings > General > Apps"
+inapp = "Settings > App Collections"
 
 [[row]]
 step = "2b"
 what = "apps no distribution packages (essentials: fresh, uv, catt, casttui, Nerd Font symbols, opencode; recommended: croft, pyradio, llm, yt-dlp, freebuff)"
 deb = "none: not in Debian; the [[script]] entries of lists/tetron.toml"
 iso = "opencode in /etc/skel/.local/bin (a Desktop image hook, upstream release checked against its GitHub sha256 digest, so each user owns a copy as with the script) and the Nerd Font symbols (tetronos-nerd-font-symbols, in tetronos-core); the others: none, installed in-app"
-inapp = "Settings > General > Apps (runs the suite installer)"
+inapp = "Settings > App Collections (runs the suite installer)"
 iso_packages = ["tetronos-nerd-font-symbols"]
 
 [[row]]

@@ -6,6 +6,14 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.17] — 2026-11-16
+
+### Changed
+- **Settings sections regrouped; General is gone.** `Apps` is now **Launcher** (custom apps, Add app, and a new **Power menu** switch for `power_menu`: off removes Launcher > Power and refuses suspend, reboot and power off, for servers; applies at once). The config file rows from General (Open in editor, Create from example or Reset to defaults, Reload) and Log level are the new **Config Edit** section. The Apps collections dialog (Essentials, Recommended, Extras) is its own section, **App Collections**. Settings reopens on Config Edit after a config reload, create or reset.
+- **Launcher: one Remote access submenu replaces the two Systems entries.** It holds **sshd allow remote access** (moved from Settings > General > Remote access; shows on or off; says "not installed" where `tetronos-ssh-temp` is missing), **Remote files** (the Files on <system> entries, the old Systems category) and **Configure Remote Systems** (the old Systems action that opens the systems popover).
+- **Settings > About > Installed says "collection", not "size"** ("apt package, collection recommended").
+- **Launcher: All.** A submenu after Shell and tetron-wm lists every app in one scrollable list (the mouse wheel scrolls it, and hovering a row does not shift the list), sorted by name.
+
 ## [0.15.16] — 2026-11-16
 
 ### Added

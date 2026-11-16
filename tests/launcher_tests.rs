@@ -48,10 +48,11 @@ fn navigation_and_selection() {
     // alphabetically inside it: btop, helix, lazygit, yazi.
     let mut l = launcher();
     l.toggle_menu();
-    // Root: a "Shell" quick-launch, the single "Apps" category, then a separator
-    // and the system section.
-    assert_eq!(l.menu_labels(), vec!["Shell", "Apps", "", "Systems", "", "Detach", "Reload", "Quit"]);
-    // Select "Apps" (after the Shell quick-launch) and descend into it.
+    // Root: a "Shell" quick-launch, "All", the single "Apps" category, then a
+    // separator and the system section.
+    assert_eq!(l.menu_labels(), vec!["Shell", "All", "Apps", "", "Remote access", "", "Detach", "Reload", "Quit"]);
+    // Select "Apps" (after the Shell quick-launch and All) and descend into it.
+    l.move_down();
     l.move_down();
     l.expand();
     assert_eq!(l.focused_label(), Some("btop".to_string()));
@@ -66,11 +67,12 @@ fn navigation_and_selection() {
 fn menu_render_exposes_clickable_items() {
     let mut l = launcher();
     l.toggle_menu();
-    l.move_down(); // select "Apps" so it auto-expands
+    l.move_down();
+    l.move_down(); // select "Apps" (after Shell and All) so it auto-expands
     let r = l.render(120, 40);
-    // Root leaves: Shell + the 4 system actions (Systems/Exit/Restart/Shutdown),
-    // plus the 4 auto-expanded "Apps" leaves = 9.
-    assert_eq!(r.items.len(), 9);
+    // Root leaves: Shell + the 3 system actions (Detach/Reload/Quit), plus the 4
+    // auto-expanded "Apps" leaves = 8.
+    assert_eq!(r.items.len(), 8);
     assert!(!r.layers.is_empty());
 }
 
@@ -79,10 +81,11 @@ fn categories_group_with_headers() {
     let cat = |n: &str, c: &str| AppEntry { name: n.into(), command: n.into(), args: vec![], category: Some(c.into()), requires_cwd: None, cwd: None, cli: None, warn: None };
     let mut l = Launcher::new(vec![cat("btop","System"), cat("lazygit","Git"), cat("top","System")]);
     l.toggle_menu();
-    // Root: the "Shell" quick-launch, categories sorted (Git, System), then a
-    // separator and the system section.
-    assert_eq!(l.menu_labels(), vec!["Shell", "Git", "System", "", "Systems", "", "Detach", "Reload", "Quit"]);
-    // Select Git (after Shell) and descend → its single leaf (lazygit).
+    // Root: the "Shell" quick-launch, "All", categories sorted (Git, System), then
+    // a separator and the system section.
+    assert_eq!(l.menu_labels(), vec!["Shell", "All", "Git", "System", "", "Remote access", "", "Detach", "Reload", "Quit"]);
+    // Select Git (after Shell and All) and descend → its single leaf (lazygit).
+    l.move_down();
     l.move_down();
     l.expand();
     assert_eq!(l.focused_label(), Some("lazygit".to_string()));

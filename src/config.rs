@@ -559,7 +559,7 @@ pub fn backup_path(path: &std::path::Path) -> std::path::PathBuf {
     std::path::PathBuf::from(s)
 }
 
-/// Settings > General > Reset to defaults: move the file at `path` to
+/// Settings > Config Edit > Reset to defaults: move the file at `path` to
 /// `<path>.bak` (replacing an older backup), then write [`EXAMPLE`]. Returns
 /// the backup path, or `None` when there was no file to keep.
 pub fn reset_at(path: &std::path::Path) -> std::io::Result<Option<std::path::PathBuf>> {

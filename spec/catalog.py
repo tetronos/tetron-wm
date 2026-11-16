@@ -74,9 +74,9 @@ class UpdateListFetch(Requirement):
     (`tetron_catalog::install`, atomic rename) and replaces the built-in
     copy. tetron-wm reads that cached copy at start while it passes the same
     checks, and re-reads it when it changes (WMCAT-009), for the launcher, the
-    assistant's agents and Settings > General > Apps (WMINST-007).
+    assistant's agents and Settings > App Collections (WMINST-007).
     Otherwise the built-in copy stays and the reason is shown and logged.
-    Settings > General > Apps hands the suite script the list it used
+    Settings > App Collections hands the suite script the list it used
     (`--apps-list FILE`); the suite script run on its own fetches
     `suite-apps.txt` from the same versioned location, then from the
     repository, so a list for a newer core never reaches an older one.

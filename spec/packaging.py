@@ -36,7 +36,7 @@ class ThemeSearchList(Requirement):
 class SettingsRework(Requirement):
     """REQUIREMENT-ID: WMDEB-003
 
-    Settings opens on Appearance. General > Config file (open, create from
+    Settings opens on Appearance. Config Edit (open, create from
     the example, reset with a confirm and a .bak, reload). Appearance > Get
     more themes lists `themes/` on main through the GitHub contents API and
     downloads missing .toml/.jpg/.jpeg/.png/.webp into the data dir, off the
@@ -297,7 +297,7 @@ class InstallMethodAndSize(Requirement):
 class SettingsAppsRow(Requirement):
     """REQUIREMENT-ID: WMINST-007
 
-    Depends on WMINST-002 and WMINST-005. Settings > General has an Apps
+    Depends on WMINST-002 and WMINST-005. Settings > App Collections has a
     row showing the installed size and how many apps of it are missing
     ("essentials, 3 missing"), by the checks of `assets/suite-apps.txt`
     (compiled into the binary): the rows of that size and the smaller
@@ -393,7 +393,7 @@ class OpencodeForTheAssistant(Requirement):
     Updates, after the uv step, replaces ~/.local/bin/opencode the same way
     when that release differs from `opencode --version` (not `opencode
     upgrade`, which installs a second copy in ~/.opencode/bin). Settings >
-    General > Apps counts it when missing.
+    App Collections counts it when missing.
     """
 
 
@@ -402,8 +402,8 @@ class RecommendedScriptApps(Requirement):
 
     Depends on WMINST-002 and WMINST-009. The recommended size brings five
     apps no distribution packages, as `recommended:script:<name>` rows in
-    the app list (left out with --no-scripts, counted by Settings > General
-    > Apps when missing): pyradio (`uv tool install` from its git
+    the app list (left out with --no-scripts, counted by Settings >
+    App Collections when missing): pyradio (`uv tool install` from its git
     repository with its Python dependencies), llm (`uv tool install llm
     --with llm-ollama`) and yt-dlp (`uv tool install
     yt-dlp[default,deno]`, deno being the JS runtime it needs for YouTube,
@@ -431,7 +431,7 @@ class InstallGuide(Requirement):
     the ways to install (suite script, install.sh, debs, source), the three
     sizes and what each brings, the setups (console levels), the matrix of
     method by size, how each is updated and removed, and how to grow the
-    size later (suite script `--size`, Settings > General > Apps). The
+    size later (suite script `--size`, Settings > App Collections). The
     README's Install section links to it.
     """
 

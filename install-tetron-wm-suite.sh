@@ -63,7 +63,7 @@
 #   --themes / --no-themes     force the extra-themes download on/off (default yes)
 #   --size S                   minimal | essentials | recommended | extras (default essentials;
 #                              asked when not given; desktop is read as essentials)
-#   --apps-list FILE           read the app list from FILE (Settings > General > Apps hands
+#   --apps-list FILE           read the app list from FILE (Settings > App Collections hands
 #                              over the list it counted from); default: the list published
 #                              for this core minor, then the repository's
 #   --no-extras                same as --size minimal (older flag)

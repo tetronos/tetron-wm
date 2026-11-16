@@ -25,9 +25,9 @@ Prebuilt binary for Linux (x86_64, aarch64) and macOS (Apple silicon, Intel). No
 curl -fsSL https://tetronos.github.io/tetron-wm/install.sh | bash
 ```
 
-It asks how much to install (minimal: tetron-wm only; desktop: plus the tools its features use, the default; extras: plus git) and what kind of machine this is, then installs. On Debian and Ubuntu it uses the `.deb` packages once a release carries them, so apt manages tetron-wm and the apps. Every way to install, what each size brings, and how to update and remove: [docs/INSTALL_tetron-wm_methods_and_sizes.md](docs/INSTALL_tetron-wm_methods_and_sizes.md). How the Store, Settings > General > Apps and the suite installer install apps, step by step: [docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md](docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md).
+It asks how much to install (minimal: tetron-wm only; desktop: plus the tools its features use, the default; extras: plus git) and what kind of machine this is, then installs. On Debian and Ubuntu it uses the `.deb` packages once a release carries them, so apt manages tetron-wm and the apps. Every way to install, what each collection brings, and how to update and remove: [docs/INSTALL_tetron-wm_methods_and_sizes.md](docs/INSTALL_tetron-wm_methods_and_sizes.md). How the Store, Settings > App Collections and the suite installer install apps, step by step: [docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md](docs/APPS_tetron-wm_store_settings_apps_install_script_behaviour.md).
 
-Only tetron-wm, nothing else (the suite installer, or Settings > General > Apps, adds the apps later). It installs to `/usr/local/bin` with `sudo`; for your home instead:
+Only tetron-wm, nothing else (the suite installer, or Settings > App Collections, adds the apps later). It installs to `/usr/local/bin` with `sudo`; for your home instead:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh | TETRON_WM_BIN_DIR="$HOME/.local/bin" sh
@@ -43,7 +43,7 @@ cargo install --git https://github.com/tetronos/tetron-wm
 
 ### Recommended extras
 
-tetron-wm works on its own; the essentials size adds the tools that make the most of it and one good app per need. By hand on Ubuntu or Debian (the same list as the `tetron-wm-desktop` package, [`packaging/desktop.toml`](packaging/desktop.toml)):
+tetron-wm works on its own; the essentials collection adds the tools that make the most of it and one good app per need. By hand on Ubuntu or Debian (the same list as the `tetron-wm-desktop` package, [`packaging/desktop.toml`](packaging/desktop.toml)):
 
 ```sh
 sudo apt install mpv chafa poppler-utils upower w3m gpm xclip wl-clipboard alsa-utils sshpass fonts-dejavu-core 7zip gnupg python3 curl openssh-client unzip console-setup-linux htop sshfs mc vim
@@ -51,7 +51,7 @@ sudo apt install mpv chafa poppler-utils upower w3m gpm xclip wl-clipboard alsa-
 
 The package also recommends tetron-browser, the web browser tetron-wm opens pages in; on amd64 it installs with `sudo apt install tetron-browser` once the [tetronos apt repo](https://tetronos.github.io/apt) is configured.
 
-The suite installer above installs them for you with the essentials size (only the missing ones; the system services PipeWire, NetworkManager and BlueZ are a separate question that defaults to no). They add the image wallpaper and images in the image viewer on any terminal (chafa), video in a window (mpv), PDFs in the viewer (poppler), a friendly terminal editor ([fresh](https://github.com/sinelaw/fresh), from its own installer on Linux, `brew install fresh-editor` on macOS), casting to a Chromecast ([catt](https://github.com/skorokithakis/catt) and [casttui](https://github.com/tetronos/casttui), installed with [uv](https://docs.astral.sh/uv/)), a bookmarks **Start Page** for tetron-browser or w3m (`tetron-wm-startpage`) and **AI Mode** for Gemini questions (`tetron-aimode`, needs a free [Gemini API key](https://aistudio.google.com/apikey) that it asks for on first run), volume and output switching (PipeWire `wpctl`), Wi-Fi, Bluetooth and battery details, desktop clipboard sync, password-based Add Remote, and better tray tools. On a bare console add `gpm` for the mouse, or kmscon for colors and mouse. What each one does, what happens without it, and the macOS equivalents: [docs/DEPENDENCIES_tetron-wm_recommended_installs.md](docs/DEPENDENCIES_tetron-wm_recommended_installs.md). It also downloads the extra themes (nord, dracula, dawn, newmoon and the high-contrast `contrast`, each with its wallpaper) into `~/.config/tetron-wm/themes/` without overwriting anything you have (`--no-themes` skips it).
+The suite installer above installs them for you with the essentials collection (only the missing ones; the system services PipeWire, NetworkManager and BlueZ are a separate question that defaults to no). They add the image wallpaper and images in the image viewer on any terminal (chafa), video in a window (mpv), PDFs in the viewer (poppler), a friendly terminal editor ([fresh](https://github.com/sinelaw/fresh), from its own installer on Linux, `brew install fresh-editor` on macOS), casting to a Chromecast ([catt](https://github.com/skorokithakis/catt) and [casttui](https://github.com/tetronos/casttui), installed with [uv](https://docs.astral.sh/uv/)), a bookmarks **Start Page** for tetron-browser or w3m (`tetron-wm-startpage`) and **AI Mode** for Gemini questions (`tetron-aimode`, needs a free [Gemini API key](https://aistudio.google.com/apikey) that it asks for on first run), volume and output switching (PipeWire `wpctl`), Wi-Fi, Bluetooth and battery details, desktop clipboard sync, password-based Add Remote, and better tray tools. On a bare console add `gpm` for the mouse, or kmscon for colors and mouse. What each one does, what happens without it, and the macOS equivalents: [docs/DEPENDENCIES_tetron-wm_recommended_installs.md](docs/DEPENDENCIES_tetron-wm_recommended_installs.md). It also downloads the extra themes (nord, dracula, dawn, newmoon and the high-contrast `contrast`, each with its wallpaper) into `~/.config/tetron-wm/themes/` without overwriting anything you have (`--no-themes` skips it).
 
 Want a bare Linux machine that boots straight into the desktop? Use the suite installer, which can also set up the kmscon console, autologin and autostart, and can undo all of it. See [Bare console](#bare-console-no-x11-or-wayland).
 
@@ -115,7 +115,7 @@ tetron-wm reload
 - [config.example.toml](config.example.toml) is a ready-to-copy file with every option at its default and a note on each.
 - [docs/CONFIG.md](docs/CONFIG.md) is the full reference plus copy-paste recipes: tiling grids, themes, wallpaper, launcher entries, clipboard, servers that must stay up, and more.
 - [The theming guide](https://tetronos.github.io/tetron-wm/tetron-wm_theming_guide.html) teaches you to make your own theme: every color key shown on a picture of the desktop, screenshots of the built-in themes, and a step-by-step walkthrough.
-- Many options are also in the app under **Settings** (`Ctrl+Space`, then `,`). It opens on **Appearance**, where **Get more themes** downloads the themes new on GitHub. **General → Config file** opens the file in your editor, creates it from the example, resets it to defaults (the old file is kept as `config.toml.bak`) or reloads it after a hand edit.
+- Many options are also in the app under **Settings** (`Ctrl+Space`, then `,`). It opens on **Appearance**, where **Get more themes** downloads the themes new on GitHub. **Launcher** holds your own menu apps (Add app) and the Power menu switch, **Config Edit** the config file rows (open it in your editor, create it from the example, reset it to defaults, the old file is kept as `config.toml.bak`, reload it after a hand edit) and the log level. **App Collections** installs or removes the Essentials, Recommended and Extras sets.
 
 Common first changes:
 
@@ -128,7 +128,7 @@ Common first changes:
 | Full screen video, images, PDFs          | `fullscreen = false` to turn them off                                                                                      |
 | A wallpaper image                        | put it in `~/.config/tetron-wm/themes/` and set `wallpaper = "name.jpg"`, or a full path; `"default"` is the theme's own picture; `black`, `#rrggbb` or `none` for a flat desktop (pictures need [chafa](https://hpjansson.org/chafa/)) |
 | A different leader key                   | `leader = "ctrl+b"`                                                                                                        |
-| No Power menu on a server                | `power_menu = false`                                                                                                       |
+| No Power menu on a server                | `power_menu = false`, or Settings > Launcher > Power menu                                                                                                       |
 | Less memory per window                   | `scrollback = 2000` (lines kept per window; default 10000)                                                                 |
 | Mono (no color), or fewer colors       | Settings → Appearance → Colors, or `colors = "mono"` (also `"16"`, `"256"`, `"truecolor"`)                                  |
 | Images always drawn as characters        | `image_viewer = "cells"` (default `"auto"` uses Kitty graphics where the terminal has them)                                 |

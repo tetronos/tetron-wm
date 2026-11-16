@@ -20,24 +20,25 @@ fn red() -> Rgba { crate::theme::current().error }
 fn green() -> Rgba { crate::theme::current().success }
 
 const SIDEBAR_W: i32 = 18;
-const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Apps", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "General", "Cast", "Dictation", "About"];
+const SECTIONS: &[&str] = &["Appearance", "Windows", "Updates", "Launcher", "Config Edit", "Default Apps", "AI", "Clipboard", "Terminal", "Sound", "Display", "App Collections", "Cast", "Dictation", "About"];
 
 // Indices into [`SECTIONS`]; Settings opens on the first one. Code and tests
 // name a section by these, never by a bare number.
 const APPEARANCE: usize = 0;
 const WINDOWS: usize = 1;
 const UPDATES: usize = 2;
-const APPS: usize = 3;
-const DEFAULT_APPS: usize = 4;
-const ASSISTANT: usize = 5;
-const CLIPBOARD: usize = 6;
-const TERMINAL: usize = 7;
-const SOUND: usize = 8;
-const DISPLAY: usize = 9;
-const GENERAL: usize = 10;
-const CAST: usize = 11;
-const DICTATION: usize = 12;
-// About is last (index 13) and has no rows.
+const LAUNCHER: usize = 3;
+const CONFIG_EDIT: usize = 4;
+const DEFAULT_APPS: usize = 5;
+const ASSISTANT: usize = 6;
+const CLIPBOARD: usize = 7;
+const TERMINAL: usize = 8;
+const SOUND: usize = 9;
+const DISPLAY: usize = 10;
+const APP_COLLECTIONS: usize = 11;
+const CAST: usize = 12;
+const DICTATION: usize = 13;
+// About is last (index 14) and has no rows.
 
 /// Roles listed in the Default Apps section (config key, label).
 const DEFAULT_APP_ROLES: &[(&str, &str)] = &[
@@ -70,8 +71,6 @@ pub enum SettingsAction {
     InstallDictation,
     /// Install the latest version.
     InstallUpdate,
-    /// General > Remote access: turn the temporary ssh password login on (true) or off (false).
-    RemoteAccess(bool),
     /// Empty the clipboard history (memory and disk).
     ClearClipboard,
     /// Send the panel's staged terminal colors to the apphost without saving
@@ -97,25 +96,25 @@ pub enum SettingsAction {
     /// Display: set the screen brightness to this percent now (machine
     /// state, never written to the config).
     BrightnessSet(u8),
-    /// General > Config file: open it in the Default Apps editor.
+    /// Config Edit: open it in the Default Apps editor.
     OpenConfigFile,
-    /// General > Config file: write the example (only when there is no file).
+    /// Config Edit: write the example (only when there is no file).
     CreateConfigFile,
-    /// General > Config file: keep the file as `config.toml.bak` and write the
+    /// Config Edit: keep the file as `config.toml.bak` and write the
     /// example (asked only after the row's second Enter).
     ResetConfigFile,
-    /// General > Config file: reload the desktop so hand edits apply.
+    /// Config Edit: reload the desktop so hand edits apply.
     ReloadConfig,
     /// Appearance > Get more themes: download missing theme files on a worker.
     GetThemes,
-    /// General > Apps: install the apps of this size with the suite script in
+    /// App Collections: install the apps of this size with the suite script in
     /// a terminal window (WMINST-007, WMINST-011); `bool`: with the apps no
     /// distribution packages.
     InstallApps(crate::packaging::Size, bool),
-    /// General > Apps > Remove set: remove the size debs of this size and
+    /// App Collections > Remove set: remove the size debs of this size and
     /// larger with apt in a terminal window (WMINST-011).
     RemoveApps(crate::packaging::Size),
-    /// General > Apps: compute the confirmation's download size off the loop
+    /// App Collections: compute the confirmation's download size off the loop
     /// (the packages come from [`Settings::apps_download_pkgs`]).
     AppsDownloadSize,
     /// Assistant > Agent: open the Store on this app (an agent not installed).
@@ -229,9 +228,9 @@ pub struct Settings {
     /// Display: the backlight in percent as of open / entering Display (and
     /// after each change); `None` without a backlight.
     brightness: Option<u8>,
-    /// Whether `config.toml` exists, as of open / entering General.
+    /// Whether `config.toml` exists, as of open / entering App Collections.
     cfg_exists: bool,
-    /// General > Reset was pressed once; the next Enter on it resets. Any other
+    /// Config Edit > Reset was pressed once; the next Enter on it resets. Any other
     /// key or move disarms it.
     reset_armed: bool,
     /// Appearance > Get more themes: progress or the last result.
@@ -241,8 +240,8 @@ pub struct Settings {
     /// About: how tetron-wm was installed and the size (WMINST-005), read on
     /// open and on entering About, never per frame.
     install_info: String,
-    /// General > Apps: the installed size and the chosen target, read on
-    /// open and on entering General.
+    /// App Collections: the installed size and the chosen target, read on
+    /// open and on entering App Collections.
     apps_size: crate::packaging::Size,
     /// Apps of the installed size this machine lacks (WMINST-007).
     apps_missing: Vec<String>,
@@ -253,19 +252,19 @@ pub struct Settings {
     picker: Option<(PickFor, crate::listpicker::ListPicker)>,
 }
 
-/// "apt package, size essentials" for Settings > About.
+/// "apt package, collection essentials" for Settings > About.
 /// The tetronos-ssh-temp helper (tetronos-base-config) is installed.
-fn remote_available() -> bool {
+pub fn remote_available() -> bool {
     std::path::Path::new("/usr/bin/tetronos-ssh-temp").exists()
 }
 
 /// Remote access is on: the helper writes user=... here while on, and /run is gone at reboot.
-fn remote_on() -> bool {
+pub fn remote_on() -> bool {
     std::path::Path::new("/run/tetronos/ssh-temp.status").exists()
 }
 
 fn install_info() -> String {
-    format!("{}, size {}", crate::packaging::install_method(), crate::packaging::installed_size().name())
+    format!("{}, collection {}", crate::packaging::install_method(), crate::packaging::installed_size().name())
 }
 
 /// Whether the config file is on disk.
@@ -351,8 +350,9 @@ impl Settings {
             self.waiter = crate::fullscreen::service_state();
         } else if i == DISPLAY {
             self.brightness = crate::brightness::read_pct();
-        } else if i == GENERAL {
+        } else if i == CONFIG_EDIT {
             self.cfg_exists = config_file_exists();
+        } else if i == APP_COLLECTIONS {
             self.refresh_apps();
         } else if i == SECTIONS.len() - 1 {
             self.install_info = install_info();
@@ -413,9 +413,9 @@ impl Settings {
         self.cfg_exists = config_file_exists();
     }
 
-    /// Jump to the General section (used to reopen there after a config reload).
-    pub fn show_general_section(&mut self) {
-        self.enter_section(GENERAL);
+    /// Jump to the Config Edit section (used to reopen there after a config reload).
+    pub fn show_config_section(&mut self) {
+        self.enter_section(CONFIG_EDIT);
     }
 
     /// Jump to the Updates section (used to reopen there after an update reload).
@@ -613,14 +613,15 @@ impl Settings {
             WINDOWS => 10,                           // snapping, threshold, grid rows/cols, gap, auto-tile, launch-maximized, natural scroll, full screen, waiter service
             APPEARANCE => 9,                            // theme, wallpaper toggle, wallpaper file, icon-scrim, icon style, desktop icons, launcher label, colors, get more themes
             UPDATES => if self.apphost_outdated { 4 } else { 3 }, // check, install, branch [, restart apphost]
-            APPS => self.cfg.launcher.len() + 1,  // custom apps + "＋ Add app…"
+            LAUNCHER => self.cfg.launcher.len() + 2,  // custom apps, "＋ Add app…", Power menu
+            CONFIG_EDIT => 4,                          // open in editor, create or reset, reload, log level
             DEFAULT_APPS => DEFAULT_APP_ROLES.len(),
             ASSISTANT => 4,                            // AI: open-as mode, agent, working folder, MCP
             CLIPBOARD => 10,                           // clipboard: history, disk, selections, size, shims, osc52 read, fake display, expiry, max item, clear
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
-            GENERAL => 5 + remote_available() as usize, // config file: open, create or reset, reload; apps; log level [, remote access]
+            APP_COLLECTIONS => 1,                      // the collections dialog
             CAST => 2 + self.cast_missing() as usize,           // cast: device, updates per second [, install casttui]
             DICTATION => 6 + self.dictation_missing() as usize, // dictation: on/off, mode, pause, enter word, threads, download models [, install tetron-stt]
             _ => 0,                            // About
@@ -938,7 +939,8 @@ impl Settings {
                 self.cfg.update_branch = b[next].to_string();
             }
             // Apps section.
-            (APPS, _) => self.adjust_apps(dir),
+            (LAUNCHER, _) => self.adjust_apps(dir),
+            (CONFIG_EDIT, k) => self.adjust_config_edit(k, dir, armed),
             (ASSISTANT, 0) => {
                 self.cfg.assistant_mode =
                     if self.cfg.assistant_mode == "panel" { "window".into() } else { "panel".into() };
@@ -1071,19 +1073,7 @@ impl Settings {
                     self.action = Some(SettingsAction::BrightnessSet(next));
                 }
             }
-            (GENERAL, 0) if dir == 0 => self.action = Some(SettingsAction::OpenConfigFile),
-            (GENERAL, 1) if dir == 0 && !self.cfg_exists => self.action = Some(SettingsAction::CreateConfigFile),
-            (GENERAL, 1) if dir == 0 && armed => self.action = Some(SettingsAction::ResetConfigFile),
-            (GENERAL, 1) if dir == 0 => self.reset_armed = true,
-            (GENERAL, 2) if dir == 0 => self.action = Some(SettingsAction::ReloadConfig),
-            (GENERAL, 3) if dir == 0 => self.open_apps_dlg(),
-            (GENERAL, 5) if dir == 0 && remote_available() => self.action = Some(SettingsAction::RemoteAccess(!remote_on())),
-            (GENERAL, 4) => {
-                use crate::logfile::Level;
-                let n = Level::ALL.len();
-                let cur = self.cfg.log_level as usize;
-                self.cfg.log_level = Level::ALL[if dir == -1 { (cur + n - 1) % n } else { (cur + 1) % n }];
-            }
+            (APP_COLLECTIONS, 0) if dir == 0 => self.open_apps_dlg(),
             (DEFAULT_APPS, i) => {
                 if let Some((key, _)) = DEFAULT_APP_ROLES.get(i) {
                     let role = role_from_key(key);
@@ -1106,8 +1096,9 @@ impl Settings {
         }
     }
 
-    /// Apps section: Enter on the form commits it; Enter on "＋ Add app…" opens
-    /// the form; Left removes the selected custom app.
+    /// Launcher section: Enter on the form commits it; Enter on "＋ Add app…" opens
+    /// the form; Left removes the selected custom app. The row after "Add app" is
+    /// the Power menu switch.
     fn adjust_apps(&mut self, dir: i32) {
         if self.edit.is_some() {
             if dir == 0 {
@@ -1116,6 +1107,10 @@ impl Settings {
             return;
         }
         let n = self.cfg.launcher.len();
+        if self.sel > n {
+            self.cfg.power_menu = flip(self.cfg.power_menu, dir);
+            return;
+        }
         if dir == 0 {
             if self.sel == n {
                 self.edit = Some(AppEdit::default()); // "＋ Add app…" row
@@ -1123,6 +1118,24 @@ impl Settings {
         } else if dir == -1 && self.sel < n {
             self.cfg.launcher.remove(self.sel);
             self.sel = self.sel.min(self.item_count().saturating_sub(1));
+        }
+    }
+
+    /// Config Edit section rows: open in editor, create or reset, reload, log level.
+    fn adjust_config_edit(&mut self, row: usize, dir: i32, armed: bool) {
+        match row {
+            0 if dir == 0 => self.action = Some(SettingsAction::OpenConfigFile),
+            1 if dir == 0 && !self.cfg_exists => self.action = Some(SettingsAction::CreateConfigFile),
+            1 if dir == 0 && armed => self.action = Some(SettingsAction::ResetConfigFile),
+            1 if dir == 0 => self.reset_armed = true,
+            2 if dir == 0 => self.action = Some(SettingsAction::ReloadConfig),
+            3 => {
+                use crate::logfile::Level;
+                let len = Level::ALL.len();
+                let cur = self.cfg.log_level as usize;
+                self.cfg.log_level = Level::ALL[if dir == -1 { (cur + len - 1) % len } else { (cur + 1) % len }];
+            }
+            _ => {}
         }
     }
 
@@ -1446,7 +1459,8 @@ impl Settings {
                     buf.write_str(cx, 11, "won't work until it restarts (your apps will close).", pal_dim(), pal_bg());
                 }
             }
-            APPS => self.render_apps(&mut buf, cx, w),
+            LAUNCHER => self.render_apps(&mut buf, cx, w),
+            CONFIG_EDIT => self.render_config_rows(&mut buf, cx),
             ASSISTANT => {
                 let a = crate::assistant::selected(&self.cfg);
                 let agent_val = match self.text.as_ref().filter(|t| t.target == TextTarget::AgentCommand) {
@@ -1546,7 +1560,7 @@ impl Settings {
                 buf.write_str(cx, 16, "apply the next time the provider starts (reload or reattach).", pal_dim(), pal_bg());
                 buf.write_str(cx, 17, "Models are never downloaded without Download models.", pal_dim(), pal_bg());
             }
-            GENERAL => match self.apps_dlg.as_ref() {
+            APP_COLLECTIONS => match self.apps_dlg.as_ref() {
                 Some(d) => {
                     // The dialog draws its own title over the section's.
                     for x in cx..w {
@@ -1554,7 +1568,7 @@ impl Settings {
                     }
                     d.render(&mut buf, cx, w, h);
                 }
-                None => self.render_general(&mut buf, cx),
+                None => self.render_collections(&mut buf, cx),
             },
             _ => {
                 buf.write_str(cx, 3, "tetron-wm — a desktop environment for the terminal", pal_fg(), pal_bg());
@@ -1578,7 +1592,7 @@ impl Settings {
         buf
     }
 
-    /// General > Apps value: the installed size and the chosen action.
+    /// App Collections value: the installed size and the chosen action.
     fn apps_value(&self) -> String {
         let have = match self.apps_missing.len() {
             0 => self.apps_size.name().to_string(),
@@ -1587,8 +1601,7 @@ impl Settings {
         format!("{have}: Enter for the choices")
     }
 
-    /// Render the General section: the config file group.
-    fn render_display(&self, buf: &mut CellBuffer, cx: i32) {
+        fn render_display(&self, buf: &mut CellBuffer, cx: i32) {
         match self.brightness {
             Some(p) => {
                 self.row(buf, cx, 3, 0, "Brightness", format!("\u{25C2} {p}% \u{25B8}"));
@@ -1602,36 +1615,35 @@ impl Settings {
         }
     }
 
-    fn render_general(&self, buf: &mut CellBuffer, cx: i32) {
+    /// Render the App Collections section: one row that opens the dialog.
+    fn render_collections(&self, buf: &mut CellBuffer, cx: i32) {
+        self.row(buf, cx, 3, 0, "Collections", self.apps_value());
+        buf.write_str(cx, 5, "Install Essentials, Recommended or Extras, or remove a set;", pal_dim(), pal_bg());
+        buf.write_str(cx, 6, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
+    }
+
+    /// Render the Config Edit section: the config file rows and the log level.
+    fn render_config_rows(&self, buf: &mut CellBuffer, cx: i32) {
         let path = crate::config::file_path().map(|p| p.display().to_string()).unwrap_or_else(|_| "(no home directory)".into());
         let state = if self.cfg_exists { "" } else { "  (not created yet, defaults in use)" };
-        // Rows start at y 3 like every section (clicks map y - 3 to the row).
-        self.row(buf, cx, 3, 0, "Open in editor", "Enter".into());
+        // Row r is drawn at y 3 + r like every section (clicks map y - 3 to the row).
+        let y = 3;
+        let r = 0;
+        self.row(buf, cx, y, r, "Open in editor", "Enter".into());
         if self.cfg_exists {
             let v = if self.reset_armed { "Enter again to reset" } else { "Enter (keeps config.toml.bak)" };
-            self.row(buf, cx, 4, 1, "Reset to defaults", v.into());
+            self.row(buf, cx, y + 1, r + 1, "Reset to defaults", v.into());
         } else {
-            self.row(buf, cx, 4, 1, "Create from example", "Enter".into());
+            self.row(buf, cx, y + 1, r + 1, "Create from example", "Enter".into());
         }
-        self.row(buf, cx, 5, 2, "Reload", "Enter (applies hand edits)".into());
-        self.row(buf, cx, 6, 3, "Apps", self.apps_value());
-        self.row(buf, cx, 7, 4, "Log level", format!("\u{25C2} {} \u{25B8}", self.cfg.log_level.name()));
-        if remote_available() {
-            let v = if remote_on() { "ON until reboot: Enter turns it off" } else { "off: Enter to turn on" };
-            self.row(buf, cx, 8, 5, "Remote access (ssh)", v.into());
-        }
-        buf.write_str(cx, 9, &format!("Config file: {path}{state}"), pal_fg(), pal_bg());
-        buf.write_str(cx, 10, &format!("Log: {}", crate::logfile::display_path()), pal_fg(), pal_bg());
-        buf.write_str(cx, 12, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
-        buf.write_str(cx, 13, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
-        buf.write_str(cx, 14, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
-        buf.write_str(cx, 15, "Apps: install Essentials or Recommended, or remove a set;", pal_dim(), pal_bg());
-        buf.write_str(cx, 16, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
-        buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
-        if remote_available() {
-            buf.write_str(cx, 18, "Remote access: a window asks for a username and password;", pal_dim(), pal_bg());
-            buf.write_str(cx, 19, "ssh password login works until reboot. Same as: sudo tetronos-ssh-temp on|off", pal_dim(), pal_bg());
-        }
+        self.row(buf, cx, y + 2, r + 2, "Reload", "Enter (applies hand edits)".into());
+        self.row(buf, cx, y + 3, r + 3, "Log level", format!("\u{25C2} {} \u{25B8}", self.cfg.log_level.name()));
+        buf.write_str(cx, y + 5, &format!("Config file: {path}{state}"), pal_fg(), pal_bg());
+        buf.write_str(cx, y + 6, &format!("Log: {}", crate::logfile::display_path()), pal_fg(), pal_bg());
+        buf.write_str(cx, y + 8, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
+        buf.write_str(cx, y + 9, "Reset and Create write the example: every key at its default.", pal_dim(), pal_bg());
+        buf.write_str(cx, y + 10, "Same as: tetron-wm config init | config example | reload", pal_dim(), pal_bg());
+        buf.write_str(cx, y + 11, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
     }
 
     /// Render the Terminal section: staged colors with swatches, the
@@ -1752,6 +1764,11 @@ impl Settings {
         let marker = if add_sel { "\u{25B8} " } else { "  " };
         buf.write_str(cx, add_y, marker, pal_accent(), pal_bg());
         buf.write_str(cx + 2, add_y, &format!("{} Add app\u{2026}", crate::glyphs::get(crate::glyphs::Glyph::Plus)), if add_sel { green() } else { pal_dim() }, pal_bg());
+        let py = add_y + 1;
+        self.row(buf, cx, py, self.cfg.launcher.len() + 1, "Power menu", toggle_val(self.cfg.power_menu));
+        buf.write_str(cx, py + 2, "Custom apps are written to the config file and join the Launcher.", pal_dim(), pal_bg());
+        buf.write_str(cx, py + 3, "Power menu off removes Launcher > Power and refuses suspend,", pal_dim(), pal_bg());
+        buf.write_str(cx, py + 4, "reboot and power off everywhere (servers that must stay up).", pal_dim(), pal_bg());
     }
 
     /// Draw one labelled form field with a block cursor on the focused field.
@@ -1868,9 +1885,9 @@ fn truncate(s: &str, max: usize) -> String {
 mod tests {
     use super::*;
 
-    /// Advance the section selector to the Apps panel ("Appearance" → … → "Apps").
+    /// Advance the section selector to the Apps panel ("Appearance" → … → "Launcher").
     fn to_apps(s: &mut Settings) {
-        while SECTIONS[s.section] != "Apps" {
+        while SECTIONS[s.section] != "Launcher" {
             s.next_section();
         }
     }
@@ -1923,7 +1940,7 @@ mod tests {
         assert_eq!(s.section, WINDOWS, "and the click switched the section");
 
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
+        s.enter_section(APP_COLLECTIONS);
         s.open_apps_dlg();
         assert!(s.apps_dlg.is_some());
         s.handle_click(Point::new(2, 1 + UPDATES as i32), 100, 30);
@@ -1986,12 +2003,12 @@ mod tests {
     #[test]
     fn wheel_and_page_keys_reach_the_apps_dialog() {
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
+        s.enter_section(APP_COLLECTIONS);
         s.open_apps_dlg();
         assert!(s.wheel_at(Point::new(SIDEBAR_W + 4, 8), -1), "the wheel is used by the dialog");
         s.next_section();
         s.prev_section();
-        assert_eq!(s.section, GENERAL, "PageUp and PageDown scroll the dialog, they do not switch section");
+        assert_eq!(s.section, APP_COLLECTIONS, "PageUp and PageDown scroll the dialog, they do not switch section");
         assert!(s.apps_dlg.is_some());
     }
 
@@ -2762,20 +2779,20 @@ mod tests {
     }
 
     #[test]
-    fn opens_on_appearance_and_general_sits_before_about() {
+    fn opens_on_appearance_and_app_collections_sits_before_about() {
         let s = Settings::new(Config::default());
         assert_eq!(SECTIONS[s.section], "Appearance");
-        assert_eq!(SECTIONS[GENERAL], "General");
+        assert_eq!(SECTIONS[APP_COLLECTIONS], "App Collections");
         assert_eq!(SECTIONS.last(), Some(&"About"));
-        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (APPS, "Apps"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "AI"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
+        for (i, name) in [(APPEARANCE, "Appearance"), (WINDOWS, "Windows"), (UPDATES, "Updates"), (LAUNCHER, "Launcher"), (CONFIG_EDIT, "Config Edit"), (DEFAULT_APPS, "Default Apps"), (ASSISTANT, "AI"), (CLIPBOARD, "Clipboard"), (TERMINAL, "Terminal"), (SOUND, "Sound"), (DISPLAY, "Display")] {
             assert_eq!(SECTIONS[i], name);
         }
     }
 
     #[test]
-    fn general_creates_when_absent_and_resets_only_on_a_second_enter() {
+    fn config_edit_creates_when_absent_and_resets_only_on_a_second_enter() {
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
+        s.enter_section(CONFIG_EDIT);
         s.cfg_exists = false;
         s.sel = 1;
         assert!(screen(&s).contains("Create from example"));
@@ -2802,6 +2819,23 @@ mod tests {
     }
 
     #[test]
+    fn launcher_power_menu_row_flips_power_menu_without_an_action() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(LAUNCHER);
+        let n = s.config().launcher.len();
+        s.sel = n + 1; // the row after "Add app"
+        assert!(screen(&s).contains("Power menu"));
+        assert!(s.config().power_menu, "on by default");
+        s.toggle();
+        assert!(!s.config().power_menu);
+        s.right();
+        assert!(s.config().power_menu);
+        s.left();
+        assert!(!s.config().power_menu);
+        assert_eq!(s.take_action(), None, "applied through the config, no action");
+    }
+
+    #[test]
     fn get_more_themes_asks_once_until_the_worker_is_done() {
         let mut s = Settings::new(Config::default());
         s.sel = 8;
@@ -2822,22 +2856,22 @@ mod tests {
         s.enter_section(SECTIONS.len() - 1);
         let text = screen(&s);
         assert!(text.contains("Installed"), "{text}");
-        assert!(text.contains(", size "), "{text}");
+        assert!(text.contains(", collection "), "{text}");
     }
 
     #[test]
-    fn general_apps_row_opens_the_dialog_and_esc_closes_it() {
+    fn collections_row_opens_the_dialog_and_esc_closes_it() {
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
+        s.enter_section(APP_COLLECTIONS);
         s.have_curl = true;
-        s.sel = 3;
+        s.sel = 0;
         assert!(screen(&s).contains("Enter for the choices"));
         s.toggle();
         assert!(s.is_editing(), "the dialog takes the keys");
         let sc = screen(&s);
-        assert!(sc.contains("General \u{203A} Apps") && sc.contains("Essentials") && sc.contains("Recommended"), "{sc}");
+        assert!(sc.contains("App Collections") && sc.contains("Essentials") && sc.contains("Recommended"), "{sc}");
         s.next_section();
-        assert_eq!(s.section, GENERAL, "no section change while the dialog is open");
+        assert_eq!(s.section, APP_COLLECTIONS, "no section change while the dialog is open");
         s.move_down();
         s.toggle();
         assert!(screen(&s).contains("[ Cancel ]"), "a size opens its confirmation");
@@ -2873,11 +2907,11 @@ mod tests {
     }
 
     #[test]
-    fn general_log_level_row_cycles_all_levels_and_shows_the_path() {
+    fn config_edit_log_level_row_cycles_all_levels_and_shows_the_path() {
         use crate::logfile::Level;
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
-        s.sel = 4;
+        s.enter_section(CONFIG_EDIT);
+        s.sel = 3;
         assert!(screen(&s).contains("info"), "default info");
         assert!(screen(&s).contains(&format!("Log: {}", crate::logfile::display_path())));
         s.right();
@@ -2892,10 +2926,10 @@ mod tests {
     }
 
     #[test]
-    fn general_apps_row_says_how_many_apps_are_missing() {
+    fn collections_row_says_how_many_apps_are_missing() {
         use crate::packaging::Size;
         let mut s = Settings::new(Config::default());
-        s.enter_section(GENERAL);
+        s.enter_section(APP_COLLECTIONS);
         s.apps_size = Size::Essentials;
         s.have_curl = true;
         s.apps_missing = vec!["fresh".into(), "uv".into()];

@@ -1,4 +1,4 @@
-# How tetron-wm installs apps: the Store, Settings > General > Apps and the suite installer
+# How tetron-wm installs apps: the Store, Settings > App Collections and the suite installer
 
 This describes the behaviour as of tetron-wm 0.15.6 plus commit b420150 (main, 2026-11-12). Three places install apps, and today each has its own engine with its own fallbacks. A rework into one engine (`tetron-wm collection install`) is planned; until it lands, this document is the reference for what happens.
 
@@ -51,7 +51,7 @@ The Store is the program in `store_app` (default `tetron-appstore`, https://gith
 - **Safety:** package names from a downloaded catalog are used only when they contain letters, digits and `. _ + - / @`; anything else is ignored.
 - **Not done by the Store:** it installs one app at a time, never a collection; it does not use the release fallback of section 4; it asks no confirmation (the terminal window shows everything and sudo asks for the password).
 
-## 3. Settings > General > Apps
+## 3. Settings > App Collections
 
 Source: `src/appsdlg.rs`, `src/packaging.rs`, `src/settings.rs`. The dialog only decides; the work runs in a terminal window.
 

@@ -28,6 +28,10 @@ fn accent() -> Rgba { crate::theme::current().accent }
 /// gathered into the bottom "Power" submenu instead of an app category.
 pub const POWER_CATEGORY: &str = "@power";
 
+/// Internal category of the "Files on <system>" entries: not an app category, they
+/// form the Remote access > Remote files submenu.
+pub const REMOTE_FILES_CATEGORY: &str = "@remote-files";
+
 /// A node in the cascading menu.
 #[derive(Clone, Debug)]
 enum MenuEntry {
@@ -105,6 +109,10 @@ pub struct Launcher {
     /// Last rendered screen size, so `hover`/`point_in_menu` can recompute geometry.
     last_w: std::cell::Cell<i32>,
     last_h: std::cell::Cell<i32>,
+    /// Per open level: the path prefix that led to it and its first visible row, so a long
+    /// list keeps its scroll position when the highlight moves inside the view (hovering a
+    /// row must not slide the list under the pointer).
+    scroll: std::cell::RefCell<Vec<(Vec<usize>, usize)>>,
 }
 
 /// A rendered launcher frame: layers plus the clickable regions for this frame.
@@ -127,6 +135,7 @@ impl Launcher {
             path: vec![0],
             last_w: std::cell::Cell::new(80),
             last_h: std::cell::Cell::new(24),
+            scroll: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -165,13 +174,19 @@ impl Launcher {
         // Entries in the internal power category are not an app category: they
         // form the bottom "Power" submenu, in the order they were supplied.
         let mut power: Vec<AppEntry> = Vec::new();
+        let mut remote_files: Vec<AppEntry> = Vec::new();
         for a in &self.items {
             if a.category.as_deref() == Some(POWER_CATEGORY) {
                 power.push(a.clone());
+            } else if a.category.as_deref() == Some(REMOTE_FILES_CATEGORY) {
+                remote_files.push(a.clone());
             } else {
                 by_cat.entry(cat_of(a)).or_default().push(a.clone());
             }
         }
+        // "All": every app in one flat list, sorted by name.
+        let mut all: Vec<AppEntry> = by_cat.values().flatten().chain(remote_files.iter()).cloned().collect();
+        all.sort_by_key(|a| a.name.to_lowercase());
         let rank = |c: &str| if c == "tetron-wm" { 0 } else { 1 };
         let mut cats: Vec<(String, Vec<AppEntry>)> = by_cat.into_iter().collect();
         cats.sort_by(|(a, _), (b, _)| rank(a).cmp(&rank(b)).then_with(|| a.cmp(b)));
@@ -186,14 +201,26 @@ impl Launcher {
                 items: apps.into_iter().map(MenuEntry::Launch).collect(),
             }
         }));
-        // Bottom system section: a divider, then Systems (opens the systems
-        // popover) above Detach / Reload / Quit (each opens a confirm dialog),
+        // "All" sits after tetron-wm (which sorts first), before the other categories.
+        let all_at = if matches!(root.get(1), Some(MenuEntry::Submenu { label, .. }) if label == "tetron-wm") { 2 } else { 1 };
+        root.insert(all_at, MenuEntry::Submenu { label: "All".into(), items: all.into_iter().map(MenuEntry::Launch).collect() });
+        // Bottom system section: a divider, then Remote access (sshd, remote files,
+        // the systems popover) above Detach / Reload / Quit (each opens a confirm dialog),
         // then a Power submenu (Suspend / Reboot / Power off, each behind its own
         // confirm) when the computer can do any of them. Routed by the session's
         // `launch_entry` via their `@`-sentinel commands; the ids (`@exit`,
         // `@restart`, `@shutdown`) predate the Detach / Reload / Quit labels.
         root.push(MenuEntry::Separator);
-        root.push(MenuEntry::Launch(system_entry("Systems", "@systems")));
+        let mut remote: Vec<MenuEntry> = Vec::new();
+        // Always listed; where tetronos-ssh-temp is not installed the row says so.
+        let state = if !crate::settings::remote_available() { "not installed" } else if crate::settings::remote_on() { "on" } else { "off" };
+        remote.push(MenuEntry::Launch(system_entry(&format!("sshd allow remote access ({state})"), "@sshd")));
+        if !remote_files.is_empty() {
+            remote_files.sort_by_key(|a| a.name.to_lowercase());
+            remote.push(MenuEntry::Submenu { label: "Remote files".into(), items: remote_files.into_iter().map(MenuEntry::Launch).collect() });
+        }
+        remote.push(MenuEntry::Launch(system_entry("Configure Remote Systems", "@systems")));
+        root.push(MenuEntry::Submenu { label: "Remote access".into(), items: remote });
         root.push(MenuEntry::Separator);
         root.push(MenuEntry::Launch(system_entry("Detach", "@exit")));
         root.push(MenuEntry::Launch(system_entry("Reload", "@restart")));
@@ -300,6 +327,43 @@ impl Launcher {
             i += dir;
         }
         None
+    }
+
+    /// Mouse wheel over a menu panel: move that panel's selection by `lines` rows
+    /// (positive = wheel up = toward the first row), skipping separators; the panel
+    /// scrolls to keep the selection in view. Deeper panels close. Returns whether
+    /// the wheel was over a panel (else the caller scrolls something else).
+    pub fn wheel(&mut self, p: Point, lines: i32) -> bool {
+        if self.open != Some(LauncherMode::Menu) || lines == 0 {
+            return false;
+        }
+        let geom = self.panel_geometry(self.last_w.get(), self.last_h.get());
+        let Some(k) = geom.iter().position(|(_, panel, _)| panel.contains(p)) else { return false };
+        let levels = self.levels();
+        let Some((entries, sel)) = levels.get(k).map(|(e, s)| (*e, *s)) else { return false };
+        let n = entries.len();
+        // Scroll the view (wheel up = toward the first row); the highlight only moves when it
+        // would leave the view, so the row under the pointer stays pickable.
+        let (off, vis) = self.window(k, n, sel, (self.last_h.get() - 3).max(1) as usize);
+        let step = lines.unsigned_abs().min(20) as usize;
+        let new_off = if lines > 0 { off.saturating_sub(step) } else { (off + step).min(n.saturating_sub(vis)) };
+        let mut new_sel = sel;
+        if new_sel < new_off {
+            new_sel = new_off;
+        } else if new_sel >= new_off + vis {
+            new_sel = new_off + vis - 1;
+        }
+        let mut key: Vec<usize> = self.path.iter().take(k).copied().collect();
+        {
+            let mut st = self.scroll.borrow_mut();
+            st[k] = (std::mem::take(&mut key), new_off);
+        }
+        self.path.truncate(k + 1);
+        while self.path.len() < k + 1 {
+            self.path.push(0);
+        }
+        self.path[k] = new_sel;
+        true
     }
 
     /// The entry under screen point `p` (any open panel), or `None`.
@@ -447,6 +511,27 @@ impl Launcher {
         out
     }
 
+    /// The scroll window of level `k`'s panel: `(first_visible, visible_count)`. The first
+    /// visible row is remembered per level and moves only when the highlight leaves the view
+    /// (or the wheel scrolls), so render and hit-test agree and hovering does not shift it.
+    fn window(&self, k: usize, n: usize, sel: usize, max: usize) -> (usize, usize) {
+        let vis = n.min(max.max(1));
+        let key: Vec<usize> = self.path.iter().take(k).copied().collect();
+        let mut st = self.scroll.borrow_mut();
+        while st.len() <= k {
+            st.push((Vec::new(), 0));
+        }
+        let mut off = if st[k].0 == key { st[k].1 } else { 0 };
+        off = off.min(n.saturating_sub(vis));
+        if sel < off {
+            off = sel;
+        } else if sel >= off + vis {
+            off = sel + 1 - vis;
+        }
+        st[k] = (key, off);
+        (off, vis)
+    }
+
     /// One rendered panel: its box rect and the per-row rects.
     /// Returns `(level, panel_rect, row_rects)` — the single geometry source shared
     /// by `render_menu`, `hover`, `click`, and `point_in_menu`.
@@ -461,7 +546,7 @@ impl Launcher {
             let label_w = entries.iter().map(|e| e.label().chars().count() + e.extra_w()).max().unwrap_or(6) as i32;
             let pw = (label_w + 4).clamp(12, MENU_PANEL_MAX_W).min(w.max(12)); // +marker/padding/border
             // Tall lists scroll: show only what fits below the menubar row.
-            let (off, vis) = list_window(entries.len(), *sel, (h - 3).max(1) as usize);
+            let (off, vis) = self.window(k, entries.len(), *sel, (h - 3).max(1) as usize);
             let ph = vis as i32 + 2; // border top/bottom
             let px = if k == 0 { 0 } else { x };
             // clamp horizontally on screen
@@ -505,7 +590,7 @@ impl Launcher {
         for ((k, panel, rows), (entries, sel)) in geom.iter().zip(levels.iter()) {
             let mut buf = CellBuffer::new(panel.w, panel.h);
             fill_box(&mut buf, panel.w, panel.h);
-            let (off, vis) = list_window(entries.len(), *sel, (h - 3).max(1) as usize);
+            let (off, vis) = self.window(*k, entries.len(), *sel, (h - 3).max(1) as usize);
             for (i, e) in entries.iter().enumerate() {
                 if i < off || i >= off + vis {
                     continue;
@@ -774,7 +859,7 @@ mod tests {
         l.toggle_menu();
         let _ = l.render(120, 40);
         let rects = l.panel_rects_for_test(120, 40);
-        let tools = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 1).map(|(_, _, r)| *r).unwrap();
+        let tools = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 2).map(|(_, _, r)| *r).unwrap();
         l.hover(Point::new(tools.x + 1, tools.y)); // hovering the category opens its panel
         let r = l.render(120, 40);
         let text: String = r
@@ -796,9 +881,9 @@ mod tests {
         l.toggle_menu();
         let r = l.render(120, 40);
         assert!(!r.layers.is_empty());
-        // root rows: Shell(0), Games(1), Tools(2). Hover the "Tools" row (row 2).
+        // root rows: All(0), Shell(1), Games(2), Tools(3). Hover the "Tools" row (row 3).
         let rects = l.panel_rects_for_test(120, 40);
-        let tools_row = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 2).map(|(_, _, r)| *r).unwrap();
+        let tools_row = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 3).map(|(_, _, r)| *r).unwrap();
         let _ = l.render(120, 40); // ensure last_w/last_h match the hover geometry
         l.hover(Point::new(tools_row.x + 1, tools_row.y));
         assert_eq!(l.focused_label(), Some("Tools".to_string()));
@@ -810,7 +895,7 @@ mod tests {
     fn click_launches_leaf_and_descends_submenu() {
         let mut l = Launcher::new(vec![app("Aaa", "Games")]);
         l.toggle_menu();
-        l.move_down(); // skip the Shell quick-launch (row 0); select the Games category
+        l.move_down(); l.move_down(); // skip the Shell quick-launch (row 0) and All (row 1); select the Games category
         let _ = l.render(120, 40);
         let rects = l.panel_rects_for_test(120, 40);
         // level 1 row 0 is the leaf "Aaa" (auto-expanded under the Games category)
@@ -820,13 +905,98 @@ mod tests {
     }
 
     #[test]
-    fn shell_is_the_first_quick_launch_entry() {
+    fn shell_is_the_first_quick_launch_entry_then_all() {
         let mut l = Launcher::new(vec![app("Aaa", "Games")]);
         l.toggle_menu();
         assert_eq!(l.path_for_test(), vec![0]); // first root row selected
-        // The first top-level entry is a bare "Shell" leaf — activating launches it.
+        // The first top-level entry is a bare "Shell" leaf, activating it launches it.
         let a = l.activate();
         assert_eq!(a.map(|e| e.name), Some("Shell".to_string()));
+        l.move_down();
+        assert_eq!(l.focused_label(), Some("All".to_string()));
+    }
+
+    #[test]
+    fn all_lists_every_app_flat_sorted_by_name_without_power() {
+        let power = AppEntry {
+            name: "Reboot".into(), command: "@reboot".into(), args: vec![],
+            category: Some(POWER_CATEGORY.into()),
+            requires_cwd: None, cwd: None, cli: None, warn: None,
+        };
+        let mut l = Launcher::new(vec![app("Ccc", "Tools"), app("bbb", "Games"), app("Aaa", "Games"), power]);
+        l.toggle_menu();
+        l.move_down(); // Shell(0) -> All(1)
+        l.expand();
+        assert_eq!(l.path_for_test(), vec![1, 0]);
+        let mut names = vec![l.focused_label().unwrap()];
+        for _ in 0..2 { l.move_down(); names.push(l.focused_label().unwrap()); }
+        assert_eq!(names, vec!["Aaa", "bbb", "Ccc"]);
+        l.move_down();
+        assert_eq!(l.focused_label(), Some("Ccc".to_string()), "no Reboot, the list ends");
+    }
+
+    #[test]
+    fn remote_access_holds_remote_files_and_configure_and_the_category_is_not_a_root_row() {
+        let files = AppEntry {
+            name: "Files on box".into(), command: "@rfiles".into(), args: vec!["box".into()],
+            category: Some(REMOTE_FILES_CATEGORY.into()),
+            requires_cwd: None, cwd: None, cli: None, warn: None,
+        };
+        let mut l = Launcher::new(vec![app("Aaa", "Games"), files]);
+        l.toggle_menu();
+        let labels = l.menu_labels();
+        assert!(labels.contains(&"Remote access".to_string()));
+        assert!(!labels.contains(&"Systems".to_string()) && !labels.contains(&"@remote-files".to_string()));
+        // Down to Remote access: Shell, All, Games, sep, Remote access.
+        while l.focused_label().as_deref() != Some("Remote access") { l.move_down(); }
+        l.expand();
+        let mut rows = vec![l.focused_label().unwrap()];
+        for _ in 0..3 {
+            l.move_down();
+            rows.push(l.focused_label().unwrap());
+        }
+        assert!(rows.contains(&"Remote files".to_string()), "{rows:?}");
+        assert!(rows.contains(&"Configure Remote Systems".to_string()), "{rows:?}");
+    }
+
+    #[test]
+    fn wheel_over_the_all_list_scrolls_the_view_and_hover_does_not_shift_it() {
+        let apps: Vec<AppEntry> = (0..40).map(|i| app(&format!("app{i:02}"), "Tools")).collect();
+        let mut l = Launcher::new(apps);
+        l.toggle_menu();
+        l.move_down(); // Shell(0) -> All(1)
+        l.expand(); // open All
+        let _ = l.render(80, 12); // short screen: 9 rows are visible
+        let rects = l.panel_rects_for_test(80, 12);
+        let r = rects.iter().find(|(lvl, row, _)| *lvl == 1 && *row == 0).map(|(_, _, r)| *r).unwrap();
+        assert_eq!(l.focused_label(), Some("app00".to_string()));
+        assert!(l.wheel(Point::new(r.x + 1, r.y), -5), "wheel down is used over the panel");
+        let _ = l.render(80, 12);
+        let after = l.panel_rects_for_test(80, 12);
+        // Rows 0..4 scrolled out of view, rows 5..13 are on screen.
+        assert_eq!(after.iter().filter(|(lvl, row, r)| *lvl == 1 && *row < 5 && r.w > 0).count(), 0);
+        let visible: Vec<_> = after.iter().filter(|(lvl, _, r)| *lvl == 1 && r.w > 0).cloned().collect();
+        assert_eq!(visible.len(), 9);
+        // Hovering any visible row selects it and leaves the list where it is.
+        let target = visible[3].2;
+        l.hover(Point::new(target.x + 1, target.y));
+        let _ = l.render(80, 12);
+        assert_eq!(l.panel_rects_for_test(80, 12), after, "hover must not shift the list");
+        assert_eq!(l.focused_label(), Some("app08".to_string()));
+        // Wheel up scrolls back; the highlight stays while it is in view.
+        assert!(l.wheel(Point::new(r.x + 1, r.y), 2));
+        assert_eq!(l.focused_label(), Some("app08".to_string()));
+        assert!(!l.wheel(Point::new(79, 11), -1), "outside the panels it is not used");
+    }
+
+    #[test]
+    fn all_comes_after_tetron_wm_and_before_the_other_categories() {
+        let mut l = Launcher::new(vec![app("Aaa", "Games"), app("Store", "tetron-wm")]);
+        l.toggle_menu();
+        assert_eq!(
+            &l.menu_labels()[..4],
+            &["Shell".to_string(), "tetron-wm".to_string(), "All".to_string(), "Games".to_string()]
+        );
     }
 
     #[test]
@@ -843,18 +1013,18 @@ mod tests {
             app("Aaa", "Games"), app("Bbb", "Games"), app("Ccc", "Tools"),
         ]);
         l.toggle_menu();
-        // root: a "Shell" quick-launch, the category submenus (sorted), then a
-        // separator and the system section (Systems, then Detach/Reload/Quit).
+        // root: a "Shell" quick-launch, "All" (every app, flat), the category submenus (sorted), then a
+        // separator and the system section (Remote access, then Detach/Reload/Quit).
         assert_eq!(
             l.menu_labels(),
-            vec!["Shell", "Games", "Tools", "", "Systems", "", "Detach", "Reload", "Quit"]
+            vec!["Shell", "All", "Games", "Tools", "", "Remote access", "", "Detach", "Reload", "Quit"]
         );
         assert_eq!(l.path_for_test(), vec![0]); // Shell selected first
-        l.move_down(); // select Games (root index 1)
-        assert_eq!(l.path_for_test(), vec![1]);
+        l.move_down(); l.move_down(); // select Games (root index 2)
+        assert_eq!(l.path_for_test(), vec![2]);
         // descend into Games → its apps
         l.expand();
-        assert_eq!(l.path_for_test(), vec![1, 0]);
+        assert_eq!(l.path_for_test(), vec![2, 0]);
         assert_eq!(l.focused_label(), Some("Aaa".to_string()));
         l.move_down();
         assert_eq!(l.focused_label(), Some("Bbb".to_string()));
@@ -862,33 +1032,37 @@ mod tests {
         assert_eq!(l.activate().map(|a| a.name), Some("Bbb".to_string()));
         // collapse back to root
         l.toggle_menu(); l.toggle_menu(); // reopen fresh
-        l.move_down(); l.expand(); l.collapse();
-        assert_eq!(l.path_for_test(), vec![1]);
+        l.move_down(); l.move_down(); l.expand(); l.collapse();
+        assert_eq!(l.path_for_test(), vec![2]);
     }
 
     #[test]
     fn system_section_skips_separator_and_yields_sentinels() {
         let mut l = Launcher::new(vec![app("Aaa", "Games"), app("Ccc", "Tools")]);
         l.toggle_menu();
-        // Shell(0) Games(1) Tools(2) sep(3) Systems(4) sep(5) Detach(6) Reload(7) Quit(8)
-        l.move_down(); // Games(1)
-        l.move_down(); // Tools(2)
-        assert_eq!(l.path_for_test(), vec![2]);
-        l.move_down(); // skip separator(3) → Systems(4)
-        assert_eq!(l.path_for_test(), vec![4]);
+        // Shell(0) All(1) Games(2) Tools(3) sep(4) Remote access(5) sep(6) Detach(7) Reload(8) Quit(9)
+        l.move_down(); // All(1)
+        l.move_down(); // Games(2)
+        l.move_down(); // Tools(3)
+        assert_eq!(l.path_for_test(), vec![3]);
+        l.move_down(); // skip separator(4) → Remote access(5)
+        assert_eq!(l.path_for_test(), vec![5]);
+        l.expand(); // the sshd row comes first; Configure Remote Systems is last
+        while l.focused_label().as_deref() != Some("Configure Remote Systems") { l.move_down(); }
         assert_eq!(l.activate().map(|e| e.command), Some("@systems".to_string()));
-        l.move_down(); // skip separator(5) → Detach(6)
-        assert_eq!(l.path_for_test(), vec![6]);
+        l.collapse();
+        l.move_down(); // skip separator(6) → Detach(7)
+        assert_eq!(l.path_for_test(), vec![7]);
         assert_eq!(l.activate().map(|e| e.command), Some("@exit".to_string()));
         l.move_down(); // Reload(7)
         assert_eq!(l.activate().map(|e| e.command), Some("@restart".to_string()));
-        l.move_down(); // Quit(8)
+        l.move_down(); // Quit(9)
         assert_eq!(l.activate().map(|e| e.command), Some("@shutdown".to_string()));
         // move_up skips the separators on the way back up too
-        l.move_up(); l.move_up(); l.move_up(); // Reload, Detach, skip sep → Systems(4)
-        assert_eq!(l.path_for_test(), vec![4]);
-        l.move_up(); // skip separator(3) → Tools(2)
-        assert_eq!(l.path_for_test(), vec![2]);
+        l.move_up(); l.move_up(); l.move_up(); // Reload, Detach, skip sep → Remote access(5)
+        assert_eq!(l.path_for_test(), vec![5]);
+        l.move_up(); // skip separator(4) → Tools(3)
+        assert_eq!(l.path_for_test(), vec![3]);
     }
 
     #[test]
@@ -905,12 +1079,12 @@ mod tests {
         l.toggle_menu();
         assert_eq!(
             l.menu_labels(),
-            vec!["Shell", "Games", "", "Systems", "", "Detach", "Reload", "Quit", "", "Power"],
+            vec!["Shell", "All", "Games", "", "Remote access", "", "Detach", "Reload", "Quit", "", "Power"],
             "Power is the last row, set apart from Quit, and is not an app category"
         );
-        // Walk to Power (index 9), open it, and read its rows in order.
-        for _ in 0..8 { l.move_down(); }
-        assert_eq!(l.path_for_test(), vec![9]);
+        // Walk to Power (index 10), open it, and read its rows in order.
+        for _ in 0..9 { l.move_down(); }
+        assert_eq!(l.path_for_test(), vec![10]);
         l.expand();
         assert_eq!(l.focused_label(), Some("Suspend".to_string()));
         l.move_down();
@@ -952,9 +1126,9 @@ mod tests {
     fn activate_on_category_descends_not_launches() {
         let mut l = Launcher::new(vec![app("Aaa", "Games")]);
         l.toggle_menu();
-        l.move_down(); // skip the Shell quick-launch; select the Games category
+        l.move_down(); l.move_down(); // skip the Shell quick-launch and All; select the Games category
         assert!(l.activate().is_none()); // category → descend, no launch
-        assert_eq!(l.path_for_test(), vec![1, 0]);
+        assert_eq!(l.path_for_test(), vec![2, 0]);
         assert_eq!(l.activate().map(|a| a.name), Some("Aaa".to_string())); // now the leaf
     }
 }

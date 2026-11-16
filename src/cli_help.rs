@@ -136,7 +136,7 @@ COMMANDS:\n\
 \x20                       in the attached client wakes it. Effects: black, clock (see list)\n\
 \x20 config init           write the example config to ~/.config/tetron-wm/config.toml if no\n\
 \x20                       file is there (never overwrites); config example prints it.\n\
-\x20                       In the app: Settings > General > Config file (open, create, reset\n\
+\x20                       In the app: Settings > Config Edit (open in editor, create, reset\n\
 \x20                       keeping config.toml.bak, reload)\n\
 \x20 mcp                   MCP server over stdio (desktop tools for an AI agent: windows,\n\
 \x20                       launch, tile, theme, screenshot). The agent starts it; with\n\
