@@ -73,7 +73,7 @@ fn follow(theme: &str) -> (String, Option<String>, Option<String>) {
 
 fn open_terminal_section(core: &mut SessionCore) {
     core.apply(ClientMsg::OpenSettings);
-    for _ in 0..7 {
+    for _ in 0..8 {
         core.apply(ClientMsg::SettingsNextSection);
     }
 }

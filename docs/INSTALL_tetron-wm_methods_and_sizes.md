@@ -1,20 +1,20 @@
-# Installing tetron-wm: methods, sizes and setups
+# Installing tetron-wm: methods, collections and setups
 
-Three separate choices make up an install. **How** tetron-wm arrives (the suite installer, `install.sh`, the `.deb` packages, or a source build). **How much** comes with it (the size: minimal, desktop or extras). And, on Linux, **how the console is set up** (nothing, kmscon, or tetron-wm at login or at boot). This page covers each, then shows them together in one table.
+Three separate choices make up an install. **How** tetron-wm arrives (the suite installer, `install.sh`, the `.deb` packages, or a source build). **How much** comes with it (the collection: minimal, desktop or extras). And, on Linux, **how the console is set up** (nothing, kmscon, or tetron-wm at login or at boot). This page covers each, then shows them together in one table.
 
 ## The short version
 
-For most people, one command, then answer two questions (the size, then what kind of machine this is):
+For most people, one command, then answer two questions (the collection, then what kind of machine this is):
 
 ```sh
 curl -fsSL https://tetronos.github.io/tetron-wm/install.sh | bash
 ```
 
-Press Enter at each question to take the default: the essentials size, and the setup that suits the machine. Running it again later is safe; it only adds what is missing.
+Press Enter at each question to take the default: the essentials collection, and the setup that suits the machine. Running it again later is safe; it only adds what is missing.
 
-## Sizes
+## Collections
 
-| Size | What you get |
+| Collection | What you get |
 |---|---|
 | minimal | tetron-wm only. Everything works that needs no other program; features that need one (image wallpaper, video, PDF pages, sound controls, ...) stay off until that program is installed. |
 | essentials (default) | tetron-wm plus the tools its features use: tetron-browser (Debian and Ubuntu amd64, from the [tetronos apt repo](https://tetronos.github.io/apt)), chafa, mpv, fbi, poppler-utils, w3m, htop, upower, gpm, xclip and wl-clipboard (with a desktop session), alsa-utils, openssh-client, sshpass, sshfs, 7zip, unzip, gnupg, python3, curl, console fonts, the DejaVu font, mc and vim; also fresh, uv, catt, casttui, the Symbols Nerd Font and opencode (the agent of ✦ AI), which no distribution packages. And one good app per need: tree, gdu, gdisk, parted, rsync, pstree, fastfetch, qalc, bc, earlyoom, systemd-timesyncd, nano, wget, lynx, tmux, mosh, dig, traceroute, whois, netcat, timg, git, jq, ripgrep, fd, fzf, man, tldr and pulsemixer. |
@@ -23,13 +23,13 @@ Press Enter at each question to take the default: the essentials size, and the s
 
 A name a system does not package is skipped there (for example lazygit on Fedora, timg on Arch).
 
-System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a size: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
+System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a collection: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
 
-The sizes are the same everywhere: the suite installer's list, the `tetron-wm-desktop`, `tetron-wm-essentials`, `tetron-wm-recommended` and `tetron-wm-extras` packages and the Store all come from the "App sets" section of [`lists/tetron.toml`](../lists/tetron.toml). The list is also published for each tetron-wm minor version at https://tetronos.github.io/apt/lists/ (for 0.15: `lists/0.15/suite-apps.txt` and `lists/0.15/catalog.json`), so it can grow without a release; the suite installer reads it from there, and the Store's Update list button fetches it.
+The collections are the same everywhere: the suite installer's list, the `tetron-wm-desktop`, `tetron-wm-essentials`, `tetron-wm-recommended` and `tetron-wm-extras` packages and the Store all come from the "App sets" section of [`lists/tetron.toml`](../lists/tetron.toml). The list is also published for each tetron-wm minor version at https://tetronos.github.io/apt/lists/ (for 0.15: `lists/0.15/suite-apps.txt` and `lists/0.15/catalog.json`), so it can grow without a release; the suite installer reads it from there, and the Store's Update list button fetches it.
 
 ## Ways to install
 
-**The suite installer** (`install-tetron-wm-suite.sh`) is the front door. It installs tetron-wm, the apps of the size you choose and, if you ask, the console setup. On Debian and Ubuntu it uses the `.deb` packages when the release has them, so apt manages tetron-wm and the whole app set; elsewhere it uses the system's package manager (dnf, pacman, Homebrew). Options: `--size minimal|essentials|recommended|extras` (`desktop` is read as essentials), `--profile gui|console|login|appliance`, `-y` (take every default), `--dry-run` (print the plan, change nothing), `--help`.
+**The suite installer** (`install-tetron-wm-suite.sh`) is the front door. It installs tetron-wm, the apps of the collection you choose and, if you ask, the console setup. On Debian and Ubuntu it uses the `.deb` packages when the release has them, so apt manages tetron-wm and the whole app set; elsewhere it uses the system's package manager (dnf, pacman, Homebrew). Options: `--size minimal|essentials|recommended|extras` (`desktop` is read as essentials), `--profile gui|console|login|appliance`, `-y` (take every default), `--dry-run` (print the plan, change nothing), `--help`.
 
 **`install.sh`** installs tetron-wm only: the `.deb` on Debian and Ubuntu when the release has one, otherwise the prebuilt binary in `/usr/local/bin` (or `TETRON_WM_BIN_DIR`). When it finishes it prints the suite installer command for the apps.
 
@@ -43,9 +43,9 @@ curl -fsSL https://raw.githubusercontent.com/tetronos/tetron-wm/main/install.sh 
 |---|---|
 | `tetron-wm_<version>_amd64.deb` (or `_arm64`) | tetron-wm, `tetron-wm-startpage`, `tetron-aimode` and the docs. Adds no other package. |
 | `tetron-wm-desktop_<version>_all.deb` | the tools tetron-wm's features use, as Recommends (apt installs Recommends by default; each can be removed later), and the two systemd units (not enabled). |
-| `tetron-wm-essentials_<version>_all.deb` | the essentials size: depends on `tetron-wm-desktop` and recommends the essential apps. |
-| `tetron-wm-recommended_<version>_all.deb` | the recommended size, on top of essentials. |
-| `tetron-wm-extras_<version>_all.deb` | the extras size, on top of recommended. |
+| `tetron-wm-essentials_<version>_all.deb` | the essentials collection: depends on `tetron-wm-desktop` and recommends the essential apps. |
+| `tetron-wm-recommended_<version>_all.deb` | the recommended collection, on top of essentials. |
+| `tetron-wm-extras_<version>_all.deb` | the extras collection, on top of recommended. |
 
 ```sh
 sudo apt install ./tetron-wm_<version>_amd64.deb ./tetron-wm-desktop_<version>_all.deb ./tetron-wm-essentials_<version>_all.deb
@@ -59,8 +59,8 @@ This gives the same packages as the suite installer, without the apps no distrib
 
 tetron-wm is installed one way per machine, and you choose it:
 
-- **deb**: the apt package. The installer also adds the tetronos apt repository (https://tetronos.github.io/apt) by installing its package, `tetronos-apt-source`, which owns `/etc/apt/sources.list.d/tetronos.sources` and the signing key. From then on `apt upgrade` updates tetron-wm and the size packages. The key is checked against the SHA256 pinned in `install.sh` before apt uses it. `TETRON_WM_NO_APT_REPO=1` installs the package without the repository. On TetronOS the repository is already there.
-- **binary**: a prebuilt release binary, or your own build. Where the tetron-wm package is installed, it stays installed: its binary is set aside with `dpkg-divert` (to `/usr/bin/tetron-wm.packaged`) and yours goes to `/usr/bin/tetron-wm`. The size packages, `tetronos-desktop` on TetronOS, the systemd units and the autostart keep working and run your binary, and an `apt upgrade` of the package only updates the set-aside file. Without the package the binary replaces a copy that is already there, else goes to `/usr/local/bin` (or `TETRON_WM_BIN_DIR`).
+- **deb**: the apt package. The installer also adds the tetronos apt repository (https://tetronos.github.io/apt) by installing its package, `tetronos-apt-source`, which owns `/etc/apt/sources.list.d/tetronos.sources` and the signing key. From then on `apt upgrade` updates tetron-wm and the collection packages. The key is checked against the SHA256 pinned in `install.sh` before apt uses it. `TETRON_WM_NO_APT_REPO=1` installs the package without the repository. On TetronOS the repository is already there.
+- **binary**: a prebuilt release binary, or your own build. Where the tetron-wm package is installed, it stays installed: its binary is set aside with `dpkg-divert` (to `/usr/bin/tetron-wm.packaged`) and yours goes to `/usr/bin/tetron-wm`. The collection packages, `tetronos-desktop` on TetronOS, the systemd units and the autostart keep working and run your binary, and an `apt upgrade` of the package only updates the set-aside file. Without the package the binary replaces a copy that is already there, else goes to `/usr/local/bin` (or `TETRON_WM_BIN_DIR`).
 
 Choose with the suite installer (`--method deb|binary`, `--from-clone DIR`; it asks on Debian and Ubuntu, default the current method) or with `install.sh` (`TETRON_WM_METHOD=deb|binary`, `TETRON_WM_FROM_CLONE=DIR`). Your own build: clone, change, then install it, which runs `cargo build --release` in the clone first (a failed build changes nothing):
 
@@ -120,16 +120,16 @@ Asked by the suite installer as "What are you setting up?", or given with `--pro
 | `.deb` by hand | `tetron-wm` | add `tetron-wm-desktop` and `tetron-wm-essentials` | add `tetron-wm-recommended`, `tetron-wm-extras` | none | Settings > Updates (through apt) |
 | source build | yes | add later with the suite installer | add later | none | `cargo install` again |
 
-## Growing the size later
+## Growing the collection later
 
-- Inside tetron-wm: **Settings > General > Apps** shows the installed size and how many of its apps are missing. Enter opens the choices: Essentials, Recommended (and Extras once it has apps), a box for the apps with their own installers (opencode, fresh, uv, catt, casttui, the Nerd Font; with recommended also croft, pyradio, llm, yt-dlp, freebuff; ticked by default) and, on Debian and Ubuntu, Remove set. Each choice shows a confirmation first: the apps it adds, the download size on Debian and Ubuntu, and how to undo it. Install runs the suite installer in a terminal window, where sudo can ask for your password; choosing the installed size again adds what a newer release added. Remove set removes the size package, then apt lists the apps no other package needs and asks before removing them; the apps with their own installers stay, and the confirmation names them. The count of missing apps is taken again each time the choices open, so apps installed from a shell meanwhile count. Programs in /usr/sbin (gpm, parted, ufw, ...) count as installed although a normal user's PATH lacks that directory on Debian and Ubuntu.
+- Inside tetron-wm: **Settings > App Collections** shows the installed collection and how many of its apps are missing. Enter opens the choices: Essentials, Recommended (and Extras once it has apps), a box for the apps with their own installers (opencode, fresh, uv, catt, casttui, the Nerd Font; with recommended also croft, pyradio, llm, yt-dlp, freebuff; ticked by default) and, on Debian and Ubuntu, Remove set. Each choice shows a confirmation first: the apps it adds, the download size on Debian and Ubuntu, and how to undo it. Install runs the suite installer in a terminal window, where sudo can ask for your password; choosing the installed collection again adds what a newer release added. Remove set removes the collection package, then apt lists the apps no other package needs and asks before removing them; the apps with their own installers stay, and the confirmation names them. The count of missing apps is taken again each time the choices open, so apps installed from a shell meanwhile count. Programs in /usr/sbin (gpm, parted, ufw, ...) count as installed although a normal user's PATH lacks that directory on Debian and Ubuntu.
 - From a shell: run the suite installer again with `--size essentials`, `--size recommended` or `--size extras` (`--no-scripts` leaves out the apps no distribution packages).
 
-Going down a size on Debian and Ubuntu: `sudo apt remove tetron-wm-extras` (or `tetron-wm-recommended`, `tetron-wm-essentials`); the apps it brought stay until `sudo apt autoremove`.
+Going down a collection on Debian and Ubuntu: `sudo apt remove tetron-wm-extras` (or `tetron-wm-recommended`, `tetron-wm-essentials`); the apps it brought stay until `sudo apt autoremove`.
 
 ## Updating
 
-Settings > Updates, or `install.sh` again. Settings > Updates first runs `uv self update` and `uv tool upgrade --all` when uv is installed, so uv and the apps it installed (catt, casttui, pyradio, llm, yt-dlp) stay current; opencode and freebuff are replaced with their checked release when a newer one exists, and croft updates itself. On Debian and Ubuntu with the package installed, the update installs the new release `.deb` with apt, and also moves the size packages to the release, up to the largest one installed, so apps added to a size arrive with the update. A tetron-wm installed without the package is updated in place; `--method deb` makes it the package. An own build is not updated (see "Deb or binary, and your own build").
+Settings > Updates, or `install.sh` again. Settings > Updates first runs `uv self update` and `uv tool upgrade --all` when uv is installed, so uv and the apps it installed (catt, casttui, pyradio, llm, yt-dlp) stay current; opencode and freebuff are replaced with their checked release when a newer one exists, and croft updates itself. On Debian and Ubuntu with the package installed, the update installs the new release `.deb` with apt, and also moves the collection packages to the release, up to the largest one installed, so apps added to a collection arrive with the update. A tetron-wm installed without the package is updated in place; `--method deb` makes it the package. An own build is not updated (see "Deb or binary, and your own build").
 
 ## Removing
 
@@ -141,4 +141,4 @@ Settings > Updates, or `install.sh` again. Settings > Updates first runs `uv sel
 
 `install.sh` (run as a user) and the suite installer create `~/code` when it is missing: the folder ✦ AI clones and builds suite code in, listed as Code in the Files sidebar. An existing `~/code` is never touched.
 
-The suite installer records its choices (size, method, console setup) in `~/.config/tetron-wm/suite-state`; Settings > About shows the method and size.
+The suite installer records its choices (collection, method, console setup) in `~/.config/tetron-wm/suite-state`; Settings > About shows the method and collection.

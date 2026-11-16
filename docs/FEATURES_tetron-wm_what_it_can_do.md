@@ -72,7 +72,7 @@ Keys below are leader sequences: press `Ctrl+Space`, release, then the key. The 
 
 - **Persistent.** Apps live in a separate background process, so they survive detach, a dropped ssh connection, a UI reload and an update. Closing the terminal does not close your work.
 - **Named sessions.** `tetron-wm -s NAME` gives a separate set of windows. `tetron-wm ls` lists them and their state, and `attach -d` takes one over from another terminal.
-- **Systems switcher.** Launcher → Systems hops between tetron-wm desktops on other machines over ssh. Saved machines show a reachable or not dot. **Add Remote** copies your ssh key, installs tetron-wm there and connects. Each system can carry its own theme. Passwords are used once and never saved.
+- **Systems switcher.** Launcher → Remote access → Configure Remote Systems hops between tetron-wm desktops on other machines over ssh. Saved machines show a reachable or not dot. **Add Remote** copies your ssh key, installs tetron-wm there and connects. Each system can carry its own theme. Passwords are used once and never saved.
 - **Reload without losing apps.** Launcher → Reload, `tetron-wm reload`, or Settings → Update & Reload.
 - **Per-user service.** `tetron-wm service install` keeps the app host running across logins.
 

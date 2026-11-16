@@ -101,7 +101,7 @@ mod tests {
     }
 
     /// CON-WD07: the catalog tetron-wm is built with carries exactly this
-    /// repository's suite list (its app sets), so Settings > General > Apps
+    /// repository's suite list (its app sets), so Settings > App Collections
     /// and the suite installer agree with the packages.
     #[test]
     fn built_in_catalog_carries_our_suite_list() {

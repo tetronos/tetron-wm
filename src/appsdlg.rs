@@ -1,4 +1,4 @@
-//! Settings > General > Apps dialog (WMINST-011): pick a size to install
+//! Settings > App Collections dialog (WMINST-011): pick a size to install
 //! (Essentials, Recommended, Extras once it has apps), tick whether the apps
 //! no distribution packages come too, or remove a set; every choice opens a
 //! confirmation first, with focus on Cancel. The dialog only decides; the
@@ -342,7 +342,7 @@ impl AppsDlg {
             n => format!("{}, {n} missing", self.installed.name()),
         };
         let Some(c) = self.confirm.as_ref() else {
-            put(buf, 1, "General \u{203A} Apps", pal_accent(), pal_bg());
+            put(buf, 1, "App Collections", pal_accent(), pal_bg());
             put(buf, 3, &format!("Installed: {have}"), pal_fg(), pal_bg());
             for i in 0..self.rows() {
                 let y = 5 + i as i32;
@@ -397,7 +397,7 @@ Installs in a terminal window, where sudo asks for your password. Esc closes."
             }
             What::Remove => (format!("Remove set: {}", self.installed.name()), self.remove.iter().map(|p| p.to_string()).collect()),
         };
-        put(buf, 1, "General \u{203A} Apps", pal_accent(), pal_bg());
+        put(buf, 1, "App Collections", pal_accent(), pal_bg());
         let mut y = 3;
         for l in wrap(&title, width) {
             put(buf, y, &l, pal_fg(), pal_bg());

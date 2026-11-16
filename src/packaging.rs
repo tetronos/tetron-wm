@@ -399,7 +399,7 @@ pub fn size_debs(size: Size) -> &'static [&'static str] {
     &ALL[..(size as usize + usize::from(size != Size::Minimal)).min(4)]
 }
 
-/// Settings > General > Apps > Remove set (WMINST-011): the size debs dpkg
+/// Settings > App Collections > Remove set (WMINST-011): the size debs dpkg
 /// has for `size` and the larger sizes, so the next smaller size stays. Empty
 /// when tetron-wm-essentials is not installed (nothing the set added is
 /// recorded); tetron-wm-desktop, the tools tetron-wm uses, is never removed.

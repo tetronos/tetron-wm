@@ -702,7 +702,7 @@ pub struct SessionCore {
     update_check: Option<std::sync::mpsc::Receiver<String>>,
     /// Settings > Get more themes worker, read by [`Self::poll_themes`].
     theme_job: Option<std::sync::mpsc::Receiver<crate::themefetch::Msg>>,
-    /// Settings > General > Apps download size worker, read by [`Self::poll_apps_download`].
+    /// Settings > App Collections download size worker, read by [`Self::poll_apps_download`].
     apps_download_job: Option<std::sync::mpsc::Receiver<Option<crate::packaging::AptEstimate>>>,
     /// Failures of the desktop cast worker, shown as a window by `poll_cast_errors`.
     cast_errors: (std::sync::mpsc::Sender<String>, std::sync::mpsc::Receiver<String>),
@@ -1419,10 +1419,10 @@ impl SessionCore {
                 }
             }
             Some(crate::settings::SettingsAction::InstallApps(size, scripts)) => {
-                // Settings > General > Apps (WMINST-007, WMINST-011): the suite
+                // Settings > App Collections (WMINST-007, WMINST-011): the suite
                 // installer for that size in a window, so sudo asks where the
                 // user can answer.
-                crate::dbg_log(&format!("apps: install the {} size with the suite installer (script apps: {scripts})", size.name()));
+                crate::dbg_log(&format!("apps: install the {} collection with the suite installer (script apps: {scripts})", size.name()));
                 let raw = "https://raw.githubusercontent.com/tetronos/tetron-wm";
                 // The list Settings counted from, so the script installs the same one.
                 let list = crate::packaging::write_apps_list();
@@ -1452,14 +1452,14 @@ impl SessionCore {
                     Ok(o) => crate::dbg_log(&format!("config: create from example -> {o:?}")),
                     Err(e) => crate::log_warn(&format!("config: create from example failed: {e}")),
                 }
-                self.reload_to_general();
+                self.reload_to_config();
             }
             Some(crate::settings::SettingsAction::ResetConfigFile) => {
                 match crate::config::file_path().and_then(|p| crate::config::reset_at(&p)) {
                     Ok(bak) => crate::dbg_log(&format!("config: reset to the example, old file kept as {bak:?}")),
                     Err(e) => crate::log_warn(&format!("config: reset failed: {e}")),
                 }
-                self.reload_to_general();
+                self.reload_to_config();
             }
             Some(crate::settings::SettingsAction::DownloadDictationModels) => {
                 let (program, _) = crate::dictation::provider_command(&self.cfg);
@@ -1477,11 +1477,6 @@ impl SessionCore {
                 let dir = dirs::home_dir().unwrap_or_default();
                 self.run_in_window(format!("Install {}", a.package()), crate::packaging::addon_install_command(a), dir);
             }
-            Some(crate::settings::SettingsAction::RemoteAccess(on)) => {
-                let dir = dirs::home_dir().unwrap_or_default();
-                let cmd = if on { "sudo tetronos-ssh-temp on" } else { "sudo tetronos-ssh-temp off" };
-                self.run_in_window("Remote access".into(), cmd.into(), dir);
-            }
             Some(crate::settings::SettingsAction::InstallDictation) => {
                 let a = crate::packaging::Addon::TetronStt;
                 let dir = dirs::home_dir().unwrap_or_default();
@@ -1489,7 +1484,7 @@ impl SessionCore {
             }
             Some(crate::settings::SettingsAction::ReloadConfig) => {
                 crate::dbg_log("config: reload requested from Settings");
-                self.reload_to_general();
+                self.reload_to_config();
             }
             Some(crate::settings::SettingsAction::InstallUpdate)
                 if crate::packaging::running_is_packaged() && sanitize_branch(&self.cfg.update_branch) != "main" =>
@@ -1523,12 +1518,12 @@ impl SessionCore {
 
     /// Reload the desktop (the config is read fresh) and reopen Settings on
     /// General afterwards.
-    fn reload_to_general(&mut self) {
-        write_reopen_hint(Ui_SETTINGS_GENERAL);
+    fn reload_to_config(&mut self) {
+        write_reopen_hint(Ui_SETTINGS_CONFIG);
         self.reload = true;
     }
 
-    /// Settings > General > Open in editor: the Default Apps `editor` with the
+    /// Settings > Config Edit > Open in editor: the Default Apps `editor` with the
     /// config path, `vi` when that is not a command.
     fn open_config_file(&mut self) {
         let Ok(path) = crate::config::file_path() else { return };
@@ -1776,11 +1771,11 @@ impl SessionCore {
     /// the in-app updater so Settings comes back on the Updates screen.
     pub fn reopen_ui_from_hint(&mut self) {
         let hint = take_reopen_hint();
-        if hint == Some(Ui_SETTINGS_UPDATES) || hint == Some(Ui_SETTINGS_GENERAL) {
+        if hint == Some(Ui_SETTINGS_UPDATES) || hint == Some(Ui_SETTINGS_CONFIG) {
             self.open_settings();
             if let Some(s) = self.focused_settings_mut() {
-                if hint == Some(Ui_SETTINGS_GENERAL) {
-                    s.show_general_section();
+                if hint == Some(Ui_SETTINGS_CONFIG) {
+                    s.show_config_section();
                 } else {
                     s.show_updates_section();
                 }
@@ -2759,13 +2754,13 @@ or a remote-side error — its authorized_keys was left untouched)",
                 });
             }
         }
-        // One remote file browser per saved system (Systems category).
+        // One remote file browser per saved system (Remote access > Remote files).
         for sys in systems {
             apps.push(AppEntry {
                 name: format!("Files on {}", sys.name),
                 command: "@rfiles".into(),
                 args: vec![sys.name.clone()],
-                category: Some("Systems".into()),
+                category: Some(crate::launcher::REMOTE_FILES_CATEGORY.into()),
                 requires_cwd: None,
                 cwd: None,
                 cli: None,
@@ -3962,6 +3957,8 @@ or a remote-side error — its authorized_keys was left untouched)",
                 let hist = self.clip_history();
                 self.clipmenu.scroll(-lines, &hist); // wheel up (+) moves up the list
             }
+            // Wheel over an open Launcher menu panel (All and the long lists) moves its selection.
+            ClientMsg::ScrollAt { p, lines } if self.launcher.mode() == Some(crate::launcher::LauncherMode::Menu) && self.launcher.wheel(p, lines) => {}
             ClientMsg::ScrollAt { lines, .. } if self.dirpicker.is_some() => {
                 // Wheel over the working-directory picker moves the selection
                 // (the view follows it); positive lines = wheel up.
@@ -4224,7 +4221,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         if let Some(cfg) = cfg {
             // Rebuilding the launcher rescans $PATH, so only do it when the
             // custom-app list actually changed (not on every shadow/theme tweak).
-            let launcher_changed = cfg.launcher != self.cfg.launcher;
+            let launcher_changed = cfg.launcher != self.cfg.launcher || cfg.power_menu != self.cfg.power_menu;
             let clip_changed = cfg.clipboard_history != self.cfg.clipboard_history
                 || cfg.clipboard_persist != self.cfg.clipboard_persist
                 || cfg.clipboard_history_size != self.cfg.clipboard_history_size
@@ -5139,6 +5136,20 @@ or a remote-side error — its authorized_keys was left untouched)",
             // System actions from the launcher's bottom section — delegate to the
             // existing power-menu flows (confirm dialog / systems popover).
             "@systems" => { self.launcher.close(); self.power_menu.open_systems(); }
+            // Remote access > sshd allow remote access: turn the temporary ssh
+            // password login on or off (a window asks for sudo, and a username on).
+            "@sshd" => {
+                self.launcher.close();
+                if !crate::settings::remote_available() {
+                    let text = "Remote access needs tetronos-ssh-temp (package tetronos-base-config), which is not installed here.\n\n  It is part of the TetronOS image.\n";
+                    let script = format!("printf '%s' {}; printf '\nPress Enter to close. '; read _k", crate::systems::sh_quote(text));
+                    self.launch_in("Remote access".into(), "sh".into(), vec!["-c".into(), script], None);
+                    return;
+                }
+                let dir = dirs::home_dir().unwrap_or_default();
+                let cmd = if crate::settings::remote_on() { "sudo tetronos-ssh-temp off" } else { "sudo tetronos-ssh-temp on" };
+                self.run_in_window("Remote access".into(), cmd.into(), dir);
+            }
             "@exit" => self.confirm_power(crate::powermenu::PowerAction::Exit),
             "@restart" => self.confirm_power(crate::powermenu::PowerAction::Restart),
             "@shutdown" => self.confirm_power(crate::powermenu::PowerAction::Shutdown),
@@ -6682,7 +6693,7 @@ or a remote-side error — its authorized_keys was left untouched)",
         }
         if install_finished {
             self.refresh_installed_apps();
-            // Settings > General > Apps shows the size that is now installed.
+            // Settings > App Collections shows the size that is now installed.
             for c in self.contents.values_mut() {
                 if let WinContent::Settings(s) = c {
                     s.refresh_apps();
@@ -6855,7 +6866,7 @@ fn sanitize_images(images: &mut Vec<crate::protocol::ImagePlacement>, w: i32, h:
 const Ui_SETTINGS_UPDATES: u8 = 1;
 /// Reopen Settings on General (after a config reload, reset or create).
 #[allow(non_upper_case_globals)]
-const Ui_SETTINGS_GENERAL: u8 = 2;
+const Ui_SETTINGS_CONFIG: u8 = 2;
 
 /// `dock_popup` key meaning "the taskbar's …+N overflow list" rather than a
 /// window group. Cannot collide with an app key (starts with a control char).
