@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.16] — 2026-11-16
+
 ### Added
 - **Settings > General > Remote access (ssh).** Where `tetronos-ssh-temp` is installed (tetronos-base-config), a row turns the temporary ssh password login on or off. A window runs `sudo tetronos-ssh-temp on` (it asks for a username and password) or `off`; the row shows whether it is on. The login lasts until reboot. Hidden when the helper is missing.
 
