@@ -1477,6 +1477,11 @@ impl SessionCore {
                 let dir = dirs::home_dir().unwrap_or_default();
                 self.run_in_window(format!("Install {}", a.package()), crate::packaging::addon_install_command(a), dir);
             }
+            Some(crate::settings::SettingsAction::RemoteAccess(on)) => {
+                let dir = dirs::home_dir().unwrap_or_default();
+                let cmd = if on { "sudo tetronos-ssh-temp on" } else { "sudo tetronos-ssh-temp off" };
+                self.run_in_window("Remote access".into(), cmd.into(), dir);
+            }
             Some(crate::settings::SettingsAction::InstallDictation) => {
                 let a = crate::packaging::Addon::TetronStt;
                 let dir = dirs::home_dir().unwrap_or_default();
