@@ -70,6 +70,8 @@ pub enum SettingsAction {
     InstallDictation,
     /// Install the latest version.
     InstallUpdate,
+    /// General > Remote access: turn the temporary ssh password login on (true) or off (false).
+    RemoteAccess(bool),
     /// Empty the clipboard history (memory and disk).
     ClearClipboard,
     /// Send the panel's staged terminal colors to the apphost without saving
@@ -252,6 +254,16 @@ pub struct Settings {
 }
 
 /// "apt package, size essentials" for Settings > About.
+/// The tetronos-ssh-temp helper (tetronos-base-config) is installed.
+fn remote_available() -> bool {
+    std::path::Path::new("/usr/bin/tetronos-ssh-temp").exists()
+}
+
+/// Remote access is on: the helper writes user=... here while on, and /run is gone at reboot.
+fn remote_on() -> bool {
+    std::path::Path::new("/run/tetronos/ssh-temp.status").exists()
+}
+
 fn install_info() -> String {
     format!("{}, size {}", crate::packaging::install_method(), crate::packaging::installed_size().name())
 }
@@ -608,7 +620,7 @@ impl Settings {
             TERMINAL => 6,                            // terminal: preset, background, foreground, preview, save, revert
             SOUND => 4,                        // sound: volume, mute, output, mixer
             DISPLAY => self.brightness.is_some() as usize, // brightness, when there is a backlight
-            GENERAL => 5,                      // config file: open, create or reset, reload; apps; log level
+            GENERAL => 5 + remote_available() as usize, // config file: open, create or reset, reload; apps; log level [, remote access]
             CAST => 2 + self.cast_missing() as usize,           // cast: device, updates per second [, install casttui]
             DICTATION => 6 + self.dictation_missing() as usize, // dictation: on/off, mode, pause, enter word, threads, download models [, install tetron-stt]
             _ => 0,                            // About
@@ -1065,6 +1077,7 @@ impl Settings {
             (GENERAL, 1) if dir == 0 => self.reset_armed = true,
             (GENERAL, 2) if dir == 0 => self.action = Some(SettingsAction::ReloadConfig),
             (GENERAL, 3) if dir == 0 => self.open_apps_dlg(),
+            (GENERAL, 5) if dir == 0 && remote_available() => self.action = Some(SettingsAction::RemoteAccess(!remote_on())),
             (GENERAL, 4) => {
                 use crate::logfile::Level;
                 let n = Level::ALL.len();
@@ -1603,6 +1616,10 @@ impl Settings {
         self.row(buf, cx, 5, 2, "Reload", "Enter (applies hand edits)".into());
         self.row(buf, cx, 6, 3, "Apps", self.apps_value());
         self.row(buf, cx, 7, 4, "Log level", format!("\u{25C2} {} \u{25B8}", self.cfg.log_level.name()));
+        if remote_available() {
+            let v = if remote_on() { "ON until reboot: Enter turns it off" } else { "off: Enter to turn on" };
+            self.row(buf, cx, 8, 5, "Remote access (ssh)", v.into());
+        }
         buf.write_str(cx, 9, &format!("Config file: {path}{state}"), pal_fg(), pal_bg());
         buf.write_str(cx, 10, &format!("Log: {}", crate::logfile::display_path()), pal_fg(), pal_bg());
         buf.write_str(cx, 12, "Open in editor uses the Editor in Default Apps.", pal_dim(), pal_bg());
@@ -1611,6 +1628,10 @@ impl Settings {
         buf.write_str(cx, 15, "Apps: install Essentials or Recommended, or remove a set;", pal_dim(), pal_bg());
         buf.write_str(cx, 16, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
         buf.write_str(cx, 17, "Log level: info logs events, debug every message.", pal_dim(), pal_bg());
+        if remote_available() {
+            buf.write_str(cx, 18, "Remote access: a window asks for a username and password;", pal_dim(), pal_bg());
+            buf.write_str(cx, 19, "ssh password login works until reboot. Same as: sudo tetronos-ssh-temp on|off", pal_dim(), pal_bg());
+        }
     }
 
     /// Render the Terminal section: staged colors with swatches, the

@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- **Settings > General > Remote access (ssh).** Where `tetronos-ssh-temp` is installed (tetronos-base-config), a row turns the temporary ssh password login on or off. A window runs `sudo tetronos-ssh-temp on` (it asks for a username and password) or `off`; the row shows whether it is on. The login lasts until reboot. Hidden when the helper is missing.
+
 ### Fixed
 - **Settings: clicking away.** An open theme list or Apps dialog no longer swallows every click. A click on another section in the left list closes it (nothing is chosen, nothing is installed) and switches the section; a click on the panel outside the list only closes the list. A text box or the Apps add form closes on a click on the section list and switches in the same click.
 - **Settings > General > Apps: you can see what will be installed.** The list of apps in the confirmation scrolls with the arrow keys, PageUp / PageDown and the mouse wheel, shows its position ("1-9 of 87"), and gets more room on a short window (the explanation shrinks to one line). **Install and Remove stay off until the last line of the list has been on screen** (Enter on Install pages down instead), so nothing is installed or removed that was never shown.
