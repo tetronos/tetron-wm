@@ -67,6 +67,9 @@ struct Confirm {
     download: Download,
     /// How much the installed system grows (apt), when known.
     grow: Option<u64>,
+    /// The last line of the list has been on screen (set by render): Install stays off until then,
+    /// so nothing is installed or removed that was never shown.
+    end_seen: std::cell::Cell<bool>,
 }
 
 #[derive(Debug)]
@@ -87,6 +90,8 @@ pub struct AppsDlg {
     sel: usize,
     scripts: bool,
     confirm: Option<Confirm>,
+    /// How many list lines the last render showed (0: not rendered yet), for paging and the end check.
+    view_rows: std::cell::Cell<usize>,
 }
 
 /// `s` in lines of at most `width` characters, broken between words (a
@@ -136,7 +141,7 @@ impl AppsDlg {
         if extras_listed {
             sizes.push(Size::Extras);
         }
-        AppsDlg { installed, have_curl, apt, missing, sizes, remove, kept, sel: 0, scripts: true, confirm: None, live_free: None }
+        AppsDlg { installed, have_curl, apt, missing, sizes, remove, kept, sel: 0, scripts: true, confirm: None, live_free: None, view_rows: std::cell::Cell::new(0) }
     }
 
     fn rows(&self) -> usize {
@@ -185,21 +190,52 @@ impl AppsDlg {
     }
 
     pub fn up(&mut self) {
-        match self.confirm.as_mut() {
-            Some(c) => c.scroll = c.scroll.saturating_sub(1),
-            None => self.sel = self.sel.saturating_sub(1),
-        }
+        self.scroll_by(-1);
     }
 
     pub fn down(&mut self) {
-        let n = self.confirm.as_ref().map(|c| match c.what {
+        self.scroll_by(1);
+    }
+
+    /// Lines the confirmation lists (the apps or packages it will install or remove).
+    fn lines_len(&self, c: &Confirm) -> usize {
+        match c.what {
             What::Install(s) => self.adding(s).len(),
             What::Remove => self.remove.len(),
-        });
-        match (self.confirm.as_mut(), n) {
-            (Some(c), Some(n)) => c.scroll = (c.scroll + 1).min(n.saturating_sub(1)),
-            _ => self.sel = (self.sel + 1).min(self.rows() - 1),
         }
+    }
+
+    /// The highest first line of the confirmation list: the last page ends at the last line.
+    fn max_scroll(&self, c: &Confirm) -> usize {
+        let n = self.lines_len(c);
+        match self.view_rows.get() {
+            0 => n.saturating_sub(1),
+            rows => n.saturating_sub(rows),
+        }
+    }
+
+    /// Move the confirmation list (or the choice) by `d` lines, positive = down.
+    fn scroll_by(&mut self, d: i32) {
+        let max = self.confirm.as_ref().map(|c| self.max_scroll(c));
+        match (self.confirm.as_mut(), max) {
+            (Some(c), Some(max)) => c.scroll = (c.scroll as i64 + d as i64).clamp(0, max as i64) as usize,
+            _ => self.sel = (self.sel as i64 + d as i64).clamp(0, self.rows() as i64 - 1) as usize,
+        }
+    }
+
+    /// PageDown / PageUp: one page of the confirmation list (less one line, to keep the context).
+    pub fn page(&mut self, down: bool) {
+        if self.confirm.is_none() {
+            return; // the choice list has three rows: nothing to page
+        }
+        let page = self.view_rows.get().saturating_sub(1).max(1) as i32;
+        self.scroll_by(if down { page } else { -page });
+    }
+
+    /// The mouse wheel, positive = wheel up: three lines a notch in the confirmation list.
+    pub fn wheel(&mut self, lines: i32) {
+        let per = if self.confirm.is_some() { 3 } else { 1 };
+        self.scroll_by(-lines * per);
     }
 
     /// Left / Right: switch the confirmation's button; flip the checkbox.
@@ -219,6 +255,14 @@ impl AppsDlg {
 
     /// Enter (and Space on the choice list).
     pub fn enter(&mut self) -> Outcome {
+        // Nothing is installed or removed that was never shown: until the last line of the list has
+        // been on screen, Enter on Install pages down instead.
+        if let Some(c) = self.confirm.as_ref() {
+            if c.ok && self.view_rows.get() > 0 && !c.end_seen.get() {
+                self.page(true);
+                return Outcome::None;
+            }
+        }
         if let Some(c) = self.confirm.take() {
             if !c.ok {
                 return Outcome::None;
@@ -238,7 +282,7 @@ impl AppsDlg {
             Some(&s) => What::Install(s),
             None => What::Remove,
         };
-        let mut c = Confirm { what, scroll: 0, ok: false, download: Download::NotApt, grow: None };
+        let mut c = Confirm { what, scroll: 0, ok: false, download: Download::NotApt, grow: None, end_seen: std::cell::Cell::new(false) };
         let fetch = self.apt && matches!(what, What::Install(_));
         if fetch {
             c.download = Download::Computing;
@@ -383,28 +427,41 @@ Apps you installed yourself stay."
                 t
             }
         };
-        for l in wrap(&info, width) {
-            put(buf, y, &l, pal_dim(), pal_bg());
+        // The list comes first: the explanation shrinks to one line when the window is short, so
+        // that at least a handful of the apps to be installed are on screen.
+        let mut info_lines = wrap(&info, width);
+        if (h - 3 - (y + info_lines.len() as i32 + 1)) < 6 {
+            info_lines.truncate(1);
+        }
+        for l in &info_lines {
+            put(buf, y, l, pal_dim(), pal_bg());
             y += 1;
         }
         let top = y + 1;
-        // The list ends above the "more" line and the buttons.
+        // The list ends above the position line and the buttons.
         let rows = (h - 3 - top).max(1) as usize;
+        self.view_rows.set(rows);
         for (i, l) in lines.iter().skip(c.scroll).take(rows).enumerate() {
             put(buf, top + i as i32, &fit(&format!("  {l}"), width), pal_fg(), pal_bg());
         }
+        if c.scroll + rows >= lines.len() {
+            c.end_seen.set(true);
+        }
         if lines.len() > rows {
-            put(buf, h - 3, &format!("  \u{2191}\u{2193} {} more", lines.len().saturating_sub(c.scroll + rows)), pal_dim(), pal_bg());
+            let last = (c.scroll + rows).min(lines.len());
+            put(buf, h - 3, &format!("  {}-{} of {}   Up/Down, PgUp/PgDn, wheel", c.scroll + 1, last, lines.len()), pal_dim(), pal_bg());
         }
         let ok = match c.what {
             What::Install(_) => "[ Install ]",
             What::Remove => "[ Remove ]",
         };
-        let (of, ob) = if c.ok { (pal_fg(), pal_sel()) } else { (pal_dim(), pal_bg()) };
+        let gated = !c.end_seen.get();
+        let (of, ob) = if c.ok && !gated { (pal_fg(), pal_sel()) } else { (pal_dim(), pal_bg()) };
         let (cf, cb) = if c.ok { (pal_dim(), pal_bg()) } else { (pal_fg(), pal_sel()) };
         buf.write_str(cx, h - 2, ok, of, ob);
         buf.write_str(cx + 14, h - 2, "[ Cancel ]", cf, cb);
-        buf.write_str(cx + 26, h - 2, &fit("Left/Right switch, Enter, Esc back", width.saturating_sub(26)), pal_dim(), pal_bg());
+        let hint = if gated { "Scroll to the end of the list first (Down, PgDn, wheel)" } else { "Left/Right switch, Enter, Esc back" };
+        buf.write_str(cx + 26, h - 2, &fit(hint, width.saturating_sub(26)), if gated { pal_accent() } else { pal_dim() }, pal_bg());
     }
 }
 
@@ -573,5 +630,52 @@ mod tests {
         let s = text(&d);
         assert!(s.contains("croft, freebuff;") && s.contains("tetron-wm-essentials"), "{s}");
         assert!(s.split_whitespace().any(|x| x == "~/.local/bin."), "{s}");
+    }
+
+    /// The confirmation shows what will be installed: the list scrolls by line, by page and with the
+    /// wheel, and Install stays off until the last line has been on screen.
+    #[test]
+    fn the_confirmation_list_scrolls_and_install_waits_for_the_end_of_it() {
+        let screen = |d: &AppsDlg| {
+            let mut b = CellBuffer::new(80, 20);
+            d.render(&mut b, 16, 80, 20);
+            (0..20).map(|y| (0..80).filter_map(|x| b.get(x, y).map(|c| c.ch)).collect::<String>()).collect::<Vec<_>>().join("\n")
+        };
+        let missing: Vec<Missing> = (0..60).map(|i| m(&format!("app{i:02}"), &format!("pkg{i}"), Size::Recommended)).collect();
+        let mut d = AppsDlg::new(Size::Minimal, true, false, missing, false, vec![], vec![]);
+        d.sel = 1; // Recommended
+        d.enter(); // the confirmation
+        let s = screen(&d);
+        assert!(s.contains("app00") && !s.contains("app59"), "the top of the list: {s}");
+        assert!(s.contains("1-") && s.contains("of 60"), "the position is shown: {s}");
+        // Install focused, but not everything has been shown: Enter pages down instead.
+        d.side();
+        assert_eq!(d.enter(), Outcome::None, "Install waits for the end of the list");
+        assert!(screen(&d).contains("Scroll to the end") || screen(&d).contains("of 60"));
+        // Line, page and wheel scrolling move the list.
+        let before = screen(&d);
+        d.down();
+        assert_ne!(screen(&d), before, "Down scrolls");
+        d.page(true);
+        d.wheel(-1); // wheel down, three lines
+        d.wheel(1); // wheel up
+        d.page(false);
+        // Page to the end: the last app is shown and Install is allowed.
+        for _ in 0..20 {
+            d.page(true);
+            let _ = screen(&d);
+        }
+        assert!(screen(&d).contains("app59"), "the last app is on screen");
+        assert_eq!(d.enter(), Outcome::Install(Size::Recommended, true), "Install works once the end was shown");
+    }
+
+    #[test]
+    fn a_short_list_needs_no_scrolling_to_install() {
+        let mut d = dlg(false, vec![]);
+        d.enter();
+        let mut b = CellBuffer::new(100, 30);
+        d.render(&mut b, 16, 100, 30);
+        d.side();
+        assert!(matches!(d.enter(), Outcome::Install(..)));
     }
 }

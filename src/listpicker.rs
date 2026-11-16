@@ -147,6 +147,14 @@ impl ListPicker {
         self.enter()
     }
 
+    /// Whether content row `y` (0 = the title line) is one of the list rows (not the title, the
+    /// filter line or the help), for click-away handling.
+    pub fn hit(&self, y: i32, h: i32) -> bool {
+        let l = Layout::new(h);
+        let row = y - l.top;
+        row >= 0 && (row as usize) < l.rows
+    }
+
     /// The wheel moves the selection.
     pub fn scroll_by(&mut self, d: i32) {
         if d < 0 { self.up() } else { self.down() }

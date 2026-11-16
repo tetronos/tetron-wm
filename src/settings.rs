@@ -353,7 +353,13 @@ impl Settings {
     pub fn wheel_at(&mut self, local: Point, lines: i32) -> bool {
         if let Some((_, p)) = self.picker.as_mut() {
             if lines != 0 {
-                p.scroll_by(lines);
+                p.scroll_by(-lines); // lines > 0 = wheel up = toward the first entry
+            }
+            return lines != 0;
+        }
+        if let Some(d) = self.apps_dlg.as_mut() {
+            if lines != 0 {
+                d.wheel(lines);
             }
             return lines != 0;
         }
@@ -583,6 +589,12 @@ impl Settings {
         self.cfg.dictation_command.trim().is_empty() && !crate::catalog::is_installed("tetron-stt")
     }
 
+    /// The Theme row value: ◂ name ▸ and the list icon [≡]. A click on the name or ▸ goes to the next
+    /// theme, on ◂ to the previous one, on the icon opens the list.
+    fn theme_value(&self) -> String {
+        format!("\u{25C2} {} \u{25B8} [\u{2261}]", self.cfg.theme)
+    }
+
     /// Number of interactive rows in the current section.
     fn item_count(&self) -> usize {
         match self.section {
@@ -669,12 +681,20 @@ impl Settings {
         }
     }
     pub fn prev_section(&mut self) {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.page(false); // PageUp scrolls the list of apps in the Apps dialog
+            return;
+        }
         if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() || self.picker.is_some() {
             return; // don't leave a half-typed form via arrow keys
         }
         self.enter_section((self.section + SECTIONS.len() - 1) % SECTIONS.len());
     }
     pub fn next_section(&mut self) {
+        if let Some(d) = self.apps_dlg.as_mut() {
+            d.page(true); // PageDown scrolls the list of apps in the Apps dialog
+            return;
+        }
         if self.edit.is_some() || self.text.is_some() || self.apps_dlg.is_some() || self.picker.is_some() {
             return;
         }
@@ -1189,9 +1209,21 @@ impl Settings {
     /// Handle a content-local click; returns `true` if a setting changed.
     pub fn handle_click(&mut self, p: Point, _w: i32, h: i32) -> bool {
         if let Some((_, pk)) = self.picker.as_mut() {
-            let o = pk.click(p.x - SIDEBAR_W - 2, p.y, h);
-            self.pick_outcome(o);
-            return true;
+            if p.x >= SIDEBAR_W && pk.hit(p.y, h) {
+                let o = pk.click(p.x - SIDEBAR_W - 2, p.y, h);
+                self.pick_outcome(o);
+                return true;
+            }
+            // A click anywhere else closes the list (nothing is chosen). Over the section list it
+            // then goes on to switch the section; over the panel it only closes.
+            self.picker = None;
+            if p.x >= SIDEBAR_W {
+                return true;
+            }
+        }
+        if self.apps_dlg.is_some() && p.x < SIDEBAR_W {
+            // Clicking another section leaves the Apps dialog (nothing is installed) and switches.
+            self.apps_dlg = None;
         }
         if let Some(d) = self.apps_dlg.as_mut() {
             let o = d.click(p.x - SIDEBAR_W - 2, p.y, h);
@@ -1210,14 +1242,21 @@ impl Settings {
             // discarded instead (committing it would stage a wrong color).
             if matches!(t.target, TextTarget::Wallpaper | TextTarget::LauncherLabel | TextTarget::AgentCommand | TextTarget::AiCwd | TextTarget::CastDevice | TextTarget::DictationEnterWord) {
                 self.commit_text();
-                return true;
+                if p.x >= SIDEBAR_W {
+                    return true;
+                }
+            } else {
+                self.text = None;
+                if p.x >= SIDEBAR_W {
+                    return false;
+                }
             }
-            self.text = None;
-            return false;
-        }
-        if self.edit.is_some() {
+            // A click on the section list dismisses the box and then switches section.
+        } else if self.edit.is_some() {
             self.edit = None;
-            return false;
+            if p.x >= SIDEBAR_W {
+                return false;
+            }
         }
         if p.x < SIDEBAR_W {
             let i = (p.y - 1) as usize;
@@ -1244,6 +1283,22 @@ impl Settings {
         }
         if row >= 0 && (row as usize) < self.item_count() {
             self.sel = row as usize;
+            // Theme row: the words cycle the themes, the list icon opens the list.
+            if self.section == APPEARANCE && row == 0 {
+                let vx = SIDEBAR_W + 2 + 30;
+                let col = p.x - vx;
+                let n = self.theme_value().chars().count() as i32;
+                if (n - 3..n).contains(&col) {
+                    self.open_theme_picker();
+                } else if (0..2).contains(&col) {
+                    self.adjust(-1); // ◂
+                } else if col >= 2 {
+                    self.adjust(1); // the name and ▸
+                } else {
+                    self.toggle(); // the label opens the list, as Enter does
+                }
+                return true;
+            }
             self.toggle();
             return true;
         }
@@ -1313,7 +1368,7 @@ impl Settings {
                 self.row(&mut buf, cx, 12, 9, "Full screen helper service", waiter.into());
             }
             APPEARANCE => {
-                self.row(&mut buf, cx, 3, 0, "Theme", format!("\u{25C2} {} \u{25B8} \u{25BE}", self.cfg.theme));
+                self.row(&mut buf, cx, 3, 0, "Theme", self.theme_value());
                 self.row(&mut buf, cx, 4, 1, "Wallpaper", toggle_val(self.cfg.wallpaper_enabled));
                 // Filename text box. While editing, show the live buffer with a
                 // cursor; otherwise the saved value (or a placeholder).
@@ -1817,6 +1872,106 @@ mod tests {
         for c in t.chars() {
             s.type_char(c);
         }
+    }
+
+    /// A click on the section list while a text box is open commits (or drops) it and switches the
+    /// section in the same click, instead of needing a second click.
+    #[test]
+    fn clicking_a_section_while_a_text_box_is_open_dismisses_it_and_switches() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(APPEARANCE);
+        s.sel = 2; // the wallpaper file name
+        s.toggle(); // opens the text box
+        assert!(s.is_editing());
+        s.handle_click(Point::new(2, 1 + WINDOWS as i32), 100, 30);
+        assert!(!s.is_editing(), "the box closed");
+        assert_eq!(s.section, WINDOWS, "and the section switched on the same click");
+    }
+
+    /// A click on another section while an overlay is open leaves the overlay and switches section:
+    /// the overlays no longer swallow every click.
+    #[test]
+    fn clicking_a_section_closes_the_theme_list_and_the_apps_dialog_and_switches() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(APPEARANCE);
+        s.open_theme_picker();
+        assert!(s.picker.is_some());
+        // The Windows entry of the section list: content-local x in the sidebar, y = 1 + index.
+        s.handle_click(Point::new(2, 1 + WINDOWS as i32), 100, 30);
+        assert!(s.picker.is_none(), "the theme list closed");
+        assert_eq!(s.section, WINDOWS, "and the click switched the section");
+
+        let mut s = Settings::new(Config::default());
+        s.enter_section(GENERAL);
+        s.open_apps_dlg();
+        assert!(s.apps_dlg.is_some());
+        s.handle_click(Point::new(2, 1 + UPDATES as i32), 100, 30);
+        assert!(s.apps_dlg.is_none(), "the Apps dialog closed, nothing installed");
+        assert_eq!(s.section, UPDATES);
+        assert!(s.action.is_none(), "no install was requested");
+
+        // A click on the panel outside the list rows only closes the list.
+        let mut s = Settings::new(Config::default());
+        s.enter_section(APPEARANCE);
+        s.open_theme_picker();
+        s.handle_click(Point::new(SIDEBAR_W + 4, 1), 100, 30); // the title line
+        assert!(s.picker.is_none());
+        assert_eq!(s.section, APPEARANCE);
+    }
+
+    /// Settings > Appearance > Theme: the words cycle the themes, the list icon opens the list.
+    #[test]
+    fn theme_row_words_cycle_and_the_list_icon_opens_the_list() {
+        let presets = crate::theme::preset_names();
+        let mut s = Settings::new(Config::default());
+        s.enter_section(APPEARANCE);
+        let vx = SIDEBAR_W + 2 + 30;
+        let value = s.theme_value();
+        let n = value.chars().count() as i32;
+        let first = s.cfg.theme.clone();
+        let i = presets.iter().position(|p| *p == first).unwrap_or(0);
+        // A click on the name goes to the next theme.
+        s.handle_click(Point::new(vx + 4, 3), 100, 30);
+        assert_eq!(s.cfg.theme, presets[(i + 1) % presets.len()], "the name cycles forward");
+        assert!(s.picker.is_none());
+        // A click on the left arrow goes back.
+        s.handle_click(Point::new(vx, 3), 100, 30);
+        assert_eq!(s.cfg.theme, presets[i], "the left arrow cycles back");
+        // The icon opens the list.
+        s.handle_click(Point::new(vx + n - 2, 3), 100, 30);
+        assert!(s.picker.is_some(), "the list icon opens the list");
+        assert!(screen(&s).contains("Theme"), "{}", screen(&s));
+    }
+
+    /// The wheel over an open list moves toward the first entry when it goes up.
+    #[test]
+    fn wheel_over_the_theme_list_follows_the_wheel_direction() {
+        let presets = crate::theme::preset_names();
+        let mut s = Settings::new(Config::default());
+        s.enter_section(APPEARANCE);
+        let i = presets.iter().position(|p| *p == s.cfg.theme).unwrap_or(0);
+        s.open_theme_picker();
+        s.wheel_at(Point::new(SIDEBAR_W + 4, 6), -1); // wheel down: the next theme
+        s.toggle(); // Enter chooses
+        assert_eq!(s.cfg.theme, presets[(i + 1).min(presets.len() - 1)], "wheel down went down the list");
+        let down_to = presets.iter().position(|p| *p == s.cfg.theme).unwrap();
+        s.open_theme_picker();
+        s.wheel_at(Point::new(SIDEBAR_W + 4, 6), 1); // wheel up: back
+        s.toggle();
+        assert_eq!(s.cfg.theme, presets[down_to.saturating_sub(1)], "wheel up went up the list");
+    }
+
+    /// The wheel and PageUp / PageDown scroll the Apps dialog.
+    #[test]
+    fn wheel_and_page_keys_reach_the_apps_dialog() {
+        let mut s = Settings::new(Config::default());
+        s.enter_section(GENERAL);
+        s.open_apps_dlg();
+        assert!(s.wheel_at(Point::new(SIDEBAR_W + 4, 8), -1), "the wheel is used by the dialog");
+        s.next_section();
+        s.prev_section();
+        assert_eq!(s.section, GENERAL, "PageUp and PageDown scroll the dialog, they do not switch section");
+        assert!(s.apps_dlg.is_some());
     }
 
     #[test]

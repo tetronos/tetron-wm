@@ -6,6 +6,14 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Fixed
+- **Settings: clicking away.** An open theme list or Apps dialog no longer swallows every click. A click on another section in the left list closes it (nothing is chosen, nothing is installed) and switches the section; a click on the panel outside the list only closes the list. A text box or the Apps add form closes on a click on the section list and switches in the same click.
+- **Settings > General > Apps: you can see what will be installed.** The list of apps in the confirmation scrolls with the arrow keys, PageUp / PageDown and the mouse wheel, shows its position ("1-9 of 87"), and gets more room on a short window (the explanation shrinks to one line). **Install and Remove stay off until the last line of the list has been on screen** (Enter on Install pages down instead), so nothing is installed or removed that was never shown.
+- The mouse wheel over the theme list moved it the wrong way; it follows the wheel now.
+
+### Changed
+- **Settings > Appearance > Theme:** the row reads `◂ name ▸ [≡]`. A click on the name or the right arrow goes to the next theme, the left arrow to the previous one, and the list icon opens the list.
+
 ## [0.15.15] — 2026-11-15
 
 - AI Mode (`tetron-aimode`) is its own package, [tetronos/tetron-aimode](https://github.com/tetronos/tetron-aimode), not built into the tetron-wm deb: it needs a Gemini API key. It is a member of the recommended size (`tetron-wm-recommended` Recommends it, the suite installer fetches it from its own repository for the recommended size and up), and the Store recipe points to it. The launcher entry is unchanged: it appears once `tetron-aimode` is on PATH. Installing the new deb with the old tetron-wm is refused by a Conflicts, so apt upgrades tetron-wm first.
