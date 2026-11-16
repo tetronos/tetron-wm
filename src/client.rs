@@ -533,6 +533,9 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             KeyCode::Down => send(&mut out_stream, &ClientMsg::SettingsDown)?,
                             KeyCode::Left => send(&mut out_stream, &ClientMsg::SettingsLeft)?,
                             KeyCode::Right => send(&mut out_stream, &ClientMsg::SettingsRight)?,
+                            // The Apps dialog's list of apps: PageUp / PageDown page it.
+                            KeyCode::PageDown => send(&mut out_stream, &ClientMsg::SettingsNextSection)?,
+                            KeyCode::PageUp => send(&mut out_stream, &ClientMsg::SettingsPrevSection)?,
                             KeyCode::Backspace => send(&mut out_stream, &ClientMsg::SettingsBackspace)?,
                             KeyCode::Char(c) if !ctrl => send(&mut out_stream, &ClientMsg::SettingsChar(c))?,
                             _ => {}
