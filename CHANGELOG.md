@@ -6,6 +6,11 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.18] — 2026-11-17
+
+### Fixed
+- **`power_menu = false` no longer blocks Quit.** Settings > Launcher > Power menu off refused Detach, Reload and Quit as well as Suspend, Reboot and Power off. It now refuses only the three computer power actions.
+
 ## [0.15.17] — 2026-11-16
 
 ### Changed
