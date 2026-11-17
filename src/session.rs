@@ -7381,8 +7381,7 @@ mod tests {
             name: cmd.into(), command: cmd.into(), args: Vec::new(), category: None,
             requires_cwd: None, cwd: None, cli: None, warn: None,
         };
-        let mut cfg = crate::config::Config::default();
-        cfg.power_menu = false;
+        let cfg = crate::config::Config { power_menu: false, ..Default::default() };
         let mut core = SessionCore::new(80, 24, cfg);
         for c in ["@exit", "@restart", "@shutdown"] {
             core.launch_entry(entry(c));
