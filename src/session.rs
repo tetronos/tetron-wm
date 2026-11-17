@@ -2513,7 +2513,10 @@ impl SessionCore {
     /// Open the confirm dialog for `action`, naming this computer and how many
     /// running apps it would end.
     fn confirm_power(&mut self, action: crate::powermenu::PowerAction) {
-        if !self.cfg.power_menu {
+        // power_menu = false disables only the computer power actions; Detach,
+        // Reload and Quit stay available.
+        use crate::powermenu::PowerAction as A;
+        if !self.cfg.power_menu && matches!(action, A::Suspend | A::Reboot | A::PowerOff) {
             crate::dbg_log("power: refused, power_menu = false");
             return;
         }
@@ -7370,6 +7373,24 @@ mod tests {
         core.apply(ClientMsg::PowerKeyCancel);
         assert!(!core.power_menu.is_open() && core.power_job.is_none());
         core.shutdown();
+    }
+
+    #[test]
+    fn power_menu_false_still_allows_detach_reload_quit() {
+        let entry = |cmd: &str| crate::config::AppEntry {
+            name: cmd.into(), command: cmd.into(), args: Vec::new(), category: None,
+            requires_cwd: None, cwd: None, cli: None, warn: None,
+        };
+        let mut cfg = crate::config::Config::default();
+        cfg.power_menu = false;
+        let mut core = SessionCore::new(80, 24, cfg);
+        for c in ["@exit", "@restart", "@shutdown"] {
+            core.launch_entry(entry(c));
+            assert!(core.power_menu.is_open(), "{c} must still open its confirm dialog");
+            core.power_menu.close();
+        }
+        core.launch_entry(entry("@poweroff"));
+        assert!(!core.power_menu.is_open(), "power off stays refused");
     }
 
     #[test]
