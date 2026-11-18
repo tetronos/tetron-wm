@@ -9,7 +9,7 @@ repository = "https://github.com/tetronos/tetron-wm"
 
 [dependencies]
 # The app catalog library, from tetron-appstore (WMCAT-008, WMCAT-012).
-tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", branch = "catalog-v1-client" }
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore" }
 crossterm = "0.29"
 portable-pty = "0.9"
 serde = { version = "1", features = ["derive"] }
@@ -45,4 +45,4 @@ path = "src/main.rs"
 
 [dev-dependencies]
 # Tests read only the built-in catalog, never a downloaded one (WMCAT-008).
-tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", branch = "catalog-v1-client", features = ["builtin-only"] }
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", features = ["builtin-only"] }
