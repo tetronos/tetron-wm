@@ -161,6 +161,7 @@ COMMANDS:\n\
 \x20 msg '<json>'          send a raw ClientMsg\n\
 \x20 clip copy|paste|list|clear|pin N|delete N   the clipboard history (see `clip` alone)\n\
 \x20 service [install|uninstall|status]  per-user apphost service (default session only)\n\
+\x20 suite-apps            print the suite installer's app list of the catalog in use\n\
 \x20 --daemon, --apphost   run the daemon / app host directly\n\n\
 SESSIONS:\n\
 \x20 Apps run in a background daemon, so you can detach and come back to the same windows:\n\

@@ -33,10 +33,9 @@
 #                                      fresh, uv, catt, casttui, a Nerd Font, opencode
 #                         recommended  plus a curated pick in every category
 #                         extras       plus the extra apps
-#                       The list is assets/suite-apps.txt, generated from the
-#                       "App sets" section of lists/tetron.toml (the same sets as
-#                       the tetron-wm-desktop, -essentials, -recommended and
-#                       -extras debs). On Debian and Ubuntu, when tetron-wm is
+#                       The list is tetron-appstore's suite-apps.txt, made from
+#                       its collections (the same sets as the tetron-wm-desktop,
+#                       -essentials, -recommended and -extras debs). On Debian and Ubuntu, when tetron-wm is
 #                       the apt package, those debs are installed so apt tracks
 #                       the set; otherwise the apps one by one.
 #      services       — PipeWire audio (volume, outputs), NetworkManager (Wi-Fi),
@@ -97,6 +96,7 @@
 #   -h, --help       show this help
 #
 # Env overrides: REPO (default tetronos/tetron-wm), BRANCH (default main),
+# TETRON_WM_APPSTORE_URL (default https://tetronos.github.io/tetron-appstore),
 # TETRON_WM_LISTS_URL (default https://tetronos.github.io/apt/lists),
 # TETRON_WM_METHOD and TETRON_WM_FROM_CLONE (as --method and --from-clone),
 # and anything install.sh honours (TETRON_WM_BIN_DIR, TETRON_WM_RELEASES_URL, TETRON_WM_TAG,
@@ -110,12 +110,16 @@ RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
 # core never reaches this one. LISTS_MINOR follows Cargo.toml (a test checks).
 LISTS_MINOR="0.15"
 LISTS="${TETRON_WM_LISTS_URL:-https://tetronos.github.io/apt/lists}/$LISTS_MINOR"
+# The app list is tetron-appstore's (WMINST-001): its published catalog
+# (GitHub Pages, the newest catalog release) and its main branch.
+APPSTORE="${TETRON_WM_APPSTORE_URL:-https://tetronos.github.io/tetron-appstore}"
+APPSTORE_RAW="https://raw.githubusercontent.com/tetronos/tetron-appstore/main/assets"
 # Release downloads and the tag can be overridden (tests serve a local release);
 # install.sh reads the same two variables.
 RELEASES="${TETRON_WM_RELEASES_URL:-https://github.com/$REPO/releases}"
 # Run from a checkout (not piped): use its files instead of downloading them.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
-[ -n "$HERE" ] && [ -f "$HERE/install-tetron-wm-suite.sh" ] && [ -f "$HERE/assets/suite-apps.txt" ] || HERE=""
+[ -n "$HERE" ] && [ -f "$HERE/install-tetron-wm-suite.sh" ] && [ -f "$HERE/install.sh" ] || HERE=""
 
 # ── Output helpers (match install-kmscon.sh) ────────────────────────────────────
 if [ -t 1 ]; then B=$'\033[1m'; Y=$'\033[33m'; R=$'\033[31m'; G=$'\033[32m'; N=$'\033[0m'; else B= Y= R= G= N=; fi
@@ -279,21 +283,31 @@ size_debs() {
     extras) echo "tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended tetron-wm-extras" ;;
   esac
 }
-# Every metapackage of the size is in the release (Architecture all).
+# The release has tetron-wm-desktop (Architecture all). tetron-wm-essentials,
+# -recommended and -extras are built by tetron-appstore and come from the
+# tetronos apt repo (WMDEB-009 to WMDEB-011); a release that still carries
+# them (an older one) is used as before.
 release_has_size_debs() {
-  local p; [ -n "$(size_debs)" ] || return 1
-  for p in $(size_debs); do [ -n "$(asset_for "$p" all)" ] || return 1; done
+  [ -n "$(size_debs)" ] && [ -n "$(asset_for tetron-wm-desktop all)" ]
 }
 APT_UPDATED=0
 FAILED=""
 apt_update_once() { [ "$APT_UPDATED" = 1 ] || { $SUDO apt-get update -qq || true; APT_UPDATED=1; }; }
-# Download the size's metapackages, check each against its .sha256, install them
-# with apt (Recommends included, so apt tracks the whole set). One already
-# installed at the release's version is skipped, so a rerun converges.
+# apt has a version of package $1 to install.
+apt_has() { apt-cache policy "$1" 2>/dev/null | sed -n 's/^ *Candidate: //p' | grep -qv '(none)'; }
+# Download the size's metapackages that are in the release, check each against
+# its .sha256, and install them and the others (by name, from the tetronos apt
+# repo) with apt (Recommends included, so apt tracks the whole set). One
+# already installed at the release's version is skipped, so a rerun converges.
 install_size_debs() {
-  local tag p a v tmp files="" want got; tag="$(release_tag)"; tmp="$(mktemp -d)"
+  local tag p a v tmp files="" names="" want got; tag="$(release_tag)"; tmp="$(mktemp -d)"
   for p in $(size_debs); do
     a="$(asset_for "$p" all)"
+    if [ -z "$a" ]; then
+      apt_update_once
+      apt_has "$p" || { warn "apt has no $p (the tetronos apt repo is not configured?); installing the apps one by one instead"; rm -rf "$tmp"; return 1; }
+      names="$names $p"; continue
+    fi
     v="${a#"${p}_"}"; v="${v%_all.deb}"
     if [ "$(dpkg-query -W -f='${Version}' "$p" 2>/dev/null || true)" = "$v" ]; then
       log "$p $v is already installed"; continue
@@ -308,15 +322,15 @@ install_size_debs() {
     fi
     files="$files $tmp/$a"
   done
-  [ -n "$files" ] || { rm -rf "$tmp"; return 0; }
+  [ -n "$files$names" ] || { rm -rf "$tmp"; return 0; }
   apt_update_once
   # "gpm-" keeps apt from installing that Recommends (no mouse device).
   local skip=""; no_mouse && ! dpkg -s gpm >/dev/null 2>&1 && skip="gpm-"
-  log "installing$files with apt${skip:+ (without gpm: no mouse device)}"
+  log "installing$files$names with apt${skip:+ (without gpm: no mouse device)}"
   # shellcheck disable=SC2086
   # Recommends forced on: the set debs are only Recommends, and a system may turn
   # them off (TetronOS images ship APT::Install-Recommends "false").
-  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -o APT::Install-Recommends=true $files $skip \
+  $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -o APT::Install-Recommends=true $files $names $skip \
     || { rm -rf "$tmp"; warn "apt could not install the $SIZE packages"; return 1; }
   rm -rf "$tmp"
 }
@@ -433,13 +447,14 @@ ensure_truecolor() {
 }
 
 # ── Step 2b: the apps of the chosen size, and system services ─────────────────
-# The apps are defined once, in lists/tetron.toml, and generated into
-# assets/suite-apps.txt (WMINST-001): one "size:group:check:apt:dnf:pacman:brew"
+# The apps are tetron-appstore's collections, written by its build into
+# suite-apps.txt (WMINST-001): one "size:group:check:apt:dnf:pacman:brew"
 # line per package (an empty name = not on that system) and "size:script:name"
 # per app no distro packages. A size installs its lines and the smaller sizes'.
 # Only packages whose check fails install, so re-running converges.
-# Where the list comes from, first that works: --apps-list FILE, the checkout
-# this script runs from, the list published for this core minor, the repository.
+# Where the list comes from, first that works (WMCAT-004): --apps-list FILE,
+# tetron-appstore's published catalog, the list published for this core minor,
+# an installed tetron-wm (the catalog it uses), tetron-appstore's main branch.
 APPS=""
 apps_list_ok() { grep '^[a-z]*:[a-z]*:' <<<"$1" >/dev/null; }
 load_apps() {
@@ -447,16 +462,17 @@ load_apps() {
     APPS="$(cat "$APPS_LIST" 2>/dev/null)" || APPS=""
     apps_list_ok "$APPS" || { warn "no app list in $APPS_LIST"; APPS=""; }
   fi
-  if [ -z "$APPS" ] && [ -n "$HERE" ]; then APPS="$(cat "$HERE/assets/suite-apps.txt")"; fi
-  if [ -z "$APPS" ]; then
-    APPS="$(fetch "$LISTS/suite-apps.txt" 2>/dev/null)" || APPS=""
+  local url
+  for url in "$APPSTORE/suite-apps.txt" "$LISTS/suite-apps.txt" tetron-wm "$APPSTORE_RAW/suite-apps.txt"; do
+    [ -z "$APPS" ] || break
+    if [ "$url" = tetron-wm ]; then
+      have tetron-wm && APPS="$(tetron-wm suite-apps 2>/dev/null)" || APPS=""
+    else
+      APPS="$(fetch "$url" 2>/dev/null)" || APPS=""
+    fi
     apps_list_ok "$APPS" || APPS=""
-  fi
-  if [ -z "$APPS" ]; then
-    APPS="$(fetch "$RAW/assets/suite-apps.txt" 2>/dev/null)" || APPS=""
-    apps_list_ok "$APPS" || APPS=""
-  fi
-  [ -n "$APPS" ] || warn "could not read the app list (assets/suite-apps.txt); no apps will be installed"
+  done
+  [ -n "$APPS" ] || warn "could not read the app list (tetron-appstore's suite-apps.txt); no apps will be installed"
 }
 # desktop: the essentials lines of a list written before recommended existed.
 size_rank() { case "$1" in minimal) echo 0 ;; essentials|desktop) echo 1 ;; recommended) echo 2 ;; extras) echo 3 ;; *) echo 9 ;; esac; }
@@ -822,7 +838,7 @@ install_tetron_browser() {
 
 # Release fallbacks (WMINST-015): a member of the size that is still missing
 # after the package manager ran (Ubuntu 24.04 lacks several Debian 13 apps)
-# comes from its GitHub release, as listed in [[release]] of lists/tetron.toml:
+# comes from its GitHub release, as listed in the release lines of the app list:
 # a .deb with apt (Debian and Ubuntu only), or a .tar.gz whose check command
 # goes to ~/.local/bin. Each asset is checked against the SHA256 digest GitHub
 # lists for it. Then brew, when installed, for what is still missing; the rest
@@ -1429,7 +1445,7 @@ main() {
   [ "$method" = binary ] && [ "$will_be_deb" = 1 ] && method="binary (package kept, its binary diverted)"
   if [ "$DRY_RUN" = 1 ]; then
     log "plan (dry run, nothing changed): size=$SIZE method=$method wm=$WANT_WM config=$WANT_CONFIG themes=$WANT_THEMES services=$WANT_SERVICES${services:+ ($services)} kmscon=$WANT_KMSCON console=$WANT_CONSOLE vt=$VT autologin=$WANT_AUTOLOGIN autostart=$WANT_AUTOSTART fullscreen=$WANT_FULLSCREEN$([ "$WANT_FULLSCREEN" = y ] && echo " (tty$FSVT)")"
-    if [ "$use_debs" = 1 ]; then log "apps: apt install $(size_debs) (from release $(release_tag))$(no_mouse && echo ', without gpm (no mouse device)')${shown:+; missing now: $shown}"
+    if [ "$use_debs" = 1 ]; then log "apps: apt install $(size_debs) (from release $(release_tag) and the tetronos apt repo)$(no_mouse && echo ', without gpm (no mouse device)')${shown:+; missing now: $shown}"
     else log "apps: ${shown:-none}"; fi
     return 0
   fi

@@ -25,7 +25,7 @@ A name a system does not package is skipped there (for example lazygit on Fedora
 
 System services (PipeWire for sound, NetworkManager for Wi-Fi, BlueZ for Bluetooth) are never part of a collection: the suite installer asks about them separately, defaulting to no, because they change how the machine manages sound, network and Bluetooth. No size installs an SSH server.
 
-The collections are the same everywhere: the suite installer's list, the `tetron-wm-desktop`, `tetron-wm-essentials`, `tetron-wm-recommended` and `tetron-wm-extras` packages and the Store all come from the "App sets" section of [`lists/tetron.toml`](../lists/tetron.toml). The list is also published for each tetron-wm minor version at https://tetronos.github.io/apt/lists/ (for 0.15: `lists/0.15/suite-apps.txt` and `lists/0.15/catalog.json`), so it can grow without a release; the suite installer reads it from there, and the Store's Update list button fetches it.
+The collections are the same everywhere: the suite installer's list, the `tetron-wm-desktop`, `tetron-wm-essentials`, `tetron-wm-recommended` and `tetron-wm-extras` packages and the Store all come from the collections in tetron-appstore (https://github.com/tetronos/tetron-appstore, `collections/`). Each catalog release there publishes the catalog and the suite list (https://tetronos.github.io/tetron-appstore/) and builds the essentials, recommended and extras packages, so the collections grow without a tetron-wm release; tetron-wm, the Store and the suite installer read the published copy, and tetron-wm and the Store check for a new one once a day.
 
 ## Ways to install
 

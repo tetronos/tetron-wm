@@ -8,7 +8,7 @@ filled in.
 
 The agent CLI is chosen in **Settings → AI → Agent** (opencode by
 default). Agents are data: app catalog entries with an `agent` table
-(`lists/tetron.toml`) and `[[assistant_agent]]` tables in config.toml. Every
+(tetron-appstore's app files) and `[[assistant_agent]]` tables in config.toml. Every
 one of them runs in the assistant's working directory, where the pack is
 written as `AGENTS.md`, the file opencode, Codex, pi, Claude Code (2.1.277 and
 later) and Antigravity CLI read on startup. An agent that reads another file

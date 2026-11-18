@@ -16,7 +16,7 @@ cargo clippy --all-targets   # warning-clean; keep it that way
 There is no rustfmt enforcement; match the style of the file you're editing.
 Clippy is currently warning-clean — keep it that way.
 
-Packaging requirements are specs in `spec/` (libspec, pinned in `pyproject.toml` as a development-only dependency). Edit the spec first and review it with `uv run libspec diff` (`uv run libspec diff A B` between commits, `uv run libspec log` for history), then implement; `python3 reconcile.py` must exit 0 before a commit. The app catalog (every app, its recipes and package names, the import and merge scripts) lives in tetron-appstore (https://github.com/tetronos/tetron-appstore), which also holds the `tetron-catalog` library tetron-wm uses as a git dependency; change apps there, then `cargo update -p tetron-catalog` here. The app sets live here in `lists/tetron.toml`; after editing it run `scripts/rebuild-app-sets.sh`, which regenerates `assets/suite-apps.txt` and the recommends of `packaging/<set>.toml` and checks them; when the suite list changed, sync it into tetron-appstore (`scripts/sync_suite_list.sh` there) and update the dependency, or reconcile fails (CON-WD07). Comments, docstrings and specs explain the code and the reason for it; who decided, when, and plans belong in DO-NOT-COMMIT notes and the CHANGELOG. Reconcile (CON-WD06) fails on the owner placeholder, a DO-NOT-COMMIT path, or a date in a comment in any committed file outside its allowlist.
+Packaging requirements are specs in `spec/` (libspec, pinned in `pyproject.toml` as a development-only dependency). Edit the spec first and review it with `uv run libspec diff` (`uv run libspec diff A B` between commits, `uv run libspec log` for history), then implement; `python3 reconcile.py` must exit 0 before a commit. The app catalog (every app, its recipes and package names, the import and merge scripts) lives in tetron-appstore (https://github.com/tetronos/tetron-appstore), which also holds the `tetron-catalog` library tetron-wm uses as a git dependency; change apps there, then `cargo update -p tetron-catalog` here. The collections (desktop, essentials, recommended, extras) and the suite installer's list are tetron-appstore's too, and it builds the essentials, recommended and extras packages; tetron-wm builds only tetron-wm and tetron-wm-desktop, whose Recommends must equal the catalog's desktop collection (reconcile CON-WD05). Comments, docstrings and specs explain the code and the reason for it; who decided, when, and plans belong in DO-NOT-COMMIT notes and the CHANGELOG. Reconcile (CON-WD06) fails on the owner placeholder, a DO-NOT-COMMIT path, or a date in a comment in any committed file outside its allowlist.
 
 ## Versioning & release channels
 
@@ -131,8 +131,8 @@ real terminal              composites frames, routes input    survives UI reload
 `agent/*.md` is the single source of truth for everything the in-app agent is
 told — embedded via `include_str!`, stamped into
 `~/.local/share/tetron-wm/assistant/` (the AI folder) at launch as `AGENTS.md`.
-Agents are data, never code: catalog entries with an `[app.agent]` table in
-`lists/tetron.toml` plus `[[assistant_agent]]` config tables, merged by id
+Agents are data, never code: catalog entries with an `[agent]` table in
+tetron-appstore's app files plus `[[assistant_agent]]` config tables, merged by id
 (`assistant::agents`); only `DEFAULT_AGENT` (opencode) is named in Rust. Each
 agent's `briefing` and `mcp` wiring (file from a template in the AI folder,
 args, env) says how it gets the pack outside the AI folder and the

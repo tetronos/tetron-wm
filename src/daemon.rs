@@ -34,6 +34,14 @@ pub fn run() -> std::io::Result<()> {
     // restrictive directory first avoids any window where the socket is exposed.
     crate::protocol::ensure_socket_dir()?;
     crate::dbg_log(&format!("daemon: session '{}'", crate::protocol::session_name()));
+    // The catalog update (WMCAT-004): at most once a day, off the main
+    // thread; the session picks a new copy up through reload_if_changed.
+    if tetron_catalog::update::due() {
+        std::thread::spawn(|| match tetron_catalog::update::update() {
+            Ok(n) => crate::dbg_log(&format!("catalog: updated, {n} apps")),
+            Err(e) => crate::dbg_log(&format!("catalog: update failed: {e}")),
+        });
+    }
 
     let path = socket_path();
     let _ = std::fs::remove_file(&path);

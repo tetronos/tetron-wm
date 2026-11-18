@@ -3,7 +3,8 @@
 # (APT::Install-Recommends "false", as TetronOS images ship): the size debs
 # still bring their apps, marked automatic, and a rerun over a size installed
 # without its Recommends adds them (WMINST-002). Needs docker, network for
-# apt, and built debs of this tree (tetron-wm and the four set debs).
+# apt, and built debs: tetron-wm and tetron-wm-desktop of this tree, and
+# tetron-wm-essentials as tetron-appstore's catalog release builds it.
 # Usage: DEBS=DIR tests/install-sh/suite_norecommends.test.sh
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

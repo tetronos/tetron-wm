@@ -6,6 +6,14 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- **The app collections are tetron-appstore's.** Desktop, essentials, recommended and extras, the suite installer's app list and the tetron-wm-essentials, -recommended and -extras packages now come from tetron-appstore's catalog releases, so a change to an app or a collection needs no tetron-wm release. tetron-wm builds only tetron-wm and tetron-wm-desktop, whose Recommends must equal the catalog's desktop collection (reconcile CON-WD05 and a test). Removed: `lists/tetron.toml`, `scripts/gen_suite_lists.py`, `scripts/rebuild-app-sets.sh`, `assets/suite-apps.txt`, `packaging/{essentials,recommended,extras}.toml` and CON-WD07.
+- **The catalog updates once a day.** The daemon runs the crate's update at start when the last check is a day old (the same sources, checks and last good copy as the Store). Settings > App Collections shows the catalog release in use, and a note to update when a newer catalog format was found. Each collection's line in the Apps dialog is its description from the catalog.
+- **Suite installer: the app list comes from tetron-appstore** (its published catalog, then the list for this core minor, then `tetron-wm suite-apps` of an installed tetron-wm, then tetron-appstore's main branch). On Debian and Ubuntu, the size packages the tetron-wm release does not carry come from the tetronos apt repo by name.
+
+### Added
+- **`tetron-wm suite-apps`** prints the suite installer's app list of the catalog in use.
+
 ## [0.15.18] — 2026-11-17
 
 ### Fixed

@@ -9,10 +9,9 @@ class AgentsAreData(Requirement):
 
     No agent CLI is named in the code except the default (`opencode`). An app
     in the catalog is an agent when its entry carries an `agent` table
-    (`label`, `command`, `args`, `context_files`, `mcp`); tetron-appstore's
-    `lists/tetron.toml` sets it in `[app.agent]` and its
-    `scripts/merge_catalog.py` checks the keys and carries it into
-    `assets/catalog.json` (WMCAT-012), so an agent added on the lists
+    (`label`, `command`, `args`, `context_files`, `mcp`); an app file in
+    tetron-appstore (`apps/<id>.toml`) sets it in `[agent]` and its build
+    checks the keys and carries it into `assets/catalog.json` (WMCAT-012), so an agent added on the lists
     reaches installed versions through the Store's Update list (WMCAT-004).
     Fields a binary does not know are ignored. `[[assistant_agent]]` tables in
     `config.toml` (same fields plus `id` and `env`) add agents or override a

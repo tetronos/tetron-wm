@@ -1620,6 +1620,13 @@ impl Settings {
         self.row(buf, cx, 3, 0, "Collections", self.apps_value());
         buf.write_str(cx, 5, "Install Essentials, Recommended or Extras, or remove a set;", pal_dim(), pal_bg());
         buf.write_str(cx, 6, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
+        if let Some(v) = crate::catalog::version() {
+            buf.write_str(cx, 8, &format!("Catalog {v}"), pal_dim(), pal_bg());
+        }
+        // An update found a catalog this binary can not read (WMCAT-004).
+        if tetron_catalog::update::newer_seen() {
+            buf.write_str(cx, 9, tetron_catalog::update::NEWER_NOTE, pal_accent(), pal_bg());
+        }
     }
 
     /// Render the Config Edit section: the config file rows and the log level.

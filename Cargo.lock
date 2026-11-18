@@ -3400,7 +3400,7 @@ dependencies = [
 [[package]]
 name = "tetron-catalog"
 version = "0.15.9"
-source = "git+https://github.com/tetronos/tetron-appstore#2e4072dbb130d74e3f252e77436b7877e3229859"
+source = "git+https://github.com/tetronos/tetron-appstore?branch=catalog-v1-client#11d6146f8466c098387074f21badc65bbc1cd979"
 dependencies = [
  "dirs",
  "serde",
