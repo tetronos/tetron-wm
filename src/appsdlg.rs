@@ -319,12 +319,22 @@ impl AppsDlg {
         Outcome::None
     }
 
-    fn size_note(&self, s: Size) -> &'static str {
-        match s {
+    /// What size `s` adds: its collection's description in the catalog
+    /// (WMINST-011), else a fixed line for a catalog without collections.
+    fn size_note(&self, s: Size) -> String {
+        let fixed = match s {
             Size::Essentials => "the tools tetron-wm uses and one good app per need",
             Size::Recommended => "plus a curated pick in every category",
             Size::Extras => "plus the extra apps",
             Size::Minimal => "",
+        };
+        let desc = crate::catalog::collections().iter().find(|c| c.name == s.name()).map(|c| c.description.trim()).filter(|d| !d.is_empty());
+        match desc {
+            Some(d) => {
+                let mut c = d.chars();
+                c.next().map(|f| f.to_lowercase().chain(c).collect::<String>()).unwrap_or_default().trim_end_matches('.').to_string()
+            }
+            None => fixed.to_string(),
         }
     }
 
@@ -619,7 +629,7 @@ mod tests {
             assert!(s.split_whitespace().any(|x| x == word), "{word} missing in\n{s}");
         }
         assert!(s.contains("[x] also the apps with their own installers") && s.contains("2 to add"), "{s}");
-        assert!(s.contains("Essentials: the tools tetron-wm uses and one good app") && s.contains("per need.") && !s.contains('\u{2026}'), "{s}");
+        assert!(s.contains("Essentials: the apps a working terminal machine") && s.contains("per need.") && !s.contains('\u{2026}'), "{s}");
         d.down();
         d.enter();
         let s = text(&d);

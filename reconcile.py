@@ -41,49 +41,53 @@ def check_lean_deb() -> dict:
 
 
 def check_desktop_deb() -> dict:
-    """CON-WD04: the four size debs are metapackages on the next size down."""
+    """CON-WD04: tetron-wm-desktop is a metapackage on tetron-wm, and the only one here."""
     problems = []
-    for file, base in (("packaging/desktop.toml", "tetron-wm"), ("packaging/essentials.toml", "tetron-wm-desktop"),
-                       ("packaging/recommended.toml", "tetron-wm-essentials"),
-                       ("packaging/extras.toml", "tetron-wm-recommended")):
-        p = Path(file)
-        if not p.exists():
-            problems.append(f"{p} missing")
-            continue
-        d = tomllib.loads(p.read_text())
-        problems += [f"{p}: has a binary file entry" for f in d.get("files", []) if f.get("src") in BUILT]
-        if not any(dep.split()[0] == base for dep in d.get("depends", [])):
-            problems.append(f"{p}: depends does not name {base}")
+    p = Path("packaging/desktop.toml")
+    d = tomllib.loads(p.read_text()) if p.exists() else {}
+    if not d:
+        problems.append(f"{p} missing")
+    problems += [f"{p}: has a binary file entry" for f in d.get("files", []) if f.get("src") in BUILT]
+    if d and not any(dep.split()[0] == "tetron-wm" for dep in d.get("depends", [])):
+        problems.append(f"{p}: depends does not name tetron-wm")
+    problems += [f"packaging/{n}.toml: built by tetron-appstore, not here" for n in ("essentials", "recommended", "extras")
+                 if Path(f"packaging/{n}.toml").exists()]
     return {"ok": not problems, "problems": problems}
 
 
-def check_suite_apps() -> dict:
-    """CON-WD05: assets/suite-apps.txt and the size debs' recommends are what the generator makes, and its tests pass."""
+def catalog_file() -> Path:
+    """assets/catalog.json of the tetron-catalog library tetron-wm is built
+    with (a git dependency on tetron-appstore, pinned by Cargo.lock);
+    `TETRON_CATALOG_JSON` overrides it."""
+    import os
     import subprocess
-    gen = subprocess.run([sys.executable, "scripts/gen_suite_lists.py", "--check"], capture_output=True, text=True)
-    # The bundled tetron-wm-startpage helper's tests ride along with the suite list's.
-    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_gen_suite_lists.py",
-                            "scripts/test_tetron_wm_startpage.py"],
+    if os.environ.get("TETRON_CATALOG_JSON"):
+        return Path(os.environ["TETRON_CATALOG_JSON"])
+    meta = json.loads(subprocess.run(["cargo", "metadata", "--format-version", "1"],
+                                     capture_output=True, text=True, check=True).stdout)
+    crate = next(Path(p["manifest_path"]) for p in meta["packages"] if p["name"] == "tetron-catalog")
+    return crate.parent.parent.parent / "assets" / "catalog.json"
+
+
+def check_suite_apps() -> dict:
+    """CON-WD05: packaging/desktop.toml recommends what the catalog's desktop collection recommends."""
+    import subprocess
+    path = catalog_file()
+    cols = json.loads(path.read_text(encoding="utf-8")).get("collections", [])
+    want = next((c.get("recommends", []) for c in cols if c.get("name") == "desktop"), None)
+    have = tomllib.loads(Path("packaging/desktop.toml").read_text()).get("recommends", [])
+    # The bundled tetron-wm-startpage helper's tests ride along.
+    tests = subprocess.run([sys.executable, "-m", "unittest", "scripts/test_tetron_wm_startpage.py"],
                            capture_output=True, text=True)
-    return {"current": gen.returncode == 0 and tests.returncode == 0,
-            "generator": gen.stderr.strip(), "tests": tests.stderr.strip().splitlines()[-1:]}
-
-
-def check_catalog() -> dict:
-    """CON-WD07: the catalog tetron-wm is built with (tetron-appstore's, pinned
-    by Cargo.lock) carries exactly this repository's assets/suite-apps.txt."""
-    sys.path.insert(0, "scripts")
-    import gen_suite_lists
-    path = gen_suite_lists.catalog_file()
-    inside = json.loads(path.read_text(encoding="utf-8")).get("suite_apps", "")
-    ours = Path("assets/suite-apps.txt").read_text(encoding="utf-8")
-    return {"current": inside == ours, "catalog": str(path),
-            "fix": "" if inside == ours else "run scripts/sync_suite_list.sh in tetron-appstore, commit, push, then cargo update -p tetron-catalog here"}
+    return {"current": want == have and tests.returncode == 0, "catalog": str(path),
+            "missing": [r for r in (want or []) if r not in have], "extra": [r for r in have if r not in (want or [])],
+            "fix": "" if want == have else "set the recommends of packaging/desktop.toml to the desktop collection's (tetron-appstore)",
+            "tests": tests.stderr.strip().splitlines()[-1:]}
 
 
 # CON-WD06. Files where these words are expected: the changelog (dates), lock
 # files and generated data, license text, .gitignore and the agent guide.
-NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock", "lists/tetron.toml",
+NOTES_ALLOWED = {"CHANGELOG.md", "Cargo.lock", "uv.lock",
                  "THIRD-PARTY-LICENSES.md", ".gitignore", "CLAUDE.md"}
 # Built from parts so this file does not match itself.
 OWNER = re.compile(r"(?<![$\w\"{])" + "US" + r"ER(?![\w])")
@@ -138,6 +142,6 @@ def check_example_config() -> dict:
 
 
 if __name__ == "__main__":
-    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "catalog": check_catalog(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config()}
+    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config()}
     print(json.dumps(ctx, indent=2))
-    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["catalog"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] else 1)
+    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] else 1)

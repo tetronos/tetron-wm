@@ -6,22 +6,21 @@ Words used here: a **collection** is a named group of apps (`minimal`, `essentia
 
 ## 1. Where the app lists come from
 
-All catalog files are in tetron-appstore (https://github.com/tetronos/tetron-appstore); tetron-wm has its app sets.
+All catalog files and the collections are in tetron-appstore (https://github.com/tetronos/tetron-appstore); tetron-wm has no app list of its own.
 
-| File | Written by | Read by |
+| File (tetron-appstore) | Written by | Read by |
 |---|---|---|
-| tetron-wm `lists/tetron.toml` | hand edits: the app sets (`[[package]]`, `[[script]]`, `[[release]]`, and `[[app]]` name and set for a catalog app) | `scripts/gen_suite_lists.py` |
-| tetron-wm `assets/suite-apps.txt` | `scripts/gen_suite_lists.py` (catalog apps' commands and package names from the catalog tetron-wm is built with) | the suite installer; copied into tetron-appstore |
-| tetron-wm `packaging/<collection>.toml` Recommends | `scripts/gen_suite_lists.py` | the collection packages |
-| tetron-appstore `lists/tetron.toml` | hand edits (our corrections and additions), plus recipe blocks appended by `scripts/match_brew.py`, `scripts/match_lang_recipes.py`, `scripts/merge_recipes.py` and `scripts/derive_os.py` | `scripts/merge_catalog.py` |
-| tetron-appstore `lists/awesome-tuis.json`, `lists/terminaltrove.json` | `scripts/import_awesome_tuis.py`, `scripts/import_terminaltrove.py` | `scripts/merge_catalog.py` |
-| tetron-appstore `lists/repology.json`, `lists/releases.json` | `scripts/match_repology.py`, `scripts/match_releases.py` | `scripts/merge_catalog.py` |
-| tetron-appstore `assets/suite-apps.txt` | `scripts/sync_suite_list.sh` (a copy of tetron-wm's) | `scripts/merge_catalog.py` (sets and tiers; carried as `suite_apps`) |
-| tetron-appstore `assets/catalog.json` | `scripts/merge_catalog.py` | compiled into tetron-appstore and tetron-wm (the `tetron-catalog` library); published for Update list |
+| `apps/<id>.toml` | hand edits, one file per app, plus the import and match scripts (`scripts/match_brew.py`, `scripts/match_lang_recipes.py`) | `scripts/build_catalog.py` |
+| `collections/<name>.toml` (`desktop`, `essentials`, `recommended`, `extras`) | hand edits, one app id per line | `scripts/build_catalog.py` |
+| `sources/awesome-tuis.json`, `sources/terminaltrove.json` | `scripts/import_awesome_tuis.py`, `scripts/import_terminaltrove.py` | `scripts/new_apps_report.py` |
+| `sources/repology.json`, `sources/releases.json` | `scripts/match_repology.py`, `scripts/match_releases.py` | `scripts/build_catalog.py` |
+| `assets/catalog.json` | `scripts/build_catalog.py` | compiled into tetron-appstore and tetron-wm (the `tetron-catalog` library); published by each `catalog-*` release |
+| `assets/suite-apps.txt` | `scripts/build_catalog.py` | the suite installer (published with the catalog); carried in the catalog as `suite_apps` |
+| `packaging/<collection>.toml` Recommends | `scripts/build_catalog.py` | `tetron-wm-essentials`, `-recommended`, `-extras`, built by tetron-appstore's catalog release |
 
-`scripts/rebuild-app-sets.sh` runs the generators and their checks in one go after an edit of `lists/tetron.toml`.
+tetron-wm's `packaging/desktop.toml` Recommends what the catalog's `desktop` collection recommends (reconcile CON-WD05 and a test check it), and is built by tetron-wm's release.
 
-The catalog and the suite list are also published per core minor at https://tetronos.github.io/apt/lists/0.15/ (`catalog.json`, `suite-apps.txt`), so a running tetron-wm and the suite installer can use a newer list without a new release.
+A `catalog-YYYY.MM.DD.N` tag in tetron-appstore publishes `catalog.json` and `suite-apps.txt` on its GitHub release and at https://tetronos.github.io/tetron-appstore/, so a running tetron-wm, the Store and the suite installer use a newer list without a tetron-wm release. The older per-minor copies at https://tetronos.github.io/apt/lists/0.15/ stay a fallback.
 
 ### The suite list format (`assets/suite-apps.txt`)
 
@@ -86,7 +85,7 @@ Run by `curl -fsSL https://tetronos.github.io/tetron-wm/install.sh | bash`, by t
 Order of the app steps:
 
 1. **Collection:** `--size` if given (`--no-extras` means minimal), else asked ("minimal / essentials / recommended / extras", default essentials); `-y` takes essentials.
-2. **List:** `--apps-list FILE` when given and valid; else the clone's own `assets/suite-apps.txt` when run from a clone; else the published `https://tetronos.github.io/apt/lists/<minor>/suite-apps.txt`; else the repository's raw file. With none, no apps are installed and it says so.
+2. **List:** `--apps-list FILE` when given and valid; else tetron-appstore's published `https://tetronos.github.io/tetron-appstore/suite-apps.txt`; else `https://tetronos.github.io/apt/lists/<minor>/suite-apps.txt`; else `tetron-wm suite-apps` of an installed tetron-wm; else tetron-appstore's raw file on main. With none, no apps are installed and it says so.
 3. **Services:** PipeWire, NetworkManager, BlueZ, asked separately (default no) when missing; installed after step 8.
 4. **Collection packages or one by one:**
    - on Debian and Ubuntu when tetron-wm is (or becomes) the apt package and the release has collection packages: the packages for the collection are downloaded from the release, checked against their `.sha256`, installed with apt, then any Recommends apt left out are installed and marked automatic;
@@ -123,5 +122,5 @@ Order of the app steps:
 
 ## Reference
 
-- Specs: WMINST-001 (collections in `lists/tetron.toml`), WMINST-002, WMINST-007, WMINST-011 (the Apps dialog), WMINST-013 (install method), WMINST-014 (tetron-browser from its release), WMINST-015 (release fallbacks, failed batches), WMCAT-001 to WMCAT-005 (catalog, Update list, Store install order), in `spec/`.
+- Specs: WMINST-001 (collections in tetron-appstore), WMINST-002, WMINST-007, WMINST-011 (the Apps dialog), WMINST-013 (install method), WMINST-014 (tetron-browser from its release), WMINST-015 (release fallbacks, failed batches), WMCAT-001 to WMCAT-005 (catalog, Update list, Store install order), in `spec/`.
 - Related docs: `docs/INSTALL_tetron-wm_methods_and_sizes.md` (install methods and setups), `docs/DEPENDENCIES_tetron-wm_recommended_installs.md` (what each app is for).

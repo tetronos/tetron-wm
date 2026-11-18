@@ -100,11 +100,13 @@ mod tests {
         assert!(!std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts").join("tetron-aimode").exists(), "moved to its own repository");
     }
 
-    /// CON-WD07: the catalog tetron-wm is built with carries exactly this
-    /// repository's suite list (its app sets), so Settings > App Collections
-    /// and the suite installer agree with the packages.
+    /// CON-WD05: tetron-wm-desktop recommends exactly what the desktop
+    /// collection of the catalog tetron-wm is built with recommends.
     #[test]
-    fn built_in_catalog_carries_our_suite_list() {
-        assert_eq!(suite_apps(), include_str!("../assets/suite-apps.txt"));
+    fn desktop_deb_recommends_the_desktop_collection() {
+        let toml: toml::Table = include_str!("../packaging/desktop.toml").parse().unwrap();
+        let ours: Vec<&str> = toml["recommends"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        let col = collections().iter().find(|c| c.name == "desktop").expect("desktop collection");
+        assert_eq!(ours, col.recommends);
     }
 }

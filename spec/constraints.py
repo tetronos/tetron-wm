@@ -43,11 +43,9 @@ class DesktopIsAMetapackageOnTetronWm(Constraint):
     """CONSTRAINT-ID: CON-WD04
 
     `packaging/desktop.toml` is a metapackage (no files entry with src
-    binary or asset) and its depends names tetron-wm (WMDEB-007);
-    `packaging/essentials.toml`, `recommended.toml` and `extras.toml` are
-    metapackages whose depends name tetron-wm-desktop,
-    tetron-wm-essentials and tetron-wm-recommended (WMDEB-010, WMDEB-011,
-    WMDEB-009).
+    binary or asset) and its depends names tetron-wm (WMDEB-007); no other
+    metapackage toml is in `packaging/` (tetron-appstore builds
+    tetron-wm-essentials, -recommended and -extras, WMDEB-009 to WMDEB-011).
     ENFORCEMENT (reconcile.py): desktop_deb.ok is true.
     """
     constraint_id = "CON-WD04"
@@ -57,10 +55,12 @@ class DesktopIsAMetapackageOnTetronWm(Constraint):
 class SuiteAppListGenerated(Constraint):
     """CONSTRAINT-ID: CON-WD05
 
-    `assets/suite-apps.txt` equals what `scripts/gen_suite_lists.py`
-    generates from `lists/tetron.toml` (WMINST-001), and so are the
-    recommends arrays of the four metapackage tomls, so an edit without
-    regenerating fails the gate.
+    The recommends array of `packaging/desktop.toml` equals the recommends
+    of the desktop collection in the catalog tetron-wm is built with
+    (tetron-appstore's `assets/catalog.json` at the commit Cargo.lock pins,
+    WMINST-001), in order, so a desktop collection change that did not
+    reach the deb fails the gate. The bundled tetron-wm-startpage helper's
+    tests pass.
     ENFORCEMENT (reconcile.py): suite_apps.current is true.
     """
     constraint_id = "CON-WD05"
@@ -81,20 +81,6 @@ class NoPlanningNotesInCommittedFiles(Constraint):
     """
     constraint_id = "CON-WD06"
     enforcement_logic = "{{ planning_notes.count == 0 }}"
-
-
-class CatalogMerged(Constraint):
-    """CONSTRAINT-ID: CON-WD07
-
-    The catalog tetron-wm is built with (tetron-appstore's
-    `assets/catalog.json` at the commit Cargo.lock pins, WMCAT-001) carries
-    exactly this repository's `assets/suite-apps.txt` as its suite list
-    (WMCAT-003), so an app set edit that did not reach the catalog fails the
-    gate.
-    ENFORCEMENT (reconcile.py): catalog.current is true.
-    """
-    constraint_id = "CON-WD07"
-    enforcement_logic = "{{ catalog.current }}"
 
 
 class ParityTable(Constraint):

@@ -8,7 +8,7 @@
 # skips them where that repo is not configured.
 # Tools Debian does not package (fresh, casttui, catt, uv, opencode,
 # a symbols Nerd Font) stay with install-tetron-wm-suite.sh
-# (the [[script]] entries of lists/tetron.toml).
+# (the script lines of tetron-appstore's app list).
 name = "tetron-wm-desktop"
 description = "tetron-wm with the tools its features use"
 long_description = """

@@ -62,6 +62,11 @@ fn main() -> std::io::Result<()> {
             let vt = rest.iter().position(|a| a == "--vt").and_then(|i| rest.get(i + 1)).and_then(|v| v.parse().ok());
             tetron_wm::fullscreen::serve(vt.unwrap_or(tetron_wm::fullscreen::DEFAULT_VT))
         }
+        // The suite installer's app list of the catalog in use (WMCAT-004).
+        Some("suite-apps") => {
+            print!("{}", tetron_wm::catalog::suite_apps());
+            Ok(())
+        }
         Some("clip") => std::process::exit(tetron_wm::clipcli::run_clip(&rest)),
         Some("mcp") => tetron_wm::mcp::run(),
         Some("kill") => kill(),
@@ -186,7 +191,7 @@ fn main() -> std::io::Result<()> {
         },
         Some(other) => {
             eprintln!(
-                "tetron-wm: unknown command '{other}' (try: attach, ls, screensaver, kill, kill-app, ps, reload, launch, tile, screenshot, theme, config, msg, mcp, service, --version, --help, --daemon)"
+                "tetron-wm: unknown command '{other}' (try: attach, ls, screensaver, kill, kill-app, ps, reload, launch, tile, screenshot, theme, config, msg, mcp, service, suite-apps, --version, --help, --daemon)"
             );
             Ok(())
         }

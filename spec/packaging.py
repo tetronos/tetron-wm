@@ -135,8 +135,9 @@ class DesktopMetapackage(Requirement):
 class EssentialsMetapackage(Requirement):
     """REQUIREMENT-ID: WMDEB-010
 
-    `tetron-wm-essentials` (`packaging/essentials.toml`, a metapackage,
-    Architecture all) Depends `tetron-wm-desktop (>= {minor})` and
+    `tetron-wm-essentials` (a metapackage, Architecture all, built and
+    published by tetron-appstore's catalog release from its
+    `packaging/essentials.toml`, not by tetron-wm) Depends `tetron-wm-desktop (>= {minor})` and
     Recommends the essentials set of WMINST-001: one good pick per need
     (files and disks, system, an editor, web, network, images,
     programming, sound). tetron-wm-desktop keeps the tools tetron-wm's own
@@ -148,8 +149,8 @@ class EssentialsMetapackage(Requirement):
 class RecommendedMetapackage(Requirement):
     """REQUIREMENT-ID: WMDEB-011
 
-    `tetron-wm-recommended` (`packaging/recommended.toml`, a metapackage,
-    Architecture all) Depends `tetron-wm-essentials (>= {minor})` and
+    `tetron-wm-recommended` (a metapackage, Architecture all, built by
+    tetron-appstore like tetron-wm-essentials) Depends `tetron-wm-essentials (>= {minor})` and
     Recommends the recommended set of WMINST-001: a curated pick in every
     category. A package it brings that has a service or a firewall is
     installed, never enabled, by this package.
@@ -159,14 +160,17 @@ class RecommendedMetapackage(Requirement):
 class ExtrasMetapackage(Requirement):
     """REQUIREMENT-ID: WMDEB-009
 
-    `tetron-wm-extras` (`packaging/extras.toml`, a metapackage, Architecture
-    all) Depends `tetron-wm-recommended (>= {minor})` and Recommends the
+    `tetron-wm-extras` (a metapackage, Architecture all, built by
+    tetron-appstore like tetron-wm-essentials) Depends `tetron-wm-recommended (>= {minor})` and Recommends the
     extras set of WMINST-001, apps added over time beyond the recommended
     set (empty while none is chosen). Four sizes result: minimal
     (tetron-wm), essentials (tetron-wm-desktop and tetron-wm-essentials),
-    recommended, extras. Release CI builds the four metapackages once, on
-    the amd64 job, and checks their Recommends install together with the
-    tetron-wm deb.
+    recommended, extras. tetron-wm's release CI builds tetron-wm-desktop
+    once, on the amd64 job, and checks its Recommends install together
+    with the tetron-wm deb; tetron-appstore's catalog release builds and
+    checks the other three, versioned 0.15.N on their own (its
+    `packaging/VERSION`, above the last ones tetron-wm built, so apt
+    upgrades to them).
     """
 
 
@@ -182,29 +186,22 @@ class SuiteScriptOnDpkgHost(Requirement):
 class AppListSingleSource(Requirement):
     """REQUIREMENT-ID: WMINST-001
 
-    The app sets are defined once, in the "App sets" section of
-    `lists/tetron.toml`: four sets, desktop (the tools tetron-wm's
-    features call), essentials, recommended and extras. A `[[package]]`
-    entry is a member that is not a Store app: its Debian name, the check
-    that tells it is present (a command, `font=NAME`, or `consolefonts`;
-    none: in the deb only), the Fedora, Arch and Homebrew names where they
-    differ (an empty name: not on that OS), each verified in a container or
-    against Homebrew, an optional group (gui, services) and the deb
-    relation where it is not the plain name. An `[[app]]` with `set` is a
-    Store app in a set: its bin is the check and its package names are its
-    merged `pkg` (Repology plus our overrides, WMCAT-005). A `[[script]]`
-    entry is an app no distro packages (catt, casttui, fresh, opencode, the
-    Nerd Font, the helper scripts on a raw install), installed by the suite
-    script's own method. `scripts/gen_suite_lists.py` (stdlib) writes
-    `assets/suite-apps.txt` from them, one
-    `size:group:check:apt:dnf:pacman:brew` line per member with a check and
-    `size:script:name` per script entry, where size is the suite size of
-    the set (desktop and essentials: essentials), and writes the
-    `recommends` array of `packaging/<set>.toml` for each of the four
-    metapackages (services stay hand-written Suggests and must be listed
-    there). A name listed twice, an unknown field or set fails the
-    generator. The catalog tier of a Store app in a set follows its size:
-    essentials default, recommended recommended, extras optional.
+    The app sets are tetron-appstore's collections, defined once there
+    (`collections/<name>.toml`, one app id per line): desktop (the tools
+    tetron-wm's features call), essentials, recommended and extras, each
+    including the smaller one. tetron-appstore's build writes the suite
+    installer's list, `assets/suite-apps.txt` (one
+    `size:group:check:apt:dnf:pacman:brew` line per member with a check,
+    `size:script:name` per app the suite script installs by its own method,
+    `size:release:check:repo:amd64-asset:arm64-asset` per member with a
+    release to fall back on; size is the suite size, desktop and essentials
+    are essentials), carried in the catalog as `suite_apps`, and the
+    Recommends of each collection's metapackage. tetron-wm has no app list:
+    it reads the suite list from the catalog (`tetron_catalog::suite_apps`),
+    and `packaging/desktop.toml` Recommends exactly what the catalog's
+    desktop collection recommends (CON-WD05), so a change to the desktop
+    collection reaches tetron-wm-desktop at the next tetron-wm release that
+    updates the crate.
     """
 
 
@@ -299,8 +296,8 @@ class SettingsAppsRow(Requirement):
 
     Depends on WMINST-002 and WMINST-005. Settings > App Collections has a
     row showing the installed size and how many apps of it are missing
-    ("essentials, 3 missing"), by the checks of `assets/suite-apps.txt`
-    (compiled into the binary): the rows of that size and the smaller
+    ("essentials, 3 missing"), by the checks of the catalog's suite list
+    (`tetron_catalog::suite_apps`, the copy in use): the rows of that size and the smaller
     ones, package rows only where this OS has a name for them, gui rows
     only with a desktop session, gpm only with a mouse device, never the
     services, and the helper scripts only when tetron-wm is not the deb.
@@ -315,7 +312,8 @@ class SettingsAppsDialog(Requirement):
 
     Depends on WMINST-007. The Apps dialog, inside Settings, lists
     Essentials, Recommended and Extras (Extras only when the app list has
-    extras apps), each with what it adds and how many of its apps are
+    extras apps), each with what it adds (the description of its
+    collection in the catalog) and how many of its apps are
     missing here (PATH is scanned again when the dialog opens, and
     /usr/sbin and /sbin count, which a Debian user's PATH lacks); a
     checkbox "also the apps with their own installers", ticked by default;
@@ -524,7 +522,8 @@ class SuiteAppsFallBackAndReportByState(Requirement):
     collection that is still missing after the package manager ran (the
     distribution has no package of that name, for example Ubuntu 24.04
     lacks fastfetch, glow, xh and lazygit) is installed from the GitHub
-    release named for it in `[[release]]` of `lists/tetron.toml`: a .deb
+    release named for it in the app list's release lines (from the
+    app file's `[install.release]` in tetron-appstore): a .deb
     with apt on Debian and Ubuntu, or a .tar.gz whose command goes to
     `~/.local/bin`. The asset must match the SHA256 digest GitHub lists for
     it, or it is not installed. Then brew, when installed, for what is

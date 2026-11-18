@@ -2,14 +2,18 @@
 # install-tetron-wm-suite.sh sizes and methods (WMINST-002), as --dry-run plans,
 # in containers with no network against a fake local release served through a
 # curl stand-in. Debian: deb versus one-by-one, sizes, raw conversion. Fedora
-# and Arch: the package names from assets/suite-apps.txt.
+# and Arch: the package names from the app list, tetron-appstore's
+# suite-apps.txt of the catalog tetron-wm is built with (Cargo.lock), served as
+# its published copy.
 # Usage: tests/install-sh/suite_sizes.test.sh   (needs docker; debian:trixie, fedora, archlinux images)
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 command -v docker >/dev/null 2>&1 || { echo "SKIP: no docker"; exit 0; }
+STORE="$(cd "$ROOT" && cargo metadata --format-version 1 | python3 -c 'import json,sys,pathlib; m=json.load(sys.stdin); print(next(pathlib.Path(p["manifest_path"]).parents[2] / "assets" for p in m["packages"] if p["name"] == "tetron-catalog"))')"
+[ -f "$STORE/suite-apps.txt" ] || { echo "FAIL: no suite-apps.txt in $STORE"; exit 1; }
 fail=0
 run() { # run IMAGE SCRIPT
-  docker run --rm --network none -v "$ROOT:/src:ro" -i "$1" bash -s <<IN || fail=1
+  docker run --rm --network none -v "$ROOT:/src:ro" -v "$STORE:/appstore:ro" -i "$1" bash -s <<IN || fail=1
 set -eu
 cat > /usr/local/bin/curl <<'C'
 #!/bin/sh
@@ -17,7 +21,7 @@ for a; do url="\$a"; done
 case "\$url" in file://*) cat "\${url#file://}" ;; *) exit 22 ;; esac
 C
 chmod +x /usr/local/bin/curl
-export TETRON_WM_RELEASES_URL=file:///rel TETRON_WM_TAG=v9.9.9
+export TETRON_WM_RELEASES_URL=file:///rel TETRON_WM_TAG=v9.9.9 TETRON_WM_APPSTORE_URL=file:///appstore
 mkdir -p /rel/expanded_assets
 plan() { bash /src/install-tetron-wm-suite.sh -y --dry-run --no-kmscon --no-console --no-autostart --no-themes --no-config "\$@" 2>&1 | grep -E "plan|apps:" ; }
 ok() { if eval "\$2"; then echo "PASS \$1"; else echo "FAIL \$1"; echo "\$out" | sed 's/^/    /'; echo x >> /tmp/fail; fi; }
@@ -46,8 +50,8 @@ rm -f /dev/input/mice
 out="$(plan --convert)"; ok "raw copy with --convert: becomes the deb" "echo \"\$out\" | grep -q \"method=deb wm=y\""
 out="$(plan --method deb)"; ok "raw copy with --method deb: becomes the deb, apps through the metapackages" "echo \"\$out\" | grep -q \"method=deb wm=y\" && echo \"\$out\" | grep -q \"apt install tetron-wm-desktop\""
 rm /usr/local/bin/tetron-wm
-assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb tetron-wm-extras_9.9.9-1_all.deb
-out="$(plan)"; ok "release with only the metapackages from before the sets: apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*ripgrep\" && ! echo \"\$out\" | grep -q \"apt install tetron-wm\""
+assets tetron-wm_9.9.9-1_$A.deb tetron-wm-desktop_9.9.9-1_all.deb
+out="$(plan --size recommended)"; ok "release with tetron-wm-desktop only: the metapackages, the others from the apt repo" "echo \"\$out\" | grep -q \"apt install tetron-wm-desktop tetron-wm-essentials tetron-wm-recommended (from release v9.9.9 and the tetronos apt repo)\""
 assets tetron-wm_9.9.9-1_$A.deb
 out="$(plan)"; ok "release without metapackages: deb, apps one by one" "echo \"\$out\" | grep -q \"method=deb\" && echo \"\$out\" | grep -q \"apps: .*chafa\""
 assets
@@ -74,13 +78,17 @@ ok "fedora recommended: croft, pyradio, llm, yt-dlp, freebuff (script apps)" "fo
 ok "essentials plans none of the recommended script apps" "! plan | grep -E -q \" (croft|pyradio|freebuff)\""
 out="$(plan --size recommended --no-scripts)"; ok "recommended --no-scripts: no croft, no freebuff" "echo \"\$out\" | grep -q ShellCheck && ! echo \"\$out\" | grep -q \" croft\" && ! echo \"\$out\" | grep -q \" freebuff\""
 printf "desktop:apps:onlyme:onlyme:onlyme:onlyme:onlyme\n" > /tmp/list
-out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the checkout one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"
+out="$(plan --apps-list /tmp/list)"; ok "--apps-list: the given list, not the published one" "echo \"\$out\" | grep -q onlyme && ! echo \"\$out\" | grep -q vim-enhanced"
 m="$(sed -n "s/^LISTS_MINOR=\"\(.*\)\"$/\1/p" /src/install-tetron-wm-suite.sh)"
 mkdir -p "/lists/$m" /tmp/piped
 printf "desktop:apps:fromlists:fromlists:fromlists:fromlists:fromlists\n" > "/lists/$m/suite-apps.txt"
 cp /src/install-tetron-wm-suite.sh /tmp/piped/
-out="$(TETRON_WM_LISTS_URL=file:///lists bash /tmp/piped/install-tetron-wm-suite.sh -y --dry-run --no-kmscon --no-console --no-autostart --no-themes --no-config 2>&1 | grep -E "plan|apps:")"
-ok "run on its own: the list published for its core minor" "echo \"\$out\" | grep -q fromlists"
+out="$(TETRON_WM_APPSTORE_URL=file:///none TETRON_WM_LISTS_URL=file:///lists bash /tmp/piped/install-tetron-wm-suite.sh -y --dry-run --no-kmscon --no-console --no-autostart --no-themes --no-config 2>&1 | grep -E "plan|apps:")"
+ok "no published catalog: the list published for its core minor" "echo \"\$out\" | grep -q fromlists"
+printf "%s\n" "#!/bin/sh" "echo desktop:apps:fromwm:fromwm:fromwm:fromwm:fromwm" > /usr/local/bin/tetron-wm; chmod +x /usr/local/bin/tetron-wm
+out="$(TETRON_WM_APPSTORE_URL=file:///none TETRON_WM_LISTS_URL=file:///none bash /tmp/piped/install-tetron-wm-suite.sh -y --dry-run --no-wm --no-kmscon --no-console --no-autostart --no-themes --no-config 2>&1 | grep -E "plan|apps:")"
+ok "nothing published: the list of the installed tetron-wm" "echo \"\$out\" | grep -q fromwm"
+rm /usr/local/bin/tetron-wm
 '
 run archlinux:latest '
 out="$(plan)"; ok "arch: pacman names from the list" "echo \"\$out\" | grep -q \"apps: .*poppler \" && echo \"\$out\" | grep -q ttf-dejavu && echo \"\$out\" | grep -q openssh"
