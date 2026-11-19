@@ -3399,8 +3399,8 @@ dependencies = [
 
 [[package]]
 name = "tetron-catalog"
-version = "0.15.9"
-source = "git+https://github.com/tetronos/tetron-appstore#a415bd3d5cd7190eaab1267656833300419aac07"
+version = "0.15.10"
+source = "git+https://github.com/tetronos/tetron-appstore#c7cee998afd6cedf521e928bb6bb19e1dade0640"
 dependencies = [
  "dirs",
  "serde",
@@ -3427,7 +3427,7 @@ dependencies = [
 
 [[package]]
 name = "tetron-wm"
-version = "0.15.19"
+version = "0.15.20"
 dependencies = [
  "alacritty_terminal",
  "base64 0.22.1",

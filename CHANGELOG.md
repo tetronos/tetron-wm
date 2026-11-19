@@ -6,6 +6,11 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.20] — 2026-11-18
+
+### Changed
+- tetron-catalog 0.15.10 (tetron-appstore 0.15.2): apps marked for TetronOS only (the tetronos-firmware and tetronos-desktop metapackages of the Store's new TetronOS category) are not offered on other systems, and the catalog's new optional fields (`also_in`, `only_on`, `check = "deb:NAME"`) are read.
+
 ## [0.15.19] — 2026-11-17
 
 ### Changed
