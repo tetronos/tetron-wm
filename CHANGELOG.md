@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.21] — 2026-11-22
+
 ### Added
 - **Files: dot files button.** The Files toolbar has a `[.:on]` / `[.:off]` button left of the view toggle that shows or hides dot files (the `.` key did this already, with nothing on screen to say so). Each tab remembers its own setting.
 
