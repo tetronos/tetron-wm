@@ -979,6 +979,8 @@ fn pal_sel() -> Rgba { crate::theme::current().active_bg }
 fn pal_accent() -> Rgba { crate::theme::current().accent }
 
 pub const SIDEBAR_W: i32 = 16; // left shortcuts column
+/// Width of the dot files toolbar button ([.:off]).
+const HIDDEN_BTN_W: i32 = 7;
 const TOOLBAR_Y: i32 = 0;  // breadcrumb/toolbar row
 const LIST_TOP: i32 = 2;   // first entry row (below toolbar + spacer)
 /// Icon-grid tile size — mirrors the desktop's icon tile
@@ -1032,6 +1034,7 @@ pub enum Target {
     Forward,
     Up,
     ToggleView,
+    ToggleHidden,
     Crumb(usize),
 }
 
@@ -1089,6 +1092,10 @@ impl<F: FsOps> FileManager<F> {
             ViewMode::Columns => "[cols]",
         };
         buf.write_str((w - toggle.len() as i32 - 1).max(0), TOOLBAR_Y, toggle, pal_dim(), pal_bg());
+        // Dot files button, left of the view toggle: [.:on] shows them, [.:off] hides them.
+        let hidden = if t.show_hidden { "[.:on]" } else { "[.:off]" };
+        let hx = (w - 7 - HIDDEN_BTN_W - 1).max(0);
+        buf.write_str(hx, TOOLBAR_Y, &format!("{hidden:<w$}", w = HIDDEN_BTN_W as usize), if t.show_hidden { pal_accent() } else { pal_dim() }, pal_bg());
 
         // Tab strip (only with more than one tab) on the row below the toolbar.
         if self.tabs.len() > 1 {
@@ -1281,6 +1288,7 @@ impl<F: FsOps> FileManager<F> {
                 2 => Some(Target::Forward),
                 4 => Some(Target::Up),
                 x if x >= w - 7 => Some(Target::ToggleView),
+                x if x >= w - 7 - HIDDEN_BTN_W - 1 => Some(Target::ToggleHidden),
                 _ => None,
             };
         }
@@ -1336,6 +1344,7 @@ impl<F: FsOps> FileManager<F> {
             Some(Target::Forward) => { self.go_forward(); true }
             Some(Target::Up) => { self.go_parent(); true }
             Some(Target::ToggleView) => { self.cycle_view(); true }
+            Some(Target::ToggleHidden) => { self.toggle_hidden(); true }
             Some(Target::Sidebar(i)) => {
                 if let Some((_, path)) = self.sidebar().get(i) {
                     if path.is_dir() { self.navigate_to(path.clone()); }
@@ -1498,6 +1507,22 @@ mod tests {
         assert_eq!(fm.view(), ViewMode::List);
         fm.set_view(ViewMode::Icon);
         assert_eq!(fm.view(), ViewMode::Icon);
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn dot_files_button_shows_and_hides_dot_files() {
+        let d = tmp("dotbtn");
+        for n in [".hid", "vis"] { fs::write(d.join(n), b"").unwrap(); }
+        let mut fm = FileManager::new(d.clone(), BTreeMap::new());
+        let names = |fm: &FileManager<_>| fm.tab().entries.iter().map(|e| e.name.clone()).collect::<Vec<_>>();
+        assert_eq!(names(&fm), ["vis"]);
+        let btn = crate::geometry::Point::new(80 - 7 - HIDDEN_BTN_W - 1, TOOLBAR_Y);
+        assert_eq!(fm.hit_test(btn, 80, 24), Some(Target::ToggleHidden));
+        assert!(fm.handle_click(btn, 80, 24, false, false));
+        assert!(names(&fm).contains(&".hid".to_string()));
+        fm.handle_click(btn, 80, 24, false, false);
+        assert_eq!(names(&fm), ["vis"]);
         let _ = fs::remove_dir_all(&d);
     }
 
