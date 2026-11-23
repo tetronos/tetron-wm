@@ -536,3 +536,67 @@ class SuiteAppsFallBackAndReportByState(Requirement):
     `DEBIAN_FRONTEND=noninteractive`, so no debconf question (console-setup
     asks one) blocks or fails the batch. A second run installs nothing.
     """
+
+
+class SuiteGitDepsPinnedToReleaseTags(Requirement):
+    """REQUIREMENT-ID: WMDEP-001
+
+    The git dependencies on other suite repos name a release tag, never a
+    bare repository: `tetron-proto` a tetron core tag whose minor equals
+    tetron-wm's minor (`v0.15.5` for 0.15.x), `tetron-catalog` (dependency
+    and dev-dependency) a tetron-appstore tag. A bare git dependency lets
+    `Cargo.lock` freeze whatever commit was current when the lock was last
+    touched, so two suite clients could speak different protocol revisions
+    to the same daemon. Moving a tag is a reviewed change to `Cargo.toml` and
+    `Cargo.lock`, made by `contrib/bump-proto.sh` (WMDEP-002) or the bump
+    workflow (WMDEP-003).
+
+    Order: first; WMDEP-002, WMDEP-003 and CON-WD09 build on it.
+    """
+
+
+class BumpProtoScript(Requirement):
+    """REQUIREMENT-ID: WMDEP-002
+
+    `contrib/bump-proto.sh [TAG]` moves the `tetron-proto` tag to TAG or, with
+    no argument, to the newest `vX.Y.Z` tag of tetron core, then runs `cargo
+    update -p tetron-proto`. It is the same script as in every other suite
+    client (kept identical by convention so each repo builds and bumps on its
+    own, with no shared action). It fails when the dependency line was not
+    updated.
+
+    Depends on: WMDEP-001.
+    """
+
+
+class BumpProtoWorkflow(Requirement):
+    """REQUIREMENT-ID: WMDEP-003
+
+    `.github/workflows/bump-proto.yml` runs on the `repository_dispatch`
+    event `tetron-release` (sent by tetron core's release workflow with the
+    tag) and on manual dispatch with a tag. It runs `contrib/bump-proto.sh`
+    with the tag, then `cargo test` and `cargo clippy --all-targets`, and
+    opens a pull request with the change and the test result. It never
+    merges and never pushes to main. A tag of another minor than tetron-wm's
+    opens the PR marked as a minor change, for review. With nothing to
+    change it exits without a PR.
+
+    Depends on: WMDEP-001, WMDEP-002.
+    """
+
+
+class MeshFeature(Requirement):
+    """REQUIREMENT-ID: WMDEP-004
+
+    The tetron mesh status and its menubar actions are behind the cargo
+    feature `mesh`, on by default: the release binaries, the deb and the
+    TetronOS images build with it. `cargo build --no-default-features`
+    gives a tetron-wm without the `tetron-proto` and `rmp-serde`
+    dependencies, for people who want only the window manager:
+    `system::tetron::poll` then returns the not-reachable default (the
+    tray hides the tetron segment, exactly as when the daemon is not
+    running) and `set_active` does nothing. CI and `reconcile.py` build
+    both ways.
+
+    Independent of WMDEP-001 to WMDEP-003.
+    """
