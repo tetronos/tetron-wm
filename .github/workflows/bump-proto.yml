@@ -3,7 +3,9 @@ name: Bump tetron-proto
 # WMDEP-003: when tetron core releases (repository_dispatch `tetron-release`,
 # sent by tetron's release workflow with {"tag": "vX.Y.Z"}) or by hand, move
 # the tetron-proto tag with contrib/bump-proto.sh, build and test, and open a
-# pull request with the result. Never merges, never pushes to main.
+# pull request with the result. Same minor and every check passed: the pull
+# request merges itself (rebase and merge). Another minor or a failure: it
+# stays open for review. Never pushes to main directly.
 # Needs the repository setting "Allow GitHub Actions to create and approve
 # pull requests".
 
@@ -92,3 +94,8 @@ jobs:
           } > body.md
           gh pr create --base main --head "$branch" --title "deps: tetron-proto to tetron $TAG" --body-file body.md \
             || gh pr edit "$branch" --body-file body.md
+          if [ "$SAME" = yes ] && [ "$RESULT" = success ]; then
+            gh pr merge "$branch" --rebase --delete-branch
+          else
+            echo "left open for review: same minor=$SAME, checks=$RESULT"
+          fi
