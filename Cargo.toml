@@ -8,8 +8,9 @@ description = "A TUI desktop environment for the terminal"
 repository = "https://github.com/tetronos/tetron-wm"
 
 [dependencies]
-# The app catalog library, from tetron-appstore (WMCAT-008, WMCAT-012).
-tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore" }
+# The app catalog library, from tetron-appstore (WMCAT-008, WMCAT-012), pinned
+# to a release tag (WMDEP-001).
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", tag = "v0.15.2" }
 crossterm = "0.29"
 portable-pty = "0.9"
 serde = { version = "1", features = ["derive"] }
@@ -30,7 +31,9 @@ memchr = "2"
 # truth shared with tetron-systray and tetron-webui. We only read Status, framed
 # ourselves synchronously (4-byte BE length + msgpack) so we avoid tetron-proto's
 # async/tokio client helpers in the poller. rmp-serde does that framing.
-tetron-proto = { git = "https://github.com/tetronos/tetron" }
+# Pinned to a tetron core release tag of this minor (WMDEP-001); moved by
+# contrib/bump-proto.sh.
+tetron-proto = { git = "https://github.com/tetronos/tetron", tag = "v0.15.5" }
 rmp-serde = "1"
 
 [lib]
@@ -45,4 +48,4 @@ path = "src/main.rs"
 
 [dev-dependencies]
 # Tests read only the built-in catalog, never a downloaded one (WMCAT-008).
-tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", features = ["builtin-only"] }
+tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", tag = "v0.15.2", features = ["builtin-only"] }
