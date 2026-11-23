@@ -96,3 +96,15 @@ class ParityTable(Constraint):
     """
     constraint_id = "CON-WD08"
     enforcement_logic = "{{ parity.ok }}"
+
+
+class SuiteGitDepsPinned(Constraint):
+    """CONSTRAINT-ID: CON-WD09
+
+    Every git dependency in `Cargo.toml` on a `github.com/tetronos/`
+    repository has a `tag` (WMDEP-001), and the `tetron-proto` tag has the
+    same minor as tetron-wm's own version.
+    ENFORCEMENT (reconcile.py): suite_deps.ok is true.
+    """
+    constraint_id = "CON-WD09"
+    enforcement_logic = "{{ suite_deps.ok }}"
