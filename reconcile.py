@@ -136,12 +136,37 @@ def check_parity() -> dict:
     return {"ok": not problems and bool(steps), "steps": sorted(steps), "problems": problems}
 
 
+def check_suite_deps() -> dict:
+    """CON-WD09: git dependencies on tetronos repos name a tag; the tetron-proto
+    tag has tetron-wm's minor. WMDEP-004: the build without the mesh feature
+    still compiles."""
+    import re
+    import subprocess
+    problems = []
+    text = Path("Cargo.toml").read_text()
+    own = tomllib.loads(text)["package"]["version"]
+    minor = lambda v: ".".join(v.lstrip("v").split(".")[:2])
+    for line in text.splitlines():
+        m = re.match(r'^([A-Za-z0-9_-]+) = \{.*git = "https://github\.com/tetronos/[^"]+"', line)
+        if not m:
+            continue
+        tag = re.search(r'tag = "([^"]+)"', line)
+        if not tag:
+            problems.append(f"{m.group(1)}: git dependency without a tag")
+        elif m.group(1) == "tetron-proto" and minor(tag.group(1)) != minor(own):
+            problems.append(f"tetron-proto tag {tag.group(1)} is not tetron-wm's minor {minor(own)}")
+    r = subprocess.run(["cargo", "check", "--quiet", "--locked", "--no-default-features"], capture_output=True, text=True)
+    if r.returncode != 0:
+        problems.append("cargo check --no-default-features failed: " + r.stderr.strip()[-300:])
+    return {"ok": not problems, "problems": problems}
+
+
 def check_example_config() -> dict:
     hits = [str(p) for p in Path("src").rglob("*.rs") if 'include_str!("../config.example.toml")' in p.read_text()]
     return {"compiled_in": bool(hits), "files": hits}
 
 
 if __name__ == "__main__":
-    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config()}
+    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config(), "suite_deps": check_suite_deps()}
     print(json.dumps(ctx, indent=2))
-    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] else 1)
+    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] and ctx["suite_deps"]["ok"] else 1)
