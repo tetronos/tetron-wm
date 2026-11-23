@@ -6,6 +6,15 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.22] — 2026-11-23
+
+### Fixed
+- **tetron-proto pinned to the tetron core release.** The mesh status client was built against an unpinned git dependency that the lock had frozen at tetron-proto 0.14.0; it now names the tag `v0.15.5`, and `tetron-catalog` names tetron-appstore `v0.15.2` (WMDEP-001). The wire types the tray reads did not change between the two, so 0.15.21 kept working; the pin stops the drift.
+
+### Added
+- **`mesh` cargo feature**, on by default. `cargo build --no-default-features` builds tetron-wm with no tetron core dependency: the tray hides the tetron segment as when the daemon is not running (WMDEP-004).
+- `contrib/bump-proto.sh` and the `Bump tetron-proto` workflow: a tetron core release opens a pull request here that moves the tag, with the build and test result; on the same minor with every check passed it merges itself (WMDEP-002, WMDEP-003). Reconcile CON-WD09 fails on an untagged tetronos git dependency or a tetron-proto tag of another minor.
+
 ## [0.15.21] — 2026-11-22
 
 ### Added
