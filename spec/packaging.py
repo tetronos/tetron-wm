@@ -576,10 +576,13 @@ class BumpProtoWorkflow(Requirement):
     event `tetron-release` (sent by tetron core's release workflow with the
     tag) and on manual dispatch with a tag. It runs `contrib/bump-proto.sh`
     with the tag, then `cargo test` and `cargo clippy --all-targets`, and
-    opens a pull request with the change and the test result. It never
-    merges and never pushes to main. A tag of another minor than tetron-wm's
-    opens the PR marked as a minor change, for review. With nothing to
-    change it exits without a PR.
+    opens a pull request with the change and the test result. When the tag
+    has tetron-wm's minor and every check passed, the pull request merges
+    itself (rebase and merge); a tag of another minor, or any failure, leaves
+    it open and marked for review. It never pushes to main directly. A merge
+    made with the workflow token starts no other workflow, so a dependency
+    bump does not cut a release. With nothing to change it exits without a
+    PR.
 
     Depends on: WMDEP-001, WMDEP-002.
     """
