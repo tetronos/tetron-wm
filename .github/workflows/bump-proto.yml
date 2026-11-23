@@ -1,0 +1,94 @@
+name: Bump tetron-proto
+
+# WMDEP-003: when tetron core releases (repository_dispatch `tetron-release`,
+# sent by tetron's release workflow with {"tag": "vX.Y.Z"}) or by hand, move
+# the tetron-proto tag with contrib/bump-proto.sh, build and test, and open a
+# pull request with the result. Never merges, never pushes to main.
+# Needs the repository setting "Allow GitHub Actions to create and approve
+# pull requests".
+
+on:
+  repository_dispatch:
+    types: [tetron-release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tetron core release tag (e.g. v0.15.6)"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag
+        id: t
+        env:
+          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          tag="${PAYLOAD_TAG:-$INPUT_TAG}"
+          echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::not a release tag: '$tag'"; exit 1; }
+          own=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          minor() { echo "$1" | sed -E 's/^v?([0-9]+\.[0-9]+).*/\1/'; }
+          same=yes; [ "$(minor "$tag")" = "$(minor "$own")" ] || same=no
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "same_minor=$same" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Bump
+        id: b
+        run: |
+          sh contrib/bump-proto.sh "${{ steps.t.outputs.tag }}"
+          # Only a moved tag is a change; a lock re-resolution alone is not.
+          if git diff --quiet -- Cargo.toml; then
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+            echo "tetron-proto is already at ${{ steps.t.outputs.tag }}; nothing to do"
+          else
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        id: test
+        if: steps.b.outputs.changed == 'yes'
+        continue-on-error: true
+        run: |
+          cargo test --locked 2>&1 | tail -40 > test.log
+          cargo test --locked --no-default-features 2>&1 | tail -20 >> test.log
+          cargo clippy --locked --all-targets 2>&1 | tail -20 >> test.log
+          ! grep -Eq '^(error|test result: FAILED)' test.log
+
+      - name: Pull request
+        if: steps.b.outputs.changed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.t.outputs.tag }}
+          SAME: ${{ steps.t.outputs.same_minor }}
+          RESULT: ${{ steps.test.outcome }}
+        run: |
+          branch="bump/tetron-proto-$TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add Cargo.toml Cargo.lock
+          git commit -m "deps: tetron-proto to tetron $TAG"
+          git push -f origin "$branch"
+          kind="patch release of this minor"
+          [ "$SAME" = yes ] || kind="ANOTHER MINOR: review the protocol changes before merging"
+          {
+            echo "tetron core released $TAG ($kind)."
+            echo
+            echo "Build and tests: **$RESULT**"
+            echo
+            echo '```'
+            cat test.log
+            echo '```'
+          } > body.md
+          gh pr create --base main --head "$branch" --title "deps: tetron-proto to tetron $TAG" --body-file body.md \
+            || gh pr edit "$branch" --body-file body.md
