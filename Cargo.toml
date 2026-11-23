@@ -32,9 +32,15 @@ memchr = "2"
 # ourselves synchronously (4-byte BE length + msgpack) so we avoid tetron-proto's
 # async/tokio client helpers in the poller. rmp-serde does that framing.
 # Pinned to a tetron core release tag of this minor (WMDEP-001); moved by
-# contrib/bump-proto.sh.
-tetron-proto = { git = "https://github.com/tetronos/tetron", tag = "v0.15.5" }
-rmp-serde = "1"
+# contrib/bump-proto.sh. Both are optional, behind the `mesh` feature (WMDEP-004).
+tetron-proto = { git = "https://github.com/tetronos/tetron", tag = "v0.15.5", optional = true }
+rmp-serde = { version = "1", optional = true }
+
+[features]
+# The tetron mesh status and actions in the menubar (WMDEP-004). Off gives a
+# window manager with no tetron core dependency.
+default = ["mesh"]
+mesh = ["dep:tetron-proto", "dep:rmp-serde"]
 
 [lib]
 # Underscore: a lib target name must be a valid Rust identifier (used in `use

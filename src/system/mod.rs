@@ -561,6 +561,12 @@ pub mod macos;
 #[cfg(target_os = "linux")]
 pub mod linux;
 /// Cross-platform tetron daemon status probe (Unix socket; any OS tetron runs on).
+#[cfg(feature = "mesh")]
+pub mod tetron;
+/// Without the `mesh` feature (WMDEP-004): no tetron core dependency; the
+/// tray behaves as when the daemon is not running.
+#[cfg(not(feature = "mesh"))]
+#[path = "tetron_off.rs"]
 pub mod tetron;
 
 #[cfg(test)]
