@@ -149,6 +149,7 @@ fn main() -> std::io::Result<()> {
         }
         Some("cast") => cast_cmd(&rest),
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
+        Some("type") => type_cmd(&rest),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
             // List every theme name (built-ins + file themes).
@@ -191,7 +192,7 @@ fn main() -> std::io::Result<()> {
         },
         Some(other) => {
             eprintln!(
-                "tetron-wm: unknown command '{other}' (try: attach, ls, screensaver, kill, kill-app, ps, reload, launch, tile, screenshot, theme, config, msg, mcp, service, suite-apps, --version, --help, --daemon)"
+                "tetron-wm: unknown command '{other}' (try: attach, ls, screensaver, kill, kill-app, ps, reload, launch, tile, type, screenshot, theme, config, msg, mcp, service, suite-apps, --version, --help, --daemon)"
             );
             Ok(())
         }
@@ -233,6 +234,26 @@ fn screensaver_cmd(args: &[String]) -> std::io::Result<()> {
 
 /// Send one control message to the running daemon (used by `tetron-wm launch/tile/
 /// theme/msg` — and by the desktop assistant to drive the UI).
+/// `tetron-wm type [--enter] [TEXT...]`: paste TEXT (or stdin) into the focused
+/// app, then Enter with `--enter`. Silent on success, for dictation programs.
+fn type_cmd(rest: &[String]) -> std::io::Result<()> {
+    let enter = rest.iter().any(|a| a == "--enter");
+    let words: Vec<&str> = rest.iter().map(String::as_str).filter(|a| *a != "--enter").collect();
+    let text = if words.is_empty() {
+        let mut buf = String::new();
+        std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)?;
+        buf
+    } else {
+        words.join(" ")
+    };
+    let msg = tetron_wm::session::ClientMsg::TypeText { text, enter, pid: Some(std::process::id()) };
+    if !send_control(&msg)? {
+        eprintln!("tetron-wm: no daemon running (start it with `tetron-wm`)");
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
 fn ctl(msg: &tetron_wm::session::ClientMsg) -> std::io::Result<()> {
     if send_control(msg)? {
         println!("tetron-wm: sent");

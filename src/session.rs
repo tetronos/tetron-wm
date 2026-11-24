@@ -503,6 +503,11 @@ pub enum ClientMsg {
     CastToggle,
     /// What the client's dictation provider reported (see [`crate::dictation`]).
     Dictation(crate::dictation::DictationEvent),
+    /// `tetron-wm type`: paste `text` into the focused app as dictation commits are
+    /// (clipboard untouched), then Enter when `enter`. `pid` is the caller: when the
+    /// focused app is the caller or one of its ancestors (a dictation TUI with focus),
+    /// the text goes to the clipboard instead of into the caller's own window.
+    TypeText { text: String, #[serde(default)] enter: bool, #[serde(default)] pid: Option<u32> },
     /// Start the cast through casttui (answered by the control thread): to the
     /// Chromecast, or with `browser` a URL for a browser on the LAN.
     CastTv { device: Option<String>, #[serde(default)] browser: bool },
@@ -2608,6 +2613,30 @@ impl SessionCore {
         }
     }
 
+    /// `tetron-wm type`: paste into the focused app, or, when that app is the
+    /// caller itself (its own window has focus), put the text on the clipboard.
+    fn type_text(&mut self, text: &str, enter: bool, pid: Option<u32>) {
+        if text.is_empty() && !enter {
+            return;
+        }
+        let focused_pid = self.wm.focused().and_then(|id| match self.contents.get(&id) {
+            Some(WinContent::App(aid)) => self.apphost.pid(*aid),
+            _ => None,
+        });
+        if let (Some(caller), Some(app)) = (pid, focused_pid) {
+            if descends_from(caller, app) {
+                if !text.is_empty() {
+                    self.set_clipboard(text);
+                    self.pending_clipboard = Some(text.to_string());
+                    self.clip_record(text, crate::clipboard::ClipSource::Copy);
+                }
+                return;
+            }
+        }
+        self.paste_to_focused(text);
+        if enter { self.enter_to_focused(); }
+    }
+
     /// Press Enter in the focused app (after a dictated commit).
     fn enter_to_focused(&mut self) {
         if let Some(id) = self.wm.focused() {
@@ -3956,6 +3985,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::Status | ClientMsg::CastTv { .. } | ClientMsg::CastStop | ClientMsg::CastStatus => {} // answered by the daemon's control thread
             ClientMsg::CastToggle => self.cast_toggle(),
             ClientMsg::Dictation(ev) => self.apply_dictation(ev),
+            ClientMsg::TypeText { text, enter, pid } => self.type_text(&text, enter, pid),
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
                 match (mode, self.saver.is_some()) {
@@ -7217,6 +7247,28 @@ fn semver_tuple(v: &str) -> Option<(u64, u64, u64)> {
         return None; // a fourth component → not a MAJOR.MINOR.PATCH version
     }
     Some((major, minor, patch))
+}
+
+
+/// Whether process `pid` is `ancestor` or runs below it (Linux /proc PPid chain).
+pub(crate) fn descends_from(pid: u32, ancestor: u32) -> bool {
+    let mut p = pid;
+    for _ in 0..64 {
+        if p == ancestor {
+            return true;
+        }
+        if p <= 1 {
+            return false;
+        }
+        let parent = std::fs::read_to_string(format!("/proc/{p}/status")).ok().and_then(|s| {
+            s.lines().find_map(|l| l.strip_prefix("PPid:")).and_then(|v| v.trim().parse::<u32>().ok())
+        });
+        match parent {
+            Some(q) => p = q,
+            None => return false,
+        }
+    }
+    false
 }
 
 #[cfg(test)]

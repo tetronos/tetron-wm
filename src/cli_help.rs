@@ -130,6 +130,8 @@ COMMANDS:\n\
 \x20                       @files [dir], @settings, @store, @activity, @logs, @image <file>\n\
 \x20 tile                  tile all windows into the grid\n\
 \x20 screenshot [file.png] save a PNG of the whole screen (needs an attached client)\n\
+\x20 type [--enter] [text]  paste text (or stdin) into the focused app, clipboard untouched;\n\
+\x20                       from the focused window itself it goes to the clipboard (dictation)\n\
 \x20 cast [--device NAME]  cast the desktop to a Chromecast (optional: needs casttui); `cast off`\n\
 \x20                       stops it, `cast status` reports, `cast --url` prints a URL (a secret) to\n\
 \x20                       watch in a browser on the LAN. Leader o toggles; the red CAST marker stops it\n\
