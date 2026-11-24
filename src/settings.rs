@@ -338,6 +338,11 @@ impl Settings {
             .unwrap_or((0, false, false))
     }
 
+    /// Show the Dictation section (the tray mic menu's "Dictation settings").
+    pub fn show_dictation(&mut self) {
+        self.enter_section(DICTATION);
+    }
+
     /// Switch to section `i`, asking the session to refresh the outputs when
     /// it is Sound.
     fn enter_section(&mut self, i: usize) {

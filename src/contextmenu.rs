@@ -28,6 +28,14 @@ pub enum Target {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MenuAction {
+    /// Tray mic menu: bring the tetron-stt window up (open it when it is not running).
+    DictationShow,
+    /// Tray mic menu: start or stop listening.
+    DictationToggle,
+    /// Tray mic menu: switch segment / final mode.
+    DictationMode,
+    /// Tray mic menu: Settings > Dictation.
+    DictationSettings,
     Open,
     /// Replace the menu with the apps that can open the entry.
     OpenWith,
@@ -80,6 +88,10 @@ pub enum MenuAction {
 impl MenuAction {
     pub fn label(&self) -> String {
         match self {
+            MenuAction::DictationShow => "Show tetron-stt".into(),
+            MenuAction::DictationToggle => "Start / stop listening".into(),
+            MenuAction::DictationMode => "Switch mode (segment / final)".into(),
+            MenuAction::DictationSettings => "Dictation settings\u{2026}".into(),
             MenuAction::Open => "Open".into(),
             MenuAction::OpenWith => "Open with\u{2026}".into(),
             MenuAction::OpenWithApp(cmd) if cmd == "@image" => "Image viewer".into(),
@@ -227,6 +239,12 @@ pub fn actions_for(surface: Surface, target: Target, can: Abilities) -> Vec<Menu
 }
 
 /// The title bar menu of a window.
+/// The tray mic's right-click menu.
+pub fn mic_actions() -> Vec<MenuAction> {
+    use MenuAction as A;
+    vec![A::DictationShow, A::DictationToggle, A::DictationMode, A::DictationSettings]
+}
+
 pub fn window_actions() -> Vec<MenuAction> {
     use MenuAction as A;
     vec![A::Minimize, A::Maximize, A::MoveWindow, A::RenameWindow, A::CloseWindow]

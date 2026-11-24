@@ -146,6 +146,39 @@ pub fn provider_command(cfg: &crate::config::Config) -> (String, Vec<String>) {
     (program, args)
 }
 
+/// The tetron-stt TUI is the dictation engine unless a provider command is set.
+pub fn uses_tui(cfg: &crate::config::Config) -> bool {
+    cfg.dictation_command.trim().is_empty()
+}
+
+/// The TUI's arguments: the `dictation_*` settings, `--start` to listen at once.
+pub fn tui_args(cfg: &crate::config::Config, start: bool) -> Vec<String> {
+    let (_, mut args) = provider_command(cfg);
+    args.remove(0); // "serve"
+    if start {
+        args.insert(0, "--start".to_string());
+    }
+    args
+}
+
+/// The running tetron-stt TUI, from the pid file it writes (same path rule as
+/// tetron-stt: `$XDG_RUNTIME_DIR/tetron-stt.pid`, else the temp dir per uid).
+pub fn tui_pid() -> Option<u32> {
+    let f = match std::env::var_os("XDG_RUNTIME_DIR") {
+        Some(d) => std::path::PathBuf::from(d).join("tetron-stt.pid"),
+        None => std::env::temp_dir().join(format!("tetron-stt-{}.pid", unsafe { libc::getuid() })),
+    };
+    let pid: u32 = std::fs::read_to_string(f).ok()?.trim().parse().ok()?;
+    let comm = std::fs::read_to_string(format!("/proc/{pid}/comm")).ok()?;
+    (comm.trim() == "tetron-stt").then_some(pid)
+}
+
+/// Ask the TUI to toggle listening (SIGUSR1) or switch mode (SIGUSR2).
+pub fn signal_tui(pid: u32, mode: bool) -> bool {
+    let sig = if mode { libc::SIGUSR2 } else { libc::SIGUSR1 };
+    unsafe { libc::kill(pid as i32, sig) == 0 }
+}
+
 /// A running provider process, owned by the client.
 pub struct Provider {
     child: Child,

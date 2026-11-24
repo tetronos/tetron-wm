@@ -93,6 +93,14 @@ impl WindowManager {
     }
 
     /// Bring window `id` to the top of the stack and give it focus.
+    /// Give `id` the keyboard focus without raising it (a window opened in the
+    /// background hands focus back to the one the user was in).
+    pub fn set_focus(&mut self, id: WindowId) {
+        if self.get(id).is_some() {
+            self.focus = Some(id);
+        }
+    }
+
     pub fn raise(&mut self, id: WindowId) {
         let z = self.next_z;
         self.next_z += 1;
