@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.24] — 2026-11-24
+
 ### Added
 - **`tetron-wm type [--enter] [text]`** (text or stdin): pastes into the focused app the way dictation commits are, clipboard untouched. When the focused app is the caller itself (a dictation TUI with focus), the text goes to the clipboard instead. tetron-stt's TUI uses it to type into other windows with no X11.
 - **The tetron-stt TUI is the dictation engine** (when no `dictation_command` is set). A click on the tray mic or the dictation key toggles the running TUI, or opens it listening in the background so the focus stays in the window the text goes to. Right-click on the tray mic: Show tetron-stt, Start / stop listening, Switch mode, Dictation settings. The TUI reports its state with `tetron-wm dictation-state`; a closed or crashed TUI no longer leaves the mic showing. A custom `dictation_command` provider runs in the client as before.
