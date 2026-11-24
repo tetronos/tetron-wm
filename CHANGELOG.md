@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- **`tetron-wm type [--enter] [text]`** (text or stdin): pastes into the focused app the way dictation commits are, clipboard untouched. When the focused app is the caller itself (a dictation TUI with focus), the text goes to the clipboard instead. tetron-stt's TUI uses it to type into other windows with no X11.
+
 ## [0.15.23] — 2026-11-23
 
 ### Added
