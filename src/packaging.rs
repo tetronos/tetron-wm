@@ -65,6 +65,9 @@ pub fn diverted_in(diversions: &str, path: &Path) -> bool {
 pub fn running_is_diverted() -> bool {
     static DIVERTED: OnceLock<bool> = OnceLock::new();
     *DIVERTED.get_or_init(|| {
+        if crate::paths::running_from_nix() {
+            return false;
+        }
         let text = std::fs::read_to_string(DPKG_DIVERSIONS).unwrap_or_default();
         let d = std::env::current_exe().is_ok_and(|exe| {
             let real = std::fs::canonicalize(&exe).unwrap_or_else(|_| exe.clone());
@@ -82,7 +85,7 @@ pub fn running_is_diverted() -> bool {
 pub fn running_is_packaged() -> bool {
     static PACKAGED: OnceLock<bool> = OnceLock::new();
     *PACKAGED.get_or_init(|| {
-        let owned = !running_is_diverted() && std::env::current_exe().is_ok_and(|exe| owned_in(Path::new(DPKG_INFO), &exe));
+        let owned = !crate::paths::running_from_nix() && !running_is_diverted() && std::env::current_exe().is_ok_and(|exe| owned_in(Path::new(DPKG_INFO), &exe));
         if owned {
             crate::dbg_log("packaging: the running tetron-wm is owned by the tetron-wm package (apt)");
         }
@@ -164,9 +167,15 @@ pub fn size_from(info_dir: &Path, state: &str) -> Size {
     }
 }
 
+/// What Settings > Updates says instead of updating a tetron-wm installed by
+/// Nix: the store is read-only and Nix owns upgrades (WMNIX-002).
+pub const NIX_UPDATE_MSG: &str = "Managed by Nix: nixos-rebuild switch, or nix profile upgrade.";
+
 /// How tetron-wm was installed, for Settings > About.
-pub fn method_name(packaged: bool, diverted: bool, exe: &Path) -> &'static str {
-    if diverted {
+pub fn method_name(nix: bool, packaged: bool, diverted: bool, exe: &Path) -> &'static str {
+    if nix {
+        "nix"
+    } else if diverted {
         "own build (package diverted)"
     } else if packaged {
         "apt package"
@@ -192,7 +201,7 @@ pub fn installed_size() -> Size {
 /// The install method of the running binary.
 pub fn install_method() -> &'static str {
     let exe = std::env::current_exe().unwrap_or_default();
-    method_name(running_is_packaged(), running_is_diverted(), &exe)
+    method_name(crate::paths::running_from_nix(), running_is_packaged(), running_is_diverted(), &exe)
 }
 
 /// The terminal command that installs the apps of `size` with the suite
@@ -498,18 +507,30 @@ fn parse_grow(out: &str) -> u64 {
 /// Free bytes on `/` when this is a live session (a live medium with its
 /// changes in RAM: Debian live-boot, casper, dracut), else None.
 pub fn live_free_bytes() -> Option<u64> {
-    let live = ["/run/live/medium", "/run/initramfs/live", "/cdrom/casper", "/rofs"].iter().any(|d| Path::new(d).exists());
-    let overlay = std::fs::read_to_string("/proc/mounts")
-        .ok()?
-        .lines()
-        .any(|l| matches!(l.split_whitespace().collect::<Vec<_>>()[..], [_, "/", "overlay" | "tmpfs", ..]));
-    if !(live && overlay) {
-        return None;
-    }
+    let exists = |d: &str| Path::new(d).exists();
+    let mounts = std::fs::read_to_string("/proc/mounts").ok()?;
+    let at = live_mount(&mounts, exists)?;
+    let c = std::ffi::CString::new(at).ok()?;
     let mut st: libc::statvfs = unsafe { std::mem::zeroed() };
     // SAFETY: the path is a valid NUL-terminated string and `st` a valid out-pointer.
-    let rc = unsafe { libc::statvfs(c"/".as_ptr(), &mut st) };
+    let rc = unsafe { libc::statvfs(c.as_ptr(), &mut st) };
     (rc == 0).then(|| st.f_bavail as u64 * st.f_frsize as u64)
+}
+
+/// The mount whose free space limits installs in a live session, from the
+/// text of /proc/mounts and a check for marker paths: `/` on a Debian,
+/// Ubuntu or dracut live medium; on a NixOS live ISO (`/iso` and
+/// `/nix/.ro-store`) `/nix/store` when it is the overlay, else `/`
+/// (WMNIX-007). None when this is not a live session.
+pub fn live_mount(mounts: &str, exists: impl Fn(&str) -> bool) -> Option<&'static str> {
+    let in_ram = |at: &str| {
+        mounts.lines().any(|l| matches!(l.split_whitespace().collect::<Vec<_>>()[..], [_, m, "overlay" | "tmpfs", ..] if m == at))
+    };
+    if exists("/iso") && exists("/nix/.ro-store") {
+        return if in_ram("/nix/store") { Some("/nix/store") } else { in_ram("/").then_some("/") };
+    }
+    let live = ["/run/live/medium", "/run/initramfs/live", "/cdrom/casper", "/rofs"].iter().any(|d| exists(d));
+    (live && in_ram("/")).then_some("/")
 }
 
 /// The download size and disk growth of installing `pkgs` with apt (with
@@ -564,13 +585,14 @@ fn check_present(check: &str) -> bool {
         })
     };
     match check {
-        "consolefonts" => any_file(&[PathBuf::from("/usr/share/consolefonts"), PathBuf::from("/usr/lib/kbd/consolefonts")], ""),
+        // Console fonts and the font fallbacks come from the XDG data dirs (WMNIX-005).
+        "consolefonts" => any_file(&crate::paths::consolefont_dirs(), ""),
         "nerd-font" => fonts("nerd font").unwrap_or_else(|| {
-            any_file(&[home.join(".local/share/fonts"), PathBuf::from("/usr/share/fonts/truetype/nerd-font-symbols")], "SymbolsNerdFont")
+            any_file(&[home.join(".local/share/fonts")], "SymbolsNerdFont")
+                || crate::paths::has_file_with_prefix(&crate::paths::font_dirs(), "SymbolsNerdFont", 3)
         }),
-        c if c.starts_with("font=") => fonts(&c[5..]).unwrap_or_else(|| {
-            any_file(&[PathBuf::from("/usr/share/fonts/truetype/dejavu"), PathBuf::from("/usr/share/fonts/dejavu")], "DejaVuSansMono")
-        }),
+        c if c.starts_with("font=") => fonts(&c[5..])
+            .unwrap_or_else(|| crate::paths::has_file_with_prefix(&crate::paths::font_dirs(), "DejaVuSansMono", 3)),
         // The suite's yt-dlp is the uv one: a distribution's copy falls behind the sites (WMINST-012).
         "yt-dlp" => home.join(".local/bin/yt-dlp").is_file(),
         // /usr/sbin and /sbin: a normal user's PATH lacks them on Debian and
@@ -910,11 +932,24 @@ essentials:script:opencode\n";
 
     #[test]
     fn method_from_ownership_and_path() {
-        assert_eq!(method_name(true, false, Path::new("/usr/bin/tetron-wm")), "apt package");
-        assert_eq!(method_name(false, true, Path::new("/usr/bin/tetron-wm")), "own build (package diverted)");
-        assert_eq!(method_name(false, false, Path::new("/home/u/.cargo/bin/tetron-wm")), "cargo");
-        assert_eq!(method_name(false, false, Path::new("/usr/local/bin/tetron-wm")), "binary");
-        assert_eq!(method_name(false, false, Path::new("tetron-wm")), "binary");
+        assert_eq!(method_name(false, true, false, Path::new("/usr/bin/tetron-wm")), "apt package");
+        assert_eq!(method_name(false, false, true, Path::new("/usr/bin/tetron-wm")), "own build (package diverted)");
+        assert_eq!(method_name(false, false, false, Path::new("/home/u/.cargo/bin/tetron-wm")), "cargo");
+        assert_eq!(method_name(false, false, false, Path::new("/usr/local/bin/tetron-wm")), "binary");
+        assert_eq!(method_name(false, false, false, Path::new("tetron-wm")), "binary");
+        assert_eq!(method_name(true, false, false, Path::new("/nix/store/x-tetron-wm/bin/.tetron-wm-wrapped")), "nix");
+    }
+
+    #[test]
+    fn live_mount_debian_and_nixos() {
+        let debian = "/dev/sr0 /run/live/medium iso9660 ro 0 0\noverlay / overlay rw 0 0\n";
+        let has = |set: &'static [&'static str]| move |d: &str| set.contains(&d);
+        assert_eq!(live_mount(debian, has(&["/run/live/medium"])), Some("/"));
+        assert_eq!(live_mount(debian, has(&[])), None, "an overlay root alone is not live");
+        let nixos = "tmpfs / tmpfs rw 0 0\n/dev/sr0 /iso iso9660 ro 0 0\noverlay /nix/store overlay rw 0 0\n";
+        assert_eq!(live_mount(nixos, has(&["/iso", "/nix/.ro-store"])), Some("/nix/store"));
+        let installed = "/dev/vda2 / ext4 rw 0 0\n";
+        assert_eq!(live_mount(installed, has(&[])), None);
     }
 
     /// The suite script fetches the list published for its core minor; that

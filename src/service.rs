@@ -81,8 +81,11 @@ if command -v {exe} >/dev/null 2>&1 && [ ! -S \"{sock}\" ]; then\n  \
     )
 }
 
+/// The tetron-wm path the unit or plist starts: a stable path that survives
+/// a Nix upgrade (WMNIX-003).
 fn current_exe() -> io::Result<String> {
-    Ok(crate::self_exe()?.to_string_lossy().into_owned())
+    crate::self_exe()?;
+    Ok(crate::paths::stable_self_path().to_string_lossy().into_owned())
 }
 
 /// Whether a usable systemd `--user` instance is available.
@@ -123,14 +126,27 @@ fn launchd_plist_path() -> Option<PathBuf> {
 fn systemd_unit_path() -> Option<PathBuf> {
     dirs::config_dir().map(|c| c.join("systemd/user").join(SYSTEMD_UNIT))
 }
-/// Where tetron-wm-desktop installs the same unit for every user.
-const PACKAGED_UNIT: &str = "/usr/lib/systemd/user/tetron-wm-apphost.service";
+/// The systemd user unit directories a package or a system configuration
+/// installs a unit for every user into: `/etc/systemd/user` (NixOS writes
+/// its configured user units there), `/usr/lib/systemd/user`
+/// (tetron-wm-desktop), and `systemd/user` under each XDG data directory
+/// (WMNIX-006).
+fn packaged_unit_dirs() -> Vec<PathBuf> {
+    let mut d = vec![PathBuf::from("/etc/systemd/user"), PathBuf::from("/usr/lib/systemd/user")];
+    d.extend(crate::paths::data_subdirs("systemd/user"));
+    d
+}
+
+/// Whether a package or the system installs the apphost unit for every user.
+fn packaged_unit_present() -> bool {
+    packaged_unit_dirs().iter().any(|d| d.join(SYSTEMD_UNIT).exists())
+}
 
 /// Whether the packaged user unit is enabled for this user (on the TetronOS
 /// Desktop, `systemctl --global enable`). Present but not enabled means the
 /// user did not choose the service: the daemon starts the apphost itself.
 fn packaged_unit_enabled() -> bool {
-    std::path::Path::new(PACKAGED_UNIT).exists()
+    packaged_unit_present()
         && matches!(
             Command::new("systemctl").args(["--user", "--quiet", "is-enabled", SYSTEMD_UNIT]).status(),
             Ok(s) if s.success()
@@ -322,8 +338,8 @@ pub fn status() -> io::Result<()> {
             if let Some(p) = systemd_unit_path() {
                 println!("  unit:     {} (installed: {})", p.display(), p.exists());
             }
-            if std::path::Path::new(PACKAGED_UNIT).exists() {
-                println!("  packaged: {PACKAGED_UNIT} (enabled: {})", packaged_unit_enabled());
+            if let Some(u) = packaged_unit_dirs().into_iter().map(|d| d.join(SYSTEMD_UNIT)).find(|u| u.exists()) {
+                println!("  packaged: {} (enabled: {})", u.display(), packaged_unit_enabled());
             }
             let _ = Command::new("systemctl")
                 .args(["--user", "--no-pager", "status", SYSTEMD_UNIT])

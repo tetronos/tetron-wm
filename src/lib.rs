@@ -9,6 +9,7 @@ pub mod cell;
 pub mod theme;
 pub mod themefetch;
 pub mod packaging;
+pub mod paths;
 pub mod display;
 pub mod buffer;
 pub mod wallpaper;

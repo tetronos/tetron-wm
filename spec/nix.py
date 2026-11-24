@@ -65,7 +65,8 @@ class HelpersOnPath(Requirement):
     fixed /usr path. `tetronos-ssh-temp` (Launcher > Remote Access and
     Settings) is available when it is on PATH; the status file
     `/run/tetronos/ssh-temp.status` is unchanged (the helper writes it on
-    every system). The apps-dialog check for apt (`/usr/bin/apt-get`) stays
+    every system). Remote Access runs the helper under sudo by the full
+    path PATH gave, since sudo may reset PATH. The apps-dialog check for apt (`/usr/bin/apt-get`) stays
     as it is, but with method "nix" the dialog offers no install or removal
     and says the apps are managed by Nix.
     """

@@ -1361,7 +1361,9 @@ impl SessionCore {
                     let (tx, rx) = std::sync::mpsc::channel();
                     std::thread::spawn(move || {
                         let mut msg = check_for_updates(&branch);
-                        if crate::packaging::running_is_diverted() {
+                        if crate::paths::running_from_nix() {
+                            msg.push_str(" (managed by Nix)");
+                        } else if crate::packaging::running_is_diverted() {
                             msg.push_str(" (own build)");
                         } else if crate::packaging::running_is_packaged() {
                             msg.push_str(" (installed by apt)");
@@ -1485,6 +1487,13 @@ impl SessionCore {
             Some(crate::settings::SettingsAction::ReloadConfig) => {
                 crate::dbg_log("config: reload requested from Settings");
                 self.reload_to_config();
+            }
+            Some(crate::settings::SettingsAction::InstallUpdate) if crate::paths::running_from_nix() => {
+                // The store is read-only and Nix owns upgrades: never write the binary.
+                crate::dbg_log("update: refused, tetron-wm is installed by Nix");
+                if let Some(s) = self.focused_settings_mut() {
+                    s.set_update_status(crate::packaging::NIX_UPDATE_MSG.into());
+                }
             }
             Some(crate::settings::SettingsAction::InstallUpdate)
                 if crate::packaging::running_is_packaged() && sanitize_branch(&self.cfg.update_branch) != "main" =>
@@ -5150,8 +5159,11 @@ or a remote-side error — its authorized_keys was left untouched)",
                     return;
                 }
                 let dir = dirs::home_dir().unwrap_or_default();
-                let cmd = if crate::settings::remote_on() { "sudo tetronos-ssh-temp off" } else { "sudo tetronos-ssh-temp on" };
-                self.run_in_window("Remote access".into(), cmd.into(), dir);
+                // The full path from PATH: sudo may reset PATH (secure_path).
+                let helper = crate::paths::which("tetronos-ssh-temp").map(|p| p.display().to_string()).unwrap_or_else(|| "tetronos-ssh-temp".into());
+                let arg = if crate::settings::remote_on() { "off" } else { "on" };
+                let cmd = format!("sudo {} {arg}", crate::systems::sh_quote(&helper));
+                self.run_in_window("Remote access".into(), cmd, dir);
             }
             "@exit" => self.confirm_power(crate::powermenu::PowerAction::Exit),
             "@restart" => self.confirm_power(crate::powermenu::PowerAction::Restart),

@@ -108,3 +108,16 @@ class SuiteGitDepsPinned(Constraint):
     """
     constraint_id = "CON-WD09"
     enforcement_logic = "{{ suite_deps.ok }}"
+
+
+class NoFixedUsrPaths(Constraint):
+    """CONSTRAINT-ID: CON-WD10
+
+    Non-test Rust code (before a file's `#[cfg(test)]`) has no string with a
+    fixed /usr, /sbin or /var/lib/dpkg path outside the allowlist in
+    reconcile.py (WMNIX-008). Programs are found on PATH and shared data in
+    the XDG data directories through src/paths.rs.
+    ENFORCEMENT (reconcile.py): fixed_paths.count is 0.
+    """
+    constraint_id = "CON-WD10"
+    enforcement_logic = "{{ fixed_paths.count == 0 }}"

@@ -442,10 +442,9 @@ pub fn prepare(ai: &Path, cwd: &Path, agent: &Agent, all: &[Agent], mcp_on: bool
 
 /// This binary's path for agents to start `tetron-wm mcp` with (after an
 /// update the running file may show as deleted; the path is what counts).
+/// Agents keep it in their MCP config, so it is a stable path (WMNIX-003).
 pub fn self_bin() -> String {
-    std::env::current_exe()
-        .map(|p| p.display().to_string().trim_end_matches(" (deleted)").to_string())
-        .unwrap_or_else(|_| "tetron-wm".into())
+    crate::paths::stable_self_path().display().to_string()
 }
 
 #[cfg(test)]

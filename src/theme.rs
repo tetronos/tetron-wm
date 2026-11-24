@@ -838,7 +838,7 @@ fn search_dirs(
     if let Some(d) = over.filter(|d| !d.is_empty()) {
         return vec![PathBuf::from(d)];
     }
-    let system = data_dirs.filter(|v| !v.is_empty()).unwrap_or_else(|| "/usr/local/share:/usr/share".into());
+    let system = data_dirs.filter(|v| !v.is_empty()).unwrap_or_else(|| crate::paths::DEFAULT_DATA_DIRS.into());
     let mut out: Vec<PathBuf> = user.into_iter().chain(download).collect();
     for d in std::env::split_paths(&system).filter(|d| d.is_absolute()) {
         out.push(d.join("tetron-wm/themes"));

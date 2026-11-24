@@ -555,21 +555,7 @@ fn cursor_cell(term: &Term<PtyResponder>) -> (u16, u16) {
 /// Returns the input unchanged if it's already a path or can't be found (so the
 /// error surfaces from the spawn rather than here).
 fn resolve_program(cmd: &str) -> String {
-    if cmd.contains('/') {
-        return cmd.to_string();
-    }
-    if let Some(path) = std::env::var_os("PATH") {
-        use std::os::unix::fs::PermissionsExt;
-        for dir in std::env::split_paths(&path) {
-            let candidate = dir.join(cmd);
-            if let Ok(meta) = std::fs::metadata(&candidate) {
-                if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
-                    return candidate.to_string_lossy().into_owned();
-                }
-            }
-        }
-    }
-    cmd.to_string()
+    crate::paths::which(cmd).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|| cmd.to_string())
 }
 
 /// The colour reported for a colour query: palette entries 0-255 as drawn,
