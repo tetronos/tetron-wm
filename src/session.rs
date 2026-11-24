@@ -508,6 +508,9 @@ pub enum ClientMsg {
     /// focused app is the caller or one of its ancestors (a dictation TUI with focus),
     /// the text goes to the clipboard instead of into the caller's own window.
     TypeText { text: String, #[serde(default)] enter: bool, #[serde(default)] pid: Option<u32> },
+    /// The dictation key (`toggle`) or mode key (`mode`): the tetron-stt TUI, or
+    /// the configured provider through the client.
+    Dictate(String),
     /// Start the cast through casttui (answered by the control thread): to the
     /// Chromecast, or with `browser` a URL for a browser on the LAN.
     CastTv { device: Option<String>, #[serde(default)] browser: bool },
@@ -660,6 +663,10 @@ pub struct SessionCore {
     dock_ctx: Option<(WindowId, i32)>,
     /// The title bar right-click menu: its window and the shared menu widget.
     win_menu: Option<(WindowId, crate::contextmenu::ContextMenu)>,
+    /// The tray mic right-click menu.
+    mic_menu: Option<crate::contextmenu::ContextMenu>,
+    /// When the tetron-stt TUI was last checked for a stale tray state.
+    stt_checked: std::time::Instant,
     /// Short host name (computed once at startup); used in the AI briefing.
     host_label: String,
     /// Active window rename: `Some((id, buffer))` while the user is typing a new
@@ -821,6 +828,8 @@ impl SessionCore {
             dock_popup: None,
             dock_ctx: None,
             win_menu: None,
+            mic_menu: None,
+            stt_checked: std::time::Instant::now(),
             host_label: Self::host_short_label(),
             rename: None,
             cfg,
@@ -1178,6 +1187,7 @@ impl SessionCore {
     /// clipboard stores are forwarded to the host terminal. Called once per
     /// daemon tick; cheap (drains in-memory counters).
     pub fn pump_app_events(&mut self) {
+        self.check_stt_gone();
         let focused = self.wm.focused();
         let minimized: std::collections::HashSet<WindowId> =
             self.wm.z_ordered().iter().filter(|w| w.minimized).map(|w| w.id).collect();
@@ -1678,7 +1688,7 @@ impl SessionCore {
 
     /// Render the title bar menu (empty when closed), above the windows.
     fn render_win_menu(&self) -> Vec<crate::compositor::Layer> {
-        let Some((_, menu)) = &self.win_menu else { return Vec::new() };
+        let Some(menu) = self.win_menu.as_ref().map(|(_, m)| m).or(self.mic_menu.as_ref()) else { return Vec::new() };
         let b = self.win_menu_bounds();
         let r = menu.rect(b);
         let mut buf = crate::buffer::CellBuffer::new(self.w, self.h);
@@ -2610,6 +2620,88 @@ impl SessionCore {
         if let Some((text, enter)) = self.dictation.apply(ev) {
             self.paste_to_focused(&text);
             if enter { self.enter_to_focused(); }
+        }
+    }
+
+    /// The dictation key or a tray mic click: `toggle` or `mode`. With the
+    /// tetron-stt TUI as the engine, a running TUI is signalled; otherwise
+    /// `toggle` opens it listening, in the background (focus stays where the
+    /// text should go). A configured provider runs in the client as before.
+    fn dictate(&mut self, cmd: &str) {
+        if !self.dictation_available() {
+            return;
+        }
+        if !crate::dictation::uses_tui(&self.cfg) {
+            self.dictate_request = Some(if cmd == "mode" { "mode" } else { "toggle" });
+            return;
+        }
+        match crate::dictation::tui_pid() {
+            Some(pid) => {
+                crate::dictation::signal_tui(pid, cmd == "mode");
+            }
+            None if cmd == "toggle" => self.open_stt(true),
+            None => {}
+        }
+    }
+
+    /// Open the tetron-stt TUI window; with `background` the focus goes back to
+    /// the window that had it, so typed text lands there.
+    fn open_stt(&mut self, background: bool) {
+        let prev = self.wm.focused();
+        let args = crate::dictation::tui_args(&self.cfg, background);
+        self.launch("tetron-stt".into(), "tetron-stt".into(), args);
+        if background {
+            if let Some(id) = prev {
+                self.wm.set_focus(id);
+            }
+        }
+    }
+
+    /// The window the running tetron-stt TUI is in.
+    fn stt_window(&self) -> Option<WindowId> {
+        let pid = crate::dictation::tui_pid()?;
+        self.wm.z_ordered().iter().rev().find_map(|w| match self.contents.get(&w.id) {
+            Some(WinContent::App(aid)) => self.apphost.pid(*aid).filter(|&app| descends_from(pid, app)).map(|_| w.id),
+            _ => None,
+        })
+    }
+
+    /// A tray mic menu item.
+    fn run_mic_action(&mut self, action: crate::contextmenu::MenuAction) {
+        use crate::contextmenu::MenuAction as A;
+        match action {
+            A::DictationShow => match self.stt_window() {
+                Some(id) => {
+                    self.wm.unminimize(id);
+                    self.wm.raise(id);
+                }
+                None if crate::dictation::uses_tui(&self.cfg) => self.open_stt(false),
+                None => {}
+            },
+            A::DictationToggle => self.dictate("toggle"),
+            A::DictationMode => self.dictate("mode"),
+            A::DictationSettings => {
+                self.open_settings();
+                if let Some(id) = self.settings_win {
+                    self.wm.raise(id);
+                    if let Some(WinContent::Settings(s)) = self.contents.get_mut(&id) {
+                        s.show_dictation();
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The TUI reports its state with `tetron-wm dictation-state`; when it is
+    /// gone (closed, crashed) the tray must not keep showing it listening.
+    fn check_stt_gone(&mut self) {
+        if self.stt_checked.elapsed() < std::time::Duration::from_secs(1) {
+            return;
+        }
+        self.stt_checked = std::time::Instant::now();
+        if crate::dictation::uses_tui(&self.cfg) && !self.dictation.state.is_empty() && crate::dictation::tui_pid().is_none() {
+            self.dictation.apply(crate::dictation::DictationEvent::Gone);
         }
     }
 
@@ -3780,7 +3872,13 @@ or a remote-side error — its authorized_keys was left untouched)",
                     || self.tray.open().is_some()
                     || self.clipmenu.is_open()
                     || self.win_menu.is_some()
+                    || self.mic_menu.is_some()
                     || self.desktop.overlay_rect().is_some();
+                // Right-clicking the tray mic opens its menu.
+                if !overlay_open && p.y == 0 && self.tray_segments_now().iter().any(|s| s.kind == crate::tray::SegmentKind::Mic && s.rect.contains(p)) {
+                    self.mic_menu = Some(crate::contextmenu::ContextMenu::new(Point::new(p.x, 1), crate::contextmenu::mic_actions()));
+                    return;
+                }
                 if !overlay_open && p.y == 0 {
                     let items = self.dock_items();
                     let segs = self.tray_segments_now();
@@ -3986,6 +4084,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::CastToggle => self.cast_toggle(),
             ClientMsg::Dictation(ev) => self.apply_dictation(ev),
             ClientMsg::TypeText { text, enter, pid } => self.type_text(&text, enter, pid),
+            ClientMsg::Dictate(cmd) => self.dictate(&cmd),
             ClientMsg::Screensaver { mode, effect } => {
                 use crate::screensaver::SaverMode;
                 match (mode, self.saver.is_some()) {
@@ -4061,6 +4160,16 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             ClientMsg::LogsRefresh => { if let Some(l) = self.focused_logs_mut() { l.reload(); } }
+            ClientMsg::DesktopMenuKey(k) if self.mic_menu.is_some() => match k {
+                MenuKey::Up => { if let Some(m) = &mut self.mic_menu { m.up(); } }
+                MenuKey::Down => { if let Some(m) = &mut self.mic_menu { m.down(); } }
+                MenuKey::Esc => self.mic_menu = None,
+                MenuKey::Enter => {
+                    if let Some(action) = self.mic_menu.take().and_then(|m| m.selected().cloned()) {
+                        self.run_mic_action(action);
+                    }
+                }
+            },
             ClientMsg::DesktopMenuKey(k) if self.win_menu.is_some() => match k {
                 MenuKey::Up => { if let Some((_, m)) = &mut self.win_menu { m.up(); } }
                 MenuKey::Down => { if let Some((_, m)) = &mut self.win_menu { m.down(); } }
@@ -4573,9 +4682,14 @@ or a remote-side error — its authorized_keys was left untouched)",
         }
     }
 
+    /// The tray mic menu's labels while it is open (tests).
+    pub fn mic_menu_labels(&self) -> Option<Vec<String>> {
+        self.mic_menu.as_ref().map(|m| m.items.iter().map(|a| a.label()).collect())
+    }
+
     /// Whether the desktop right-click menu is open (keyboard routing).
     pub fn desktop_menu_open(&self) -> bool {
-        self.desktop.menu_open() || self.win_menu.is_some()
+        self.desktop.menu_open() || self.win_menu.is_some() || self.mic_menu.is_some()
     }
 
     /// `true` when the focused window is an image viewer (keyboard routing).
@@ -5384,6 +5498,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             || self.compat_dialog
             || self.dock_ctx.is_some()
             || self.win_menu.is_some()
+            || self.mic_menu.is_some()
             || self.dirpicker.is_some()
             || self.power_menu.is_open()
             || self.confirm_close.is_open()
@@ -5530,7 +5645,13 @@ or a remote-side error — its authorized_keys was left untouched)",
         // The dock context menu captures the next click: a row applies its
         // action; anywhere else dismisses (consuming the click, like the
         // other transient menus).
-        // The title bar menu captures the next click the same way.
+        // The tray mic menu and the title bar menu capture the next click the same way.
+        if kind == MouseKind::Down && self.mic_menu.is_some() {
+            if let Some(action) = self.mic_menu.take().and_then(|m| m.item_at(p, self.win_menu_bounds()).cloned()) {
+                self.run_mic_action(action);
+            }
+            return;
+        }
         if kind == MouseKind::Down && self.win_menu.is_some() {
             if let Some((id, menu)) = self.win_menu.take() {
                 if let Some(action) = menu.item_at(p, self.win_menu_bounds()).cloned() {
@@ -5696,7 +5817,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 return;
             }
             if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Mic && s.rect.contains(p)) {
-                self.dictate_request = Some("toggle"); // the client owns the provider and the mic
+                self.dictate("toggle");
                 return;
             }
             if segs.iter().any(|s| s.kind == crate::tray::SegmentKind::Cast && s.rect.contains(p)) {
@@ -5949,7 +6070,8 @@ or a remote-side error — its authorized_keys was left untouched)",
                     f.begin_empty_trash();
                 }
             }
-            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow => self.desktop.cancel_overlay(),
+            A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
+            | A::DictationShow | A::DictationToggle | A::DictationMode | A::DictationSettings => self.desktop.cancel_overlay(),
         }
     }
 

@@ -150,6 +150,7 @@ fn main() -> std::io::Result<()> {
         Some("cast") => cast_cmd(&rest),
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
         Some("type") => type_cmd(&rest),
+        Some("dictation-state") => dictation_state_cmd(&rest),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
             // List every theme name (built-ins + file themes).
@@ -234,6 +235,20 @@ fn screensaver_cmd(args: &[String]) -> std::io::Result<()> {
 
 /// Send one control message to the running daemon (used by `tetron-wm launch/tile/
 /// theme/msg` — and by the desktop assistant to drive the UI).
+/// `tetron-wm dictation-state STATE [MODE]`: the tetron-stt TUI reports
+/// idle | loading | listening | finishing (and segment | final) for the tray mic.
+fn dictation_state_cmd(rest: &[String]) -> std::io::Result<()> {
+    let Some(state) = rest.first() else {
+        eprintln!("usage: tetron-wm dictation-state idle|loading|listening|finishing [segment|final]");
+        std::process::exit(2);
+    };
+    let ev = tetron_wm::dictation::DictationEvent::State { state: state.clone(), mode: rest.get(1).cloned() };
+    if !send_control(&tetron_wm::session::ClientMsg::Dictation(ev))? {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
 /// `tetron-wm type [--enter] [TEXT...]`: paste TEXT (or stdin) into the focused
 /// app, then Enter with `--enter`. Silent on success, for dictation programs.
 fn type_cmd(rest: &[String]) -> std::io::Result<()> {

@@ -442,8 +442,9 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (Some("context_menu"), _) => send(&mut out_stream, &ClientMsg::ContextMenuOpen)?,
                             (Some("screensaver"), _) => send(&mut out_stream, &ClientMsg::Screensaver { mode: crate::screensaver::SaverMode::Toggle, effect: None })?,
                             (Some("cast"), _) => send(&mut out_stream, &ClientMsg::CastToggle)?,
-                            (Some("dictate"), _) => crate::dictation::dispatch(&mut provider, &crate::config::Config::load(), "toggle", &forward),
-                            (Some("dictate_mode"), _) => crate::dictation::dispatch(&mut provider, &crate::config::Config::load(), "mode", &forward),
+                            // The session decides: the tetron-stt TUI, or the provider via the frame.
+                            (Some("dictate"), _) => send(&mut out_stream, &ClientMsg::Dictate("toggle".into()))?,
+                            (Some("dictate_mode"), _) => send(&mut out_stream, &ClientMsg::Dictate("mode".into()))?,
                             (Some("screenshot"), _) => send(&mut out_stream, &ClientMsg::Screenshot(String::new()))?,
                             (Some("auto_tile"), _) => send(&mut out_stream, &ClientMsg::ToggleAutoTile)?,
                             (Some("detach"), _) => break,                       // detach (apps persist)

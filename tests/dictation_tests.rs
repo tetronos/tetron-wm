@@ -86,3 +86,38 @@ fn switched_off_dictation_hides_the_mic_ignores_text_and_stops_the_provider() {
     assert!(core.tray_segments_for_test().iter().all(|s| s.kind != SegmentKind::Mic));
     core.shutdown();
 }
+
+#[test]
+fn a_right_click_on_the_tray_mic_opens_its_menu_and_a_click_elsewhere_closes_it() {
+    let mut core = core();
+    let mic = core.tray_segments_for_test().into_iter().find(|s| s.kind == SegmentKind::Mic).expect("the mic segment");
+    core.apply(ClientMsg::MouseRightDown(Point::new(mic.rect.x, 0)));
+    let labels = core.mic_menu_labels().expect("menu open");
+    assert_eq!(labels, ["Show tetron-stt", "Start / stop listening", "Switch mode (segment / final)", "Dictation settings\u{2026}"]);
+    core.apply(ClientMsg::MouseDown(Point::new(1, 20)));
+    assert!(core.mic_menu_labels().is_none(), "a click outside closes it");
+    assert_eq!(core.take_dictate_request(), None, "and does nothing else");
+    core.shutdown();
+}
+
+#[test]
+fn with_a_provider_command_the_dictation_keys_still_go_to_the_client() {
+    let mut core = core();
+    core.apply(ClientMsg::Dictate("mode".into()));
+    assert_eq!(core.take_dictate_request().as_deref(), Some("mode"));
+    core.apply(ClientMsg::Dictate("toggle".into()));
+    assert_eq!(core.take_dictate_request().as_deref(), Some("toggle"));
+    core.shutdown();
+}
+
+#[test]
+fn the_tui_gets_the_dictation_settings_and_start() {
+    let cfg = Config { dictation_mode: "final".into(), dictation_threads: 2, ..Config::default() };
+    assert!(tetron_wm::dictation::uses_tui(&cfg));
+    let a = tetron_wm::dictation::tui_args(&cfg, true);
+    assert_eq!(a[0], "--start");
+    assert!(a.windows(2).any(|w| w == ["--mode", "final"]) && a.windows(2).any(|w| w == ["--threads", "2"]));
+    assert!(!a.iter().any(|x| x == "serve"));
+    assert!(!tetron_wm::dictation::tui_args(&cfg, false).iter().any(|x| x == "--start"));
+    assert!(!tetron_wm::dictation::uses_tui(&Config { dictation_command: "my-provider".into(), ..Config::default() }));
+}
