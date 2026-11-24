@@ -83,6 +83,7 @@ pub const CONFIG_KEYS: &[(&str, &str, &str)] = &[
 pub const ENV_VARS: &[(&str, &str)] = &[
     ("TETRON_WM_THEME", "theme override (wins over config theme)"),
     ("TETRON_WM_THEMES_DIR", "directory of theme files (wins over theme_dir)"),
+    ("TETRON_WM_EXE", "tetron-wm path written to service units, mc.ini, shims and agent configs"),
     ("TETRON_WM_WALLPAPER", "wallpaper path (wins over config wallpaper)"),
     ("TETRON_WM_TRUECOLOR", "1/0 force truecolor on/off (wins over config truecolor)"),
     ("TETRON_WM_COLORS", "mono|16|256|truecolor force the color depth, over the colors setting (default auto: TERM=linux is 16)"),

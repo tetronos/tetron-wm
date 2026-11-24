@@ -19,9 +19,7 @@ pub enum Backend {
 const MAX_BYTES: usize = 1024 * 1024;
 
 fn have(cmd: &str) -> bool {
-    std::env::var_os("PATH")
-        .map(|p| std::env::split_paths(&p).any(|d| d.join(cmd).is_file()))
-        .unwrap_or(false)
+    crate::paths::on_path(cmd)
 }
 
 fn set_env(name: &str) -> bool { std::env::var_os(name).is_some_and(|v| !v.is_empty()) }

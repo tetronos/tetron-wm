@@ -253,9 +253,10 @@ pub struct Settings {
 }
 
 /// "apt package, collection essentials" for Settings > About.
-/// The tetronos-ssh-temp helper (tetronos-base-config) is installed.
+/// The tetronos-ssh-temp helper is installed: on PATH, wherever the system
+/// puts it (WMNIX-004).
 pub fn remote_available() -> bool {
-    std::path::Path::new("/usr/bin/tetronos-ssh-temp").exists()
+    crate::paths::on_path("tetronos-ssh-temp")
 }
 
 /// Remote access is on: the helper writes user=... here while on, and /run is gone at reboot.
@@ -443,6 +444,10 @@ impl Settings {
     /// Settings opened count (the row's count follows).
     fn open_apps_dlg(&mut self) {
         use crate::packaging::{self as pk, Size};
+        // Nix owns the apps on a Nix install: no apt, no suite script (WMNIX-004).
+        if crate::paths::running_from_nix() {
+            return;
+        }
         crate::catalog::refresh_installed();
         let size = pk::installed_size();
         let missing = pk::missing_rows_here(Size::Extras);
@@ -1436,7 +1441,9 @@ impl Settings {
                 self.row(&mut buf, cx, 4, 1, "Update & Reload", String::new());
                 self.row(&mut buf, cx, 5, 2, "Channel", format!("\u{25C2} {} \u{25B8}", self.cfg.update_branch));
                 let sha = &crate::GIT_SHA[..crate::GIT_SHA.len().min(7)];
-                let by = if crate::packaging::running_is_diverted() {
+                let by = if crate::paths::running_from_nix() {
+                    ", by nix"
+                } else if crate::packaging::running_is_diverted() {
                     ", own build"
                 } else if crate::packaging::running_is_packaged() {
                     ", by apt"
@@ -1448,7 +1455,9 @@ impl Settings {
                     let col = if self.update_status.contains("available") { green() } else { pal_dim() };
                     buf.write_str(cx, 8, &self.update_status, col, pal_bg());
                 }
-                if self.cfg.update_branch != "main" && crate::packaging::running_is_packaged() {
+                if crate::paths::running_from_nix() {
+                    buf.write_str(cx, 9, crate::packaging::NIX_UPDATE_MSG, pal_dim(), pal_bg());
+                } else if self.cfg.update_branch != "main" && crate::packaging::running_is_packaged() {
                     buf.write_str(cx, 9, "dev channel: not used on an apt install (use main).", pal_dim(), pal_bg());
                 } else if self.cfg.update_branch != "main" {
                     buf.write_str(cx, 9, "dev channel: builds from source (slower).", pal_dim(), pal_bg());
@@ -1594,6 +1603,9 @@ impl Settings {
 
     /// App Collections value: the installed size and the chosen action.
     fn apps_value(&self) -> String {
+        if crate::paths::running_from_nix() {
+            return "managed by Nix".into();
+        }
         let have = match self.apps_missing.len() {
             0 => self.apps_size.name().to_string(),
             n => format!("{}, {n} missing", self.apps_size.name()),
@@ -1618,8 +1630,13 @@ impl Settings {
     /// Render the App Collections section: one row that opens the dialog.
     fn render_collections(&self, buf: &mut CellBuffer, cx: i32) {
         self.row(buf, cx, 3, 0, "Collections", self.apps_value());
-        buf.write_str(cx, 5, "Install Essentials, Recommended or Extras, or remove a set;", pal_dim(), pal_bg());
-        buf.write_str(cx, 6, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
+        if crate::paths::running_from_nix() {
+            buf.write_str(cx, 5, "tetron-wm is installed by Nix: add apps to the system", pal_dim(), pal_bg());
+            buf.write_str(cx, 6, "configuration or a Nix profile, not with apt.", pal_dim(), pal_bg());
+        } else {
+            buf.write_str(cx, 5, "Install Essentials, Recommended or Extras, or remove a set;", pal_dim(), pal_bg());
+            buf.write_str(cx, 6, "each choice is confirmed first. sudo asks in a window.", pal_dim(), pal_bg());
+        }
         if let Some(v) = crate::catalog::version() {
             buf.write_str(cx, 8, &format!("Catalog {v}"), pal_dim(), pal_bg());
         }

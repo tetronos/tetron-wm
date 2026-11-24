@@ -200,9 +200,7 @@ pub fn note(spec: Option<&str>) -> Option<String> {
 
 /// Is `chafa` (the wallpaper renderer) on `$PATH`?
 fn chafa_installed() -> bool {
-    std::env::var_os("PATH")
-        .map(|p| std::env::split_paths(&p).any(|d| d.join("chafa").is_file()))
-        .unwrap_or(false)
+    crate::paths::on_path("chafa")
 }
 
 /// Write the bundled picture for `theme` to `<data>/tetron-wm/wallpaper-<name>.jpg`

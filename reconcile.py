@@ -161,12 +161,47 @@ def check_suite_deps() -> dict:
     return {"ok": not problems, "problems": problems}
 
 
+# CON-WD10 (WMNIX-008): the fixed /usr, /sbin and dpkg paths non-test code may
+# use, as (file, literal). Everything else finds programs on PATH and data in
+# the XDG data dirs through src/paths.rs.
+FIXED_PATHS_ALLOWED = {
+    ("src/cli_help.rs", "install.sh/updater install dir (default /usr/local/bin)"),  # help text
+    ("src/packaging.rs", "/var/lib/dpkg/info"),  # dpkg support (WMDEB-005, WMINST-005)
+    ("src/packaging.rs", "/var/lib/dpkg/diversions"),  # dpkg support (WMINST-013)
+    ("src/packaging.rs", "/usr/bin/apt-get"),  # apt host check (WMINST-011)
+    ("src/settings.rs", "/usr/bin/apt-get"),  # apt host check (WMINST-011)
+    ("src/packaging.rs", "/usr/sbin"),  # app check: not on a Debian user's PATH
+    ("src/packaging.rs", "/sbin"),  # app check: not on a Debian user's PATH
+    ("src/paths.rs", "/usr/local/share:/usr/share"),  # XDG default (WMDEB-002)
+    ("src/paths.rs", "/usr/lib/kbd/consolefonts"),  # fallback (WMNIX-005)
+    ("src/service.rs", "/usr/lib/systemd/user"),  # packaged unit dir (WMNIX-006)
+    ("src/session.rs", "/usr/local/bin"),  # updater fallback dir (WMDEB-005)
+}
+FIXED_PATH = re.compile(r'(^|[^\w.])/(usr|sbin|var/lib/dpkg)(/|$)')
+STRING_LIT = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+
+def check_fixed_paths() -> dict:
+    """CON-WD10: no fixed /usr, /sbin or dpkg path in non-test code outside the allowlist."""
+    hits = []
+    for p in sorted(Path("src").rglob("*.rs")):
+        for n, line in enumerate(p.read_text().splitlines(), 1):
+            if line.startswith("#[cfg(test)]"):
+                break
+            if line.strip().startswith("//"):
+                continue
+            for m in STRING_LIT.finditer(line):
+                if FIXED_PATH.search(m.group(1)) and (str(p), m.group(1)) not in FIXED_PATHS_ALLOWED:
+                    hits.append(f"{p}:{n}: {m.group(1)[:100]}")
+    return {"count": len(hits), "hits": hits[:20]}
+
+
 def check_example_config() -> dict:
     hits = [str(p) for p in Path("src").rglob("*.rs") if 'include_str!("../config.example.toml")' in p.read_text()]
     return {"compiled_in": bool(hits), "files": hits}
 
 
 if __name__ == "__main__":
-    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config(), "suite_deps": check_suite_deps()}
+    ctx = {"packaging": check_packaging(), "lean_deb": check_lean_deb(), "desktop_deb": check_desktop_deb(), "suite_apps": check_suite_apps(), "planning_notes": check_planning_notes(), "parity": check_parity(), "example_config": check_example_config(), "suite_deps": check_suite_deps(), "fixed_paths": check_fixed_paths()}
     print(json.dumps(ctx, indent=2))
-    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] and ctx["suite_deps"]["ok"] else 1)
+    sys.exit(0 if ctx["packaging"]["valid"] and ctx["lean_deb"]["ok"] and ctx["desktop_deb"]["ok"] and ctx["suite_apps"]["current"] and ctx["planning_notes"]["count"] == 0 and ctx["parity"]["ok"] and ctx["example_config"]["compiled_in"] and ctx["suite_deps"]["ok"] and ctx["fixed_paths"]["count"] == 0 else 1)

@@ -6,6 +6,15 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Added
+- **Runs from a Nix store (NixOS, a Nix profile, home-manager).** Settings > About says "nix"; Update never writes the read-only store and says the system or profile upgrades tetron-wm instead; the Apps dialog stays closed, as Nix owns the apps (WMNIX-001, WMNIX-002, WMNIX-004).
+- **`TETRON_WM_EXE`**: the tetron-wm path written into files used later. Without it, a Nix install writes its profile link (`/run/current-system/sw/bin/tetron-wm` and the like), never the versioned store path, which an upgrade and garbage collection remove (WMNIX-003).
+
+### Fixed
+- **Launcher > Remote Access** finds `tetronos-ssh-temp` on PATH instead of only at `/usr/bin` (WMNIX-004).
+- **Console fonts and font fallbacks** come from the XDG data directories (plus kbd's `.psfu` fonts); the apphost unit installed for every user is also found in `/etc/systemd/user` and the XDG data dirs; the low-space warning knows the NixOS live ISO (WMNIX-005 to WMNIX-007).
+- **No new fixed /usr paths**: reconcile fails on one outside an allowlist (CON-WD10, WMNIX-008); PATH searches share one module (`src/paths.rs`).
+
 ## [0.15.22] — 2026-11-23
 
 ### Fixed

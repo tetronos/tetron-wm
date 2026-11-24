@@ -58,11 +58,21 @@ impl Psf {
         Some(Psf { w, h, row_bytes, glyphs: d[hdr..gend].to_vec(), charsize, map })
     }
 
+    /// Whether `n` names a PSF console font (console-setup: .psf, kbd: .psfu).
+    fn is_psf_name(n: &str) -> bool {
+        [".psf", ".psf.gz", ".psfu", ".psfu.gz"].iter().any(|e| n.ends_with(e))
+    }
+
     /// Load the first usable Terminus console font found on this system.
     pub fn load_system() -> Option<Psf> {
         use std::io::Read;
-        let dir = std::path::Path::new("/usr/share/consolefonts");
-        let mut names: Vec<_> = std::fs::read_dir(dir).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        // Every console font directory (WMNIX-005); the first one that has a
+        // font wins, as kbd and console-setup each ship a full set.
+        let (dir, mut names) = crate::paths::consolefont_dirs().into_iter().find_map(|dir| {
+            let names: Vec<String> = std::fs::read_dir(&dir).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned())
+                .filter(|n| Self::is_psf_name(n)).collect();
+            (!names.is_empty()).then_some((dir, names))
+        })?;
         let rank = |n: &str| -> i32 {
             let mut r = 0;
             if n.contains("Terminus") { r -= 10; }
@@ -71,7 +81,6 @@ impl Psf {
             if n.contains("Bold") { r += 2; }
             r
         };
-        names.retain(|n| n.ends_with(".psf") || n.ends_with(".psf.gz"));
         names.sort_by_key(|n| (rank(n), n.clone()));
         for n in names {
             let Ok(raw) = std::fs::read(dir.join(&n)) else { continue };
