@@ -365,6 +365,8 @@ pub enum ClientMsg {
     FileManagerCloseTab,
     /// File manager: focus the next tab.
     FileManagerNextTab,
+    /// File manager: move keyboard focus between the left pane (places, drives) and the listing.
+    FileManagerFocusPane,
     /// Open the activity-monitor window (or focus it if already open).
     OpenActivity,
     /// ✦ AI: open it, or show / hide it like the menubar button.
@@ -916,6 +918,16 @@ impl SessionCore {
         let n = self.desktop.icons().len();
         crate::log_changed("desktop reload", &n.to_string(), &format!("desktop reload: {n} icons"));
         self.refresh_desktop_thumbnails();
+    }
+
+    /// Files windows: finished drive actions and, once a second, plugged or
+    /// removed drives (the left pane's Drives section).
+    pub fn poll_drives(&mut self) {
+        for c in self.contents.values_mut() {
+            if let WinContent::FileManager(f) = c {
+                f.poll_drives();
+            }
+        }
     }
 
     /// Throttled mtime watch for `~/Desktop`: at most every
@@ -3740,7 +3752,7 @@ or a remote-side error — its authorized_keys was left untouched)",
                 if let Some(f) = self.focused_filemanager_mut() {
                     match f.overlay() {
                         Some(crate::filemanager::Overlay::ConfirmDelete { .. }) => f.confirm_delete(),
-                        Some(crate::filemanager::Overlay::Context { .. }) => f.context_menu_commit(),
+                        Some(crate::filemanager::Overlay::Context { .. }) | Some(crate::filemanager::Overlay::DriveMenu { .. }) => f.context_menu_commit(),
                         _ => f.overlay_commit(),
                     }
                 }
@@ -3766,6 +3778,7 @@ or a remote-side error — its authorized_keys was left untouched)",
             ClientMsg::FileManagerNewTab => { if let Some(f) = self.focused_filemanager_mut() { f.new_tab(); } }
             ClientMsg::FileManagerCloseTab => { if let Some(f) = self.focused_filemanager_mut() { f.close_tab(); } }
             ClientMsg::FileManagerNextTab => { if let Some(f) = self.focused_filemanager_mut() { f.next_tab(); } }
+            ClientMsg::FileManagerFocusPane => { if let Some(f) = self.focused_filemanager_mut() { f.toggle_pane_focus(); } }
             ClientMsg::OpenActivity => self.open_activity(),
             ClientMsg::ToggleAssistant => self.toggle_assistant(),
             ClientMsg::ActivityUp => { if let Some(a) = self.focused_activity_mut() { a.move_up(); } }
@@ -3927,8 +3940,10 @@ or a remote-side error — its authorized_keys was left untouched)",
                                     // Anchor the menu at the exact click point (mirrors the
                                     // desktop's right_click), not the tile origin.
                                     Some(crate::filemanager::Target::Entry(i)) => f.begin_context_at(i, local),
+                                    // A drive in the left pane: Mount, Unmount, Eject, Properties.
+                                    Some(crate::filemanager::Target::Drive(j)) => f.begin_drive_menu(j, local),
                                     // The empty part of the listing: Paste, New Folder, ….
-                                    None if local.x >= crate::filemanager::SIDEBAR_W && local.y >= f.listing_top() => f.begin_background_context(local),
+                                    None if local.x >= f.sidebar_w() && local.y >= f.listing_top() => f.begin_background_context(local),
                                     _ => {}
                                 }
                             }
@@ -6071,7 +6086,8 @@ or a remote-side error — its authorized_keys was left untouched)",
                 }
             }
             A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
-            | A::DictationShow | A::DictationToggle | A::DictationMode | A::DictationSettings => self.desktop.cancel_overlay(),
+            | A::DictationShow | A::DictationToggle | A::DictationMode | A::DictationSettings
+            | A::DriveMountOpen | A::DriveMount | A::DriveUnlockOpen | A::DriveUnmount | A::DriveEject | A::DriveProperties => self.desktop.cancel_overlay(),
         }
     }
 

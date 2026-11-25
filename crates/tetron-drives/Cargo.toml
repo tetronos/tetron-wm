@@ -1,0 +1,11 @@
+[package]
+name = "tetron-drives"
+version = "0.15.0"
+edition = "2021"
+rust-version = "1.95"
+license = "MIT"
+description = "Drive discovery (lsblk) and mount, unmount, unlock and eject (udisksctl) for the tetron-wm Files app"
+publish = false
+
+[dependencies]
+serde_json = "1.0.150"

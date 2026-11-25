@@ -3408,6 +3408,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "tetron-drives"
+version = "0.15.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "tetron-proto"
 version = "0.15.6"
 source = "git+https://github.com/tetronos/tetron?tag=v0.15.6#adecd8a48497993724f2461f5d0b066e308a00c1"
@@ -3445,6 +3452,7 @@ dependencies = [
  "serde_json",
  "sysinfo",
  "tetron-catalog",
+ "tetron-drives",
  "tetron-proto",
  "toml",
  "toml_edit",

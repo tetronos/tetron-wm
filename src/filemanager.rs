@@ -51,6 +51,36 @@ pub enum Overlay {
     Context { idx: usize, menu: crate::contextmenu::ContextMenu },
     Error { message: String },
     GetInfo { idx: usize },
+    /// The menu of a drive in the left pane (by device, e.g. /dev/sdb1).
+    DriveMenu { dev: String, menu: crate::contextmenu::ContextMenu },
+    /// A drive's properties.
+    DriveInfo { dev: String },
+    /// The passphrase of a locked encrypted drive (shown masked).
+    Passphrase { dev: String, text: String },
+}
+
+/// What a drive action in the background does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DriveJob {
+    Mount { open: bool },
+    Unmount,
+    Eject,
+    Unlock,
+}
+
+/// A finished drive action, sent back from its thread.
+struct DriveDone {
+    title: String,
+    job: DriveJob,
+    result: Result<Option<PathBuf>, tetron_drives::Error>,
+}
+
+/// A row of the left pane.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PaneRow {
+    Place(usize),
+    Header,
+    Drive(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -117,6 +147,16 @@ pub struct FileManager<F: FsOps = StdFs> {
     /// it every frame; the cache keeps a PDF preview from running pdftotext (and
     /// a text preview from reading the file) once per frame.
     preview_cache: std::cell::RefCell<Option<Box<PreviewKey>>>,
+    /// Drives in the left pane (local folders only; empty hides the section).
+    drives: Vec<tetron_drives::Drive>,
+    drive_watch: Option<tetron_drives::Watcher>,
+    drive_checked: Option<std::time::Instant>,
+    /// The drive action running in the background: its device and result channel.
+    drive_job: Option<(String, std::sync::mpsc::Receiver<DriveDone>)>,
+    /// Keyboard focus is on the left pane (Tab), at `pane_cursor`
+    /// (places first, then drives).
+    pane_focus: bool,
+    pane_cursor: usize,
 }
 
 /// A cached preview: path, size, mtime, line budget, body.
@@ -162,6 +202,12 @@ impl<F: FsOps> FileManager<F> {
             cols_per_row: std::cell::Cell::new(1),
             vis_rows: std::cell::Cell::new(1),
             preview_cache: std::cell::RefCell::new(None),
+            drives: Vec::new(),
+            drive_watch: None,
+            drive_checked: None,
+            drive_job: None,
+            pane_focus: false,
+            pane_cursor: 0,
         };
         me.reload();
         me
@@ -178,7 +224,7 @@ impl<F: FsOps> FileManager<F> {
     pub fn set_status(&mut self, s: String) { self.status = s; }
     pub fn overlay(&self) -> Option<&Overlay> { self.overlay.as_ref() }
     pub fn is_editing(&self) -> bool {
-        matches!(self.overlay, Some(Overlay::NewFolder { .. }) | Some(Overlay::Rename { .. }))
+        matches!(self.overlay, Some(Overlay::NewFolder { .. }) | Some(Overlay::Rename { .. }) | Some(Overlay::Passphrase { .. }))
     }
     pub fn selection_indices(&self) -> Vec<usize> { self.tab().selection.iter().copied().collect() }
 
@@ -331,8 +377,8 @@ impl<F: FsOps> FileManager<F> {
             return Vec::new();
         }
         let top = self.content_top();
-        let area_x = SIDEBAR_W;
-        let area_w = (content.w - SIDEBAR_W - self.preview_reserve(content.w)).max(1);
+        let area_x = self.sidebar_w();
+        let area_w = (content.w - area_x - self.preview_reserve(content.w)).max(1);
         let cols = icon_cols(area_w);
         let visible_rows = icon_visible_rows(top, content.h);
         let off = self.scroll_rows();
@@ -364,6 +410,10 @@ impl<F: FsOps> FileManager<F> {
     /// Move the cursor by (dx tiles, dy rows). In List view any nonzero delta is
     /// collapsed to a single ±1 step.
     pub fn move_cursor(&mut self, dx: i32, dy: i32) {
+        if self.pane_focus && !self.dialog_open() {
+            self.pane_move(dy);
+            return;
+        }
         if self.tab().entries.is_empty() || self.dialog_open() { return; }
         let n = self.tab().entries.len() as i32;
         let cur = self.tab().cursor as i32;
@@ -465,6 +515,10 @@ impl<F: FsOps> FileManager<F> {
             self.dialog_commit();
             return;
         }
+        if self.pane_focus {
+            self.pane_activate();
+            return;
+        }
         let cursor = self.tab().cursor;
         let Some(entry) = self.tab().entries.get(cursor) else { return; };
         let path = entry.path.clone();
@@ -535,6 +589,13 @@ impl<F: FsOps> FileManager<F> {
     /// Open the context menu for the focused entry (keyboard-invoked),
     /// anchored at its tile/row so it appears right where the entry is.
     pub fn begin_context(&mut self) {
+        if self.pane_focus {
+            if let Some(PaneRow::Drive(j)) = self.pane_selected() {
+                let at = self.drive_anchor(j);
+                self.begin_drive_menu(j, at);
+            }
+            return;
+        }
         let idx = self.tab().cursor;
         if idx >= self.tab().entries.len() {
             return;
@@ -595,10 +656,10 @@ impl<F: FsOps> FileManager<F> {
         let off = self.scroll_rows();
         match t.view {
             // Just below the row, so the entry stays visible above the menu.
-            ViewMode::List | ViewMode::Columns => Point::new(SIDEBAR_W, top + idx as i32 - off + 1),
+            ViewMode::List | ViewMode::Columns => Point::new(self.sidebar_w(), top + idx as i32 - off + 1),
             ViewMode::Icon => {
                 let cols = self.cols_per_row.get().max(1);
-                let tile = icon_tile_rect(SIDEBAR_W, top - off * TILE_H, cols, idx);
+                let tile = icon_tile_rect(self.sidebar_w(), top - off * TILE_H, cols, idx);
                 Point::new(tile.x, tile.y)
             }
         }
@@ -606,36 +667,51 @@ impl<F: FsOps> FileManager<F> {
 
     /// Whether the context menu overlay is open.
     pub fn context_menu_open(&self) -> bool {
-        matches!(self.overlay, Some(Overlay::Context { .. }))
+        matches!(self.overlay, Some(Overlay::Context { .. }) | Some(Overlay::DriveMenu { .. }))
+    }
+
+    fn menu_mut(&mut self) -> Option<&mut crate::contextmenu::ContextMenu> {
+        match &mut self.overlay {
+            Some(Overlay::Context { menu, .. }) | Some(Overlay::DriveMenu { menu, .. }) => Some(menu),
+            _ => None,
+        }
     }
 
     /// Move the context-menu highlight up (wrapping).
     pub fn context_menu_up(&mut self) {
-        if let Some(Overlay::Context { menu, .. }) = &mut self.overlay {
+        if let Some(menu) = self.menu_mut() {
             menu.up();
         }
     }
 
     /// Move the context-menu highlight down (wrapping).
     pub fn context_menu_down(&mut self) {
-        if let Some(Overlay::Context { menu, .. }) = &mut self.overlay {
+        if let Some(menu) = self.menu_mut() {
             menu.down();
         }
     }
 
     /// Highlight the menu row under the content-local point `p` (mouse hover).
     pub fn context_menu_hover(&mut self, p: Point, w: i32, h: i32) {
-        if let Some(Overlay::Context { menu, .. }) = &mut self.overlay {
+        if let Some(menu) = self.menu_mut() {
             menu.hover(p, crate::geometry::Rect::new(0, 0, w, h));
         }
     }
 
     /// Perform the highlighted context-menu action.
     pub fn context_menu_commit(&mut self) {
-        if let Some(Overlay::Context { idx, menu }) = self.overlay.take() {
-            if let Some(action) = menu.selected().cloned() {
-                self.run_context_action(idx, menu, action);
+        match self.overlay.take() {
+            Some(Overlay::Context { idx, menu }) => {
+                if let Some(action) = menu.selected().cloned() {
+                    self.run_context_action(idx, menu, action);
+                }
             }
+            Some(Overlay::DriveMenu { dev, menu }) => {
+                if let Some(action) = menu.selected().cloned() {
+                    self.run_drive_action(&dev, action);
+                }
+            }
+            other => self.overlay = other,
         }
     }
 
@@ -645,13 +721,25 @@ impl<F: FsOps> FileManager<F> {
     /// or `false` when no menu is open (so the caller falls back to normal
     /// FM click handling).
     pub fn context_menu_click(&mut self, p: Point, w: i32, h: i32) -> bool {
-        let Some(Overlay::Context { idx, menu }) = self.overlay.take() else {
-            return false;
-        };
-        if let Some(action) = menu.item_at(p, crate::geometry::Rect::new(0, 0, w, h)).cloned() {
-            self.run_context_action(idx, menu, action);
+        let bounds = crate::geometry::Rect::new(0, 0, w, h);
+        match self.overlay.take() {
+            Some(Overlay::Context { idx, menu }) => {
+                if let Some(action) = menu.item_at(p, bounds).cloned() {
+                    self.run_context_action(idx, menu, action);
+                }
+                true
+            }
+            Some(Overlay::DriveMenu { dev, menu }) => {
+                if let Some(action) = menu.item_at(p, bounds).cloned() {
+                    self.run_drive_action(&dev, action);
+                }
+                true
+            }
+            other => {
+                self.overlay = other;
+                false
+            }
         }
-        true
     }
 
     /// Dispatch a context-menu action, reusing the FM's existing operations.
@@ -719,7 +807,8 @@ impl<F: FsOps> FileManager<F> {
             A::NewFolder => self.begin_new_folder(),
             A::Unpin | A::CleanUp => {}
             A::Minimize | A::Maximize | A::MoveWindow | A::RenameWindow | A::CloseWindow
-            | A::DictationShow | A::DictationToggle | A::DictationMode | A::DictationSettings => {}
+            | A::DictationShow | A::DictationToggle | A::DictationMode | A::DictationSettings
+            | A::DriveMountOpen | A::DriveMount | A::DriveUnlockOpen | A::DriveUnmount | A::DriveEject | A::DriveProperties => {}
         }
     }
 
@@ -731,14 +820,14 @@ impl<F: FsOps> FileManager<F> {
 
     pub fn overlay_char(&mut self, c: char) {
         match &mut self.overlay {
-            Some(Overlay::NewFolder { name }) | Some(Overlay::Rename { name, .. }) => name.push(c),
+            Some(Overlay::NewFolder { name }) | Some(Overlay::Rename { name, .. }) | Some(Overlay::Passphrase { text: name, .. }) => name.push(c),
             _ => {}
         }
     }
 
     pub fn overlay_backspace(&mut self) {
         match &mut self.overlay {
-            Some(Overlay::NewFolder { name }) | Some(Overlay::Rename { name, .. }) => { name.pop(); }
+            Some(Overlay::NewFolder { name }) | Some(Overlay::Rename { name, .. }) | Some(Overlay::Passphrase { text: name, .. }) => { name.pop(); }
             _ => {}
         }
     }
@@ -761,6 +850,9 @@ impl<F: FsOps> FileManager<F> {
                     }
                 }
                 self.reload();
+            }
+            Some(Overlay::Passphrase { dev, text }) if !text.is_empty() => {
+                self.start_drive_job(&dev, DriveJob::Unlock, Some(text));
             }
             _ => {}
         }
@@ -827,7 +919,7 @@ impl<F: FsOps> FileManager<F> {
     /// A dialog without a text field is open (trash confirmation, error, info):
     /// Enter and clicks answer it instead of reaching the listing.
     pub fn dialog_open(&self) -> bool {
-        matches!(self.overlay, Some(Overlay::ConfirmDelete { .. }) | Some(Overlay::Error { .. }) | Some(Overlay::GetInfo { .. }))
+        matches!(self.overlay, Some(Overlay::ConfirmDelete { .. }) | Some(Overlay::Error { .. }) | Some(Overlay::GetInfo { .. }) | Some(Overlay::DriveInfo { .. }))
     }
 
     /// Enter on a dialog: trash for the confirmation, close for the others.
@@ -980,6 +1072,8 @@ fn pal_sel() -> Rgba { crate::theme::current().active_bg }
 fn pal_accent() -> Rgba { crate::theme::current().accent }
 
 pub const SIDEBAR_W: i32 = 16; // left shortcuts column
+/// The left pane is wider when it lists drives (name, size, eject mark).
+pub const SIDEBAR_W_DRIVES: i32 = 20;
 /// Width of the dot files toolbar button ([.:off]).
 const HIDDEN_BTN_W: i32 = 7;
 const TOOLBAR_Y: i32 = 0;  // breadcrumb/toolbar row
@@ -1031,6 +1125,8 @@ fn icon_image_rect(tile: crate::geometry::Rect) -> crate::geometry::Rect {
 pub enum Target {
     Entry(usize),
     Sidebar(usize),
+    /// A drive in the left pane (index into [`FileManager::drives`]).
+    Drive(usize),
     Back,
     Forward,
     Up,
@@ -1116,15 +1212,13 @@ impl<F: FsOps> FileManager<F> {
             }
         }
 
-        // Sidebar.
-        for (i, (label, _)) in self.sidebar().iter().enumerate() {
-            buf.write_str(0, top + i as i32, label, pal_dim(), pal_bg());
-        }
+        // Left pane: places, then the drives.
+        self.render_pane(&mut buf, top, h);
 
-        let area_x = SIDEBAR_W;
+        let area_x = self.sidebar_w();
         let preview_w = self.preview_reserve(w);
         let area_right = (w - preview_w).max(area_x + 1);
-        let area_w = (area_right - SIDEBAR_W).max(1);
+        let area_w = (area_right - area_x).max(1);
 
         // Cache the view's visible entry-row count so navigation (`move_cursor`)
         // can keep the cursor on screen via the `scroll` offset.
@@ -1293,15 +1387,17 @@ impl<F: FsOps> FileManager<F> {
                 _ => None,
             };
         }
-        if p.x < SIDEBAR_W && p.y >= top {
-            let i = (p.y - top) as usize;
-            if i < self.sidebar().len() { return Some(Target::Sidebar(i)); }
-            return None;
+        if p.x < self.sidebar_w() && p.y >= top {
+            return match self.pane_rows().into_iter().find(|(dy, _)| top + dy == p.y).map(|(_, r)| r) {
+                Some(PaneRow::Place(i)) => Some(Target::Sidebar(i)),
+                Some(PaneRow::Drive(j)) => Some(Target::Drive(j)),
+                _ => None,
+            };
         }
         // Entry area.
-        let area_x = SIDEBAR_W;
+        let area_x = self.sidebar_w();
         let area_right = (w - self.preview_reserve(w)).max(area_x + 1);
-        let area_w = (area_right - SIDEBAR_W).max(1);
+        let area_w = (area_right - area_x).max(1);
         // Scrolled rows shift which entry sits under a given screen row; add the
         // offset so clicks hit the same entry the render drew (shared geometry).
         let off = self.scroll_rows();
@@ -1347,9 +1443,15 @@ impl<F: FsOps> FileManager<F> {
             Some(Target::ToggleView) => { self.cycle_view(); true }
             Some(Target::ToggleHidden) => { self.toggle_hidden(); true }
             Some(Target::Sidebar(i)) => {
+                self.pane_cursor = i;
                 if let Some((_, path)) = self.sidebar().get(i) {
                     if path.is_dir() { self.navigate_to(path.clone()); }
                 }
+                true
+            }
+            Some(Target::Drive(j)) => {
+                self.pane_cursor = self.sidebar().len() + j;
+                self.activate_drive(j);
                 true
             }
             Some(Target::Crumb(_)) | None => false,
@@ -1396,6 +1498,20 @@ impl<F: FsOps> FileManager<F> {
             Overlay::Error { message } => {
                 self.draw_box(buf, w, h, "Error", std::slice::from_ref(message));
             }
+            Overlay::DriveMenu { menu, .. } => {
+                menu.render(buf, crate::geometry::Rect::new(0, 0, w, h));
+            }
+            Overlay::DriveInfo { dev } => {
+                let Some(d) = self.drive_by_dev(dev) else { return; };
+                let mut lines = drive_info_lines(d);
+                lines.push("[Esc] close".into());
+                self.draw_box(buf, w, h, d.title(), &lines);
+            }
+            Overlay::Passphrase { dev, text } => {
+                let title = self.drive_by_dev(dev).map_or(dev.as_str(), |d| d.title());
+                let lines = [format!("Passphrase: {}\u{2588}", "\u{2022}".repeat(text.chars().count())), "[Enter] unlock  [Esc] cancel".into()];
+                self.draw_box(buf, w, h, &format!("Unlock {title}"), &lines);
+            }
             Overlay::GetInfo { idx } => {
                 let Some(e) = self.tab().entries.get(*idx) else { return; };
                 let mut lines = vec![format!("Name: {}", e.name)];
@@ -1430,6 +1546,344 @@ impl<F: FsOps> FileManager<F> {
         buf.write_str(bx + 2, by, title, pal_accent(), pal_sel());
         for (i, line) in lines.iter().enumerate() {
             buf.write_str(bx + 2, by + 2 + i as i32, line, pal_fg(), pal_sel());
+        }
+    }
+}
+
+/// The Properties box of a drive.
+fn drive_info_lines(d: &tetron_drives::Drive) -> Vec<String> {
+    let mut v = vec![format!("Device: {}", d.dev)];
+    if let Some(m) = &d.model {
+        v.push(format!("Disk: {} ({})", m, d.disk));
+    } else {
+        v.push(format!("Disk: {}", d.disk));
+    }
+    v.push(format!("Size: {} ({} bytes)", tetron_drives::human_size(d.size), d.size));
+    v.push(format!("Filesystem: {}", d.fstype.as_deref().unwrap_or("unknown")));
+    if let Some(l) = &d.label {
+        v.push(format!("Label: {l}"));
+    }
+    if let Some(u) = &d.uuid {
+        v.push(format!("UUID: {u}"));
+    }
+    if let Some(b) = &d.bus {
+        v.push(format!("Connected by: {b}{}", if d.removable { ", removable" } else { "" }));
+    }
+    v.push(match (&d.mountpoint, d.locked) {
+        (_, true) => "Encrypted, locked".into(),
+        (Some(m), _) => format!("Mounted at: {}", m.display()),
+        (None, _) => "Not mounted".into(),
+    });
+    v
+}
+
+impl<F: FsOps> FileManager<F> {
+    // ---- drives in the left pane -------------------------------------------
+
+    /// The drives the left pane lists.
+    pub fn drives(&self) -> &[tetron_drives::Drive] { &self.drives }
+
+    /// Replace the listed drives (the poll below, and tests).
+    pub fn set_drives(&mut self, drives: Vec<tetron_drives::Drive>) {
+        self.drives = drives;
+        let n = self.pane_len();
+        self.pane_cursor = self.pane_cursor.min(n.saturating_sub(1));
+    }
+
+    fn drive_by_dev(&self, dev: &str) -> Option<&tetron_drives::Drive> {
+        self.drives.iter().find(|d| d.dev == dev)
+    }
+
+    /// Width of the left pane: wider when it lists drives.
+    pub fn sidebar_w(&self) -> i32 {
+        if self.drives.is_empty() { SIDEBAR_W } else { SIDEBAR_W_DRIVES }
+    }
+
+    pub fn pane_focused(&self) -> bool { self.pane_focus }
+
+    /// Tab: keyboard focus moves between the left pane and the listing.
+    pub fn toggle_pane_focus(&mut self) {
+        if self.overlay.is_some() {
+            return;
+        }
+        self.pane_focus = !self.pane_focus;
+    }
+
+    /// Selectable rows: the places, then the drives.
+    fn pane_len(&self) -> usize { self.sidebar().len() + self.drives.len() }
+
+    /// Every row of the pane with its offset below the listing top.
+    fn pane_rows(&self) -> Vec<(i32, PaneRow)> {
+        let n = self.sidebar().len();
+        let mut v: Vec<(i32, PaneRow)> = (0..n).map(|i| (i as i32, PaneRow::Place(i))).collect();
+        if !self.drives.is_empty() {
+            v.push((n as i32 + 1, PaneRow::Header));
+            v.extend((0..self.drives.len()).map(|j| ((n + 2 + j) as i32, PaneRow::Drive(j))));
+        }
+        v
+    }
+
+    fn pane_selected(&self) -> Option<PaneRow> {
+        let n = self.sidebar().len();
+        if self.pane_cursor < n {
+            Some(PaneRow::Place(self.pane_cursor))
+        } else if self.pane_cursor - n < self.drives.len() {
+            Some(PaneRow::Drive(self.pane_cursor - n))
+        } else {
+            None
+        }
+    }
+
+    fn pane_move(&mut self, dy: i32) {
+        let n = self.pane_len() as i32;
+        if n > 0 {
+            self.pane_cursor = (self.pane_cursor as i32 + dy.signum()).clamp(0, n - 1) as usize;
+        }
+    }
+
+    /// Enter in the pane: a place opens; a drive opens or offers to mount.
+    fn pane_activate(&mut self) {
+        match self.pane_selected() {
+            Some(PaneRow::Place(i)) => {
+                if let Some((_, path)) = self.sidebar().get(i).cloned() {
+                    if path.is_dir() {
+                        self.navigate_to(path);
+                        self.pane_focus = false;
+                    }
+                }
+            }
+            Some(PaneRow::Drive(j)) => self.activate_drive(j),
+            _ => {}
+        }
+    }
+
+    /// A mounted drive opens; any other offers its menu (Mount and open, …).
+    pub fn activate_drive(&mut self, j: usize) {
+        let Some(d) = self.drives.get(j) else { return };
+        match d.mountpoint.clone() {
+            Some(mp) if mp.is_dir() => {
+                self.navigate_to(mp);
+                self.pane_focus = false;
+            }
+            _ => {
+                let at = self.drive_anchor(j);
+                self.begin_drive_menu(j, at);
+            }
+        }
+    }
+
+    /// The content-local point under drive row `j`, for a keyboard-opened menu.
+    fn drive_anchor(&self, j: usize) -> Point {
+        let dy = self.pane_rows().into_iter().find(|(_, r)| *r == PaneRow::Drive(j)).map_or(0, |(dy, _)| dy);
+        Point::new(1, self.content_top() + dy + 1)
+    }
+
+    /// The menu of drive `j` at `at`.
+    pub fn begin_drive_menu(&mut self, j: usize, at: Point) {
+        use crate::contextmenu::MenuAction as A;
+        let Some(d) = self.drives.get(j) else { return };
+        self.pane_cursor = self.sidebar().len() + j;
+        let mut items = if d.locked {
+            vec![A::DriveUnlockOpen]
+        } else if d.mounted() {
+            vec![A::Open, A::DriveUnmount]
+        } else {
+            vec![A::DriveMountOpen, A::DriveMount]
+        };
+        if d.removable {
+            items.push(A::DriveEject);
+        }
+        if d.mounted() {
+            items.push(A::CopyPath);
+        }
+        items.push(A::DriveProperties);
+        self.overlay = Some(Overlay::DriveMenu { dev: d.dev.clone(), menu: crate::contextmenu::ContextMenu::new(at, items) });
+    }
+
+    fn run_drive_action(&mut self, dev: &str, action: crate::contextmenu::MenuAction) {
+        use crate::contextmenu::MenuAction as A;
+        let Some(d) = self.drive_by_dev(dev).cloned() else { return };
+        match action {
+            A::Open => {
+                if let Some(mp) = d.mountpoint.filter(|m| m.is_dir()) {
+                    self.navigate_to(mp);
+                    self.pane_focus = false;
+                }
+            }
+            A::DriveMountOpen => self.start_drive_job(dev, DriveJob::Mount { open: true }, None),
+            A::DriveMount => self.start_drive_job(dev, DriveJob::Mount { open: false }, None),
+            A::DriveUnlockOpen => self.overlay = Some(Overlay::Passphrase { dev: dev.to_string(), text: String::new() }),
+            A::DriveUnmount => {
+                if let Some(mp) = &d.mountpoint {
+                    self.leave(mp);
+                }
+                self.start_drive_job(dev, DriveJob::Unmount, None);
+            }
+            A::DriveEject => {
+                let mounts: Vec<PathBuf> = self.drives.iter().filter(|x| x.disk == d.disk).filter_map(|x| x.mountpoint.clone()).collect();
+                for mp in mounts {
+                    self.leave(&mp);
+                }
+                self.start_drive_job(dev, DriveJob::Eject, None);
+            }
+            A::CopyPath => self.action = d.mountpoint.map(FileManagerAction::CopyPath),
+            A::DriveProperties => self.overlay = Some(Overlay::DriveInfo { dev: dev.to_string() }),
+            _ => {}
+        }
+    }
+
+    /// Tabs showing a folder under `at` move to Home, so Files does not keep
+    /// the filesystem busy while it is unmounted.
+    fn leave(&mut self, at: &Path) {
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+        for i in 0..self.tabs.len() {
+            if self.tabs[i].cwd.starts_with(at) {
+                let show = self.tabs[i].show_hidden;
+                let t = &mut self.tabs[i];
+                t.cwd = home.clone();
+                t.history = vec![home.clone()];
+                t.hpos = 0;
+                t.cursor = 0;
+                t.scroll = 0;
+                t.selection.clear();
+                t.thumbs.clear();
+                t.entries = self.fs.list(&home, show).unwrap_or_default();
+            }
+        }
+    }
+
+    /// Run a drive action on a thread (udisksctl can take seconds); `poll_drives` picks up the result.
+    fn start_drive_job(&mut self, dev: &str, job: DriveJob, passphrase: Option<String>) {
+        if let Some((busy, _)) = &self.drive_job {
+            self.status = format!("Wait: {busy} is still busy");
+            return;
+        }
+        let Some(d) = self.drive_by_dev(dev).cloned() else { return };
+        let all = self.drives.clone();
+        let title = d.title().to_string();
+        self.status = format!(
+            "{} {title}\u{2026}",
+            match job {
+                DriveJob::Mount { .. } => "Mounting",
+                DriveJob::Unmount => "Unmounting",
+                DriveJob::Eject => "Ejecting",
+                DriveJob::Unlock => "Unlocking",
+            }
+        );
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.drive_job = Some((dev.to_string(), rx));
+        std::thread::spawn(move || {
+            let result = match job {
+                DriveJob::Mount { .. } => tetron_drives::mount(&d.dev).map(Some),
+                DriveJob::Unmount => tetron_drives::unmount(&d).map(|_| None),
+                DriveJob::Eject => tetron_drives::eject(&d, &all).map(|_| None),
+                DriveJob::Unlock => {
+                    let pass = passphrase.unwrap_or_default();
+                    tetron_drives::unlock(&d.dev, &pass).and_then(|clear| tetron_drives::mount(&clear)).map(Some)
+                }
+            };
+            let _ = tx.send(DriveDone { title, job, result });
+        });
+    }
+
+    /// Called every tick by the session: picks up a finished drive action and,
+    /// at most once a second, re-lists the drives when they changed. Local
+    /// folders only. Returns true when something changed.
+    pub fn poll_drives(&mut self) -> bool {
+        if !self.fs.is_local() {
+            return false;
+        }
+        let mut changed = false;
+        if let Some((_, rx)) = &self.drive_job {
+            match rx.try_recv() {
+                Ok(done) => {
+                    self.drive_job = None;
+                    self.drive_done(done);
+                    self.set_drives(tetron_drives::list());
+                    changed = true;
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.drive_job = None;
+                    changed = true;
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            }
+        }
+        if self.drive_checked.is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(1)) {
+            return changed;
+        }
+        self.drive_checked = Some(std::time::Instant::now());
+        if self.drive_watch.get_or_insert_with(tetron_drives::Watcher::new).changed() {
+            self.set_drives(tetron_drives::list());
+            changed = true;
+        }
+        changed
+    }
+
+    fn drive_done(&mut self, done: DriveDone) {
+        let t = &done.title;
+        match (done.job, done.result) {
+            (DriveJob::Mount { open: true } | DriveJob::Unlock, Ok(Some(mp))) => {
+                if mp.is_dir() {
+                    self.navigate_to(mp.clone());
+                    self.pane_focus = false;
+                }
+                // After navigate_to: its reload clears the status line.
+                self.status = format!("Mounted {t} at {}", mp.display());
+            }
+            (_, Ok(Some(mp))) => self.status = format!("Mounted {t} at {}", mp.display()),
+            (DriveJob::Eject, Ok(None)) => self.status = format!("Ejected {t}: safe to unplug"),
+            (_, Ok(None)) => self.status = format!("Unmounted {t}"),
+            (job, Err(e)) => {
+                let what = match job {
+                    DriveJob::Mount { .. } => "Can not mount",
+                    DriveJob::Unmount => "Can not unmount",
+                    DriveJob::Eject => "Can not eject",
+                    DriveJob::Unlock => "Can not unlock",
+                };
+                self.status.clear();
+                self.overlay = Some(Overlay::Error { message: format!("{what} {t}: {e}") });
+            }
+        }
+    }
+
+    /// The text of drive row `j`, `w` cells wide: name, size (or "locked"), mark.
+    fn drive_row(&self, d: &tetron_drives::Drive, w: usize) -> String {
+        let busy = self.drive_job.as_ref().is_some_and(|(dev, _)| *dev == d.dev);
+        let right = if d.locked { "locked".to_string() } else { tetron_drives::human_size(d.size) };
+        let mark = if busy { '\u{2026}' } else if d.mounted() && d.removable { '\u{25B2}' } else { ' ' };
+        let nw = w.saturating_sub(right.chars().count() + 3);
+        let name: String = d.title().chars().take(nw).collect();
+        format!(" {name:<nw$} {right}{mark}")
+    }
+
+    fn render_pane(&self, buf: &mut CellBuffer, top: i32, h: i32) {
+        let w = (self.sidebar_w() - 1).max(1) as usize;
+        let places = self.sidebar();
+        for (dy, row) in self.pane_rows() {
+            let y = top + dy;
+            if y >= h - 1 {
+                break;
+            }
+            let (text, fg) = match row {
+                PaneRow::Place(i) => (places[i].0.clone(), pal_dim()),
+                PaneRow::Header => ("Drives".to_string(), pal_accent()),
+                PaneRow::Drive(j) => {
+                    let d = &self.drives[j];
+                    (self.drive_row(d, w), if d.mounted() { pal_fg() } else { pal_dim() })
+                }
+            };
+            let cursor = match row {
+                PaneRow::Place(i) => i,
+                PaneRow::Drive(j) => places.len() + j,
+                PaneRow::Header => usize::MAX,
+            };
+            let text: String = text.chars().take(w).collect();
+            if self.pane_focus && cursor == self.pane_cursor {
+                buf.write_str(0, y, &format!("{text:<w$}"), pal_accent(), pal_sel());
+            } else {
+                buf.write_str(0, y, &text, fg, pal_bg());
+            }
         }
     }
 }

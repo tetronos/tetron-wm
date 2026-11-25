@@ -466,6 +466,7 @@ fn serve_client_inner(
         core.tick_screensaver();
         core.refresh_activity();
         core.poll_desktop_dir();
+        core.poll_drives();
         // A colour-depth change re-quantizes every cell, not just the ones the
         // diff sees: re-baseline like an attach.
         if core.take_repaint() {
