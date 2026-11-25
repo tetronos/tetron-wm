@@ -6,6 +6,8 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+## [0.15.25] — 2026-11-24
+
 ### Added
 - Files: a **Drives** section in the left pane lists USB sticks, SD cards and internal drives (not mounted ones dimmed, the system's own partitions hidden), updated within a second when a drive is plugged in or removed. Nothing mounts by itself: a click (or Enter) on a drive that is not mounted offers Mount and open, Mount, Eject, Properties; a mounted drive opens. Right-click: Open, Unmount, Eject (unmount, then power off: safe to unplug), Copy path, Properties. An encrypted (LUKS) drive asks for its passphrase. A drive in use names the programs holding it. Uses udisks2 (`udisksctl`), no sudo on TetronOS (tetronos-storage).
 - **`tetron-wm drives [mount|unmount|eject|unlock DEV]`**: the same list and actions from the shell.
