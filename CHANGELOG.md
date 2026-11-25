@@ -6,6 +6,9 @@ carry user-visible feature work and the occasional breaking config change.
 
 ## [Unreleased]
 
+### Changed
+- Launcher: **Files** is a top-level entry right under Shell (one click opens the file manager).
+
 ## [0.15.24] — 2026-11-24
 
 ### Added

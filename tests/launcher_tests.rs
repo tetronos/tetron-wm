@@ -50,7 +50,7 @@ fn navigation_and_selection() {
     l.toggle_menu();
     // Root: a "Shell" quick-launch, "All", the single "Apps" category, then a
     // separator and the system section.
-    assert_eq!(l.menu_labels(), vec!["Shell", "All", "Apps", "", "Remote access", "", "Detach", "Reload", "Quit"]);
+    assert_eq!(l.menu_labels(), vec!["Shell", "Files", "All", "Apps", "", "Remote access", "", "Detach", "Reload", "Quit"]);
     // Select "Apps" (after the Shell quick-launch and All) and descend into it.
     l.move_down();
     l.move_down();
@@ -68,11 +68,12 @@ fn menu_render_exposes_clickable_items() {
     let mut l = launcher();
     l.toggle_menu();
     l.move_down();
-    l.move_down(); // select "Apps" (after Shell and All) so it auto-expands
+    l.move_down();
+    l.move_down(); // select "Apps" (after Shell, Files and All) so it auto-expands
     let r = l.render(120, 40);
-    // Root leaves: Shell + the 3 system actions (Detach/Reload/Quit), plus the 4
-    // auto-expanded "Apps" leaves = 8.
-    assert_eq!(r.items.len(), 8);
+    // Root leaves: Shell, Files + the 3 system actions (Detach/Reload/Quit), plus the 4
+    // auto-expanded "Apps" leaves = 9.
+    assert_eq!(r.items.len(), 9);
     assert!(!r.layers.is_empty());
 }
 
@@ -83,8 +84,9 @@ fn categories_group_with_headers() {
     l.toggle_menu();
     // Root: the "Shell" quick-launch, "All", categories sorted (Git, System), then
     // a separator and the system section.
-    assert_eq!(l.menu_labels(), vec!["Shell", "All", "Git", "System", "", "Remote access", "", "Detach", "Reload", "Quit"]);
-    // Select Git (after Shell and All) and descend → its single leaf (lazygit).
+    assert_eq!(l.menu_labels(), vec!["Shell", "Files", "All", "Git", "System", "", "Remote access", "", "Detach", "Reload", "Quit"]);
+    // Select Git (after Shell, Files and All) and descend → its single leaf (lazygit).
+    l.move_down();
     l.move_down();
     l.move_down();
     l.expand();
@@ -122,7 +124,7 @@ fn menu_shows_cli_badge_on_flagged_leaf() {
     let cli = AppEntry { name: "himalaya".into(), command: "himalaya".into(), args: vec![], category: None, requires_cwd: None, cwd: None, cli: Some(true), warn: None };
     let mut l = Launcher::new(vec![cli]);
     l.toggle_menu();
-    l.move_down(); // select the "Apps" category (after the Shell quick-launch)
+    l.move_down(); l.move_down(); l.move_down(); // select the "Apps" category (after Shell, Files and All)
     let r = l.render(120, 40);
     let found = r.layers.iter().any(|layer| {
         (0..layer.buf.height()).any(|y| row_text(&layer.buf, y).contains("CLI"))

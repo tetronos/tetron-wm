@@ -190,9 +190,9 @@ impl Launcher {
         let rank = |c: &str| if c == "tetron-wm" { 0 } else { 1 };
         let mut cats: Vec<(String, Vec<AppEntry>)> = by_cat.into_iter().collect();
         cats.sort_by(|(a, _), (b, _)| rank(a).cmp(&rank(b)).then_with(|| a.cmp(b)));
-        // A bare "Shell" quick-launch is the very first top-level entry (one click,
-        // no submenu) — opens the user's $SHELL in a new window.
-        let mut root: Vec<MenuEntry> = vec![MenuEntry::Launch(shell_entry())];
+        // Bare quick-launch entries at the top (one click, no submenu): "Shell"
+        // opens the user's $SHELL in a new window, "Files" the file manager.
+        let mut root: Vec<MenuEntry> = vec![MenuEntry::Launch(shell_entry()), MenuEntry::Launch(system_entry("Files", "@files"))];
         root.extend(cats.into_iter().map(|(label, mut apps)| {
             // "Help" is pinned to the bottom of the tetron-wm section.
             apps.sort_by_key(|x| (x.command == "@help", x.name.to_lowercase()));
@@ -202,7 +202,7 @@ impl Launcher {
             }
         }));
         // "All" sits after tetron-wm (which sorts first), before the other categories.
-        let all_at = if matches!(root.get(1), Some(MenuEntry::Submenu { label, .. }) if label == "tetron-wm") { 2 } else { 1 };
+        let all_at = if matches!(root.get(2), Some(MenuEntry::Submenu { label, .. }) if label == "tetron-wm") { 3 } else { 2 };
         root.insert(all_at, MenuEntry::Submenu { label: "All".into(), items: all.into_iter().map(MenuEntry::Launch).collect() });
         // Bottom system section: a divider, then Remote access (sshd, remote files,
         // the systems popover) above Detach / Reload / Quit (each opens a confirm dialog),
@@ -881,9 +881,9 @@ mod tests {
         l.toggle_menu();
         let r = l.render(120, 40);
         assert!(!r.layers.is_empty());
-        // root rows: All(0), Shell(1), Games(2), Tools(3). Hover the "Tools" row (row 3).
+        // root rows: Shell(0), Files(1), All(2), Games(3), Tools(4). Hover the "Tools" row (row 4).
         let rects = l.panel_rects_for_test(120, 40);
-        let tools_row = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 3).map(|(_, _, r)| *r).unwrap();
+        let tools_row = rects.iter().find(|(lvl, row, _)| *lvl == 0 && *row == 4).map(|(_, _, r)| *r).unwrap();
         let _ = l.render(120, 40); // ensure last_w/last_h match the hover geometry
         l.hover(Point::new(tools_row.x + 1, tools_row.y));
         assert_eq!(l.focused_label(), Some("Tools".to_string()));
@@ -895,7 +895,7 @@ mod tests {
     fn click_launches_leaf_and_descends_submenu() {
         let mut l = Launcher::new(vec![app("Aaa", "Games")]);
         l.toggle_menu();
-        l.move_down(); l.move_down(); // skip the Shell quick-launch (row 0) and All (row 1); select the Games category
+        l.move_down(); l.move_down(); l.move_down(); // skip Shell (row 0), Files (row 1) and All (row 2); select the Games category
         let _ = l.render(120, 40);
         let rects = l.panel_rects_for_test(120, 40);
         // level 1 row 0 is the leaf "Aaa" (auto-expanded under the Games category)
@@ -905,13 +905,16 @@ mod tests {
     }
 
     #[test]
-    fn shell_is_the_first_quick_launch_entry_then_all() {
+    fn shell_is_the_first_quick_launch_entry_then_files_then_all() {
         let mut l = Launcher::new(vec![app("Aaa", "Games")]);
         l.toggle_menu();
         assert_eq!(l.path_for_test(), vec![0]); // first root row selected
         // The first top-level entry is a bare "Shell" leaf, activating it launches it.
         let a = l.activate();
         assert_eq!(a.map(|e| e.name), Some("Shell".to_string()));
+        // Under it, a bare "Files" leaf opens the file manager.
+        l.move_down();
+        assert_eq!(l.activate().map(|e| e.command), Some("@files".to_string()));
         l.move_down();
         assert_eq!(l.focused_label(), Some("All".to_string()));
     }
@@ -925,9 +928,9 @@ mod tests {
         };
         let mut l = Launcher::new(vec![app("Ccc", "Tools"), app("bbb", "Games"), app("Aaa", "Games"), power]);
         l.toggle_menu();
-        l.move_down(); // Shell(0) -> All(1)
+        l.move_down(); l.move_down(); // Shell(0) -> Files(1) -> All(2)
         l.expand();
-        assert_eq!(l.path_for_test(), vec![1, 0]);
+        assert_eq!(l.path_for_test(), vec![2, 0]);
         let mut names = vec![l.focused_label().unwrap()];
         for _ in 0..2 { l.move_down(); names.push(l.focused_label().unwrap()); }
         assert_eq!(names, vec!["Aaa", "bbb", "Ccc"]);
@@ -964,7 +967,7 @@ mod tests {
         let apps: Vec<AppEntry> = (0..40).map(|i| app(&format!("app{i:02}"), "Tools")).collect();
         let mut l = Launcher::new(apps);
         l.toggle_menu();
-        l.move_down(); // Shell(0) -> All(1)
+        l.move_down(); l.move_down(); // Shell(0) -> Files(1) -> All(2)
         l.expand(); // open All
         let _ = l.render(80, 12); // short screen: 9 rows are visible
         let rects = l.panel_rects_for_test(80, 12);
@@ -994,8 +997,8 @@ mod tests {
         let mut l = Launcher::new(vec![app("Aaa", "Games"), app("Store", "tetron-wm")]);
         l.toggle_menu();
         assert_eq!(
-            &l.menu_labels()[..4],
-            &["Shell".to_string(), "tetron-wm".to_string(), "All".to_string(), "Games".to_string()]
+            &l.menu_labels()[..5],
+            &["Shell".to_string(), "Files".to_string(), "tetron-wm".to_string(), "All".to_string(), "Games".to_string()]
         );
     }
 
@@ -1013,18 +1016,18 @@ mod tests {
             app("Aaa", "Games"), app("Bbb", "Games"), app("Ccc", "Tools"),
         ]);
         l.toggle_menu();
-        // root: a "Shell" quick-launch, "All" (every app, flat), the category submenus (sorted), then a
-        // separator and the system section (Remote access, then Detach/Reload/Quit).
+        // root: "Shell" and "Files" quick-launches, "All" (every app, flat), the category submenus
+        // (sorted), then a separator and the system section (Remote access, then Detach/Reload/Quit).
         assert_eq!(
             l.menu_labels(),
-            vec!["Shell", "All", "Games", "Tools", "", "Remote access", "", "Detach", "Reload", "Quit"]
+            vec!["Shell", "Files", "All", "Games", "Tools", "", "Remote access", "", "Detach", "Reload", "Quit"]
         );
         assert_eq!(l.path_for_test(), vec![0]); // Shell selected first
-        l.move_down(); l.move_down(); // select Games (root index 2)
-        assert_eq!(l.path_for_test(), vec![2]);
+        l.move_down(); l.move_down(); l.move_down(); // select Games (root index 3)
+        assert_eq!(l.path_for_test(), vec![3]);
         // descend into Games → its apps
         l.expand();
-        assert_eq!(l.path_for_test(), vec![2, 0]);
+        assert_eq!(l.path_for_test(), vec![3, 0]);
         assert_eq!(l.focused_label(), Some("Aaa".to_string()));
         l.move_down();
         assert_eq!(l.focused_label(), Some("Bbb".to_string()));
@@ -1032,37 +1035,38 @@ mod tests {
         assert_eq!(l.activate().map(|a| a.name), Some("Bbb".to_string()));
         // collapse back to root
         l.toggle_menu(); l.toggle_menu(); // reopen fresh
-        l.move_down(); l.move_down(); l.expand(); l.collapse();
-        assert_eq!(l.path_for_test(), vec![2]);
+        l.move_down(); l.move_down(); l.move_down(); l.expand(); l.collapse();
+        assert_eq!(l.path_for_test(), vec![3]);
     }
 
     #[test]
     fn system_section_skips_separator_and_yields_sentinels() {
         let mut l = Launcher::new(vec![app("Aaa", "Games"), app("Ccc", "Tools")]);
         l.toggle_menu();
-        // Shell(0) All(1) Games(2) Tools(3) sep(4) Remote access(5) sep(6) Detach(7) Reload(8) Quit(9)
-        l.move_down(); // All(1)
-        l.move_down(); // Games(2)
-        l.move_down(); // Tools(3)
-        assert_eq!(l.path_for_test(), vec![3]);
-        l.move_down(); // skip separator(4) → Remote access(5)
-        assert_eq!(l.path_for_test(), vec![5]);
+        // Shell(0) Files(1) All(2) Games(3) Tools(4) sep(5) Remote access(6) sep(7) Detach(8) Reload(9) Quit(10)
+        l.move_down(); // Files(1)
+        l.move_down(); // All(2)
+        l.move_down(); // Games(3)
+        l.move_down(); // Tools(4)
+        assert_eq!(l.path_for_test(), vec![4]);
+        l.move_down(); // skip separator(5) → Remote access(6)
+        assert_eq!(l.path_for_test(), vec![6]);
         l.expand(); // the sshd row comes first; Configure Remote Systems is last
         while l.focused_label().as_deref() != Some("Configure Remote Systems") { l.move_down(); }
         assert_eq!(l.activate().map(|e| e.command), Some("@systems".to_string()));
         l.collapse();
-        l.move_down(); // skip separator(6) → Detach(7)
-        assert_eq!(l.path_for_test(), vec![7]);
+        l.move_down(); // skip separator(7) → Detach(8)
+        assert_eq!(l.path_for_test(), vec![8]);
         assert_eq!(l.activate().map(|e| e.command), Some("@exit".to_string()));
-        l.move_down(); // Reload(7)
+        l.move_down(); // Reload(9)
         assert_eq!(l.activate().map(|e| e.command), Some("@restart".to_string()));
-        l.move_down(); // Quit(9)
+        l.move_down(); // Quit(10)
         assert_eq!(l.activate().map(|e| e.command), Some("@shutdown".to_string()));
         // move_up skips the separators on the way back up too
-        l.move_up(); l.move_up(); l.move_up(); // Reload, Detach, skip sep → Remote access(5)
-        assert_eq!(l.path_for_test(), vec![5]);
-        l.move_up(); // skip separator(4) → Tools(3)
-        assert_eq!(l.path_for_test(), vec![3]);
+        l.move_up(); l.move_up(); l.move_up(); // Reload, Detach, skip sep → Remote access(6)
+        assert_eq!(l.path_for_test(), vec![6]);
+        l.move_up(); // skip separator(5) → Tools(4)
+        assert_eq!(l.path_for_test(), vec![4]);
     }
 
     #[test]
@@ -1079,12 +1083,12 @@ mod tests {
         l.toggle_menu();
         assert_eq!(
             l.menu_labels(),
-            vec!["Shell", "All", "Games", "", "Remote access", "", "Detach", "Reload", "Quit", "", "Power"],
+            vec!["Shell", "Files", "All", "Games", "", "Remote access", "", "Detach", "Reload", "Quit", "", "Power"],
             "Power is the last row, set apart from Quit, and is not an app category"
         );
-        // Walk to Power (index 10), open it, and read its rows in order.
-        for _ in 0..9 { l.move_down(); }
-        assert_eq!(l.path_for_test(), vec![10]);
+        // Walk to Power (index 11), open it, and read its rows in order.
+        for _ in 0..10 { l.move_down(); }
+        assert_eq!(l.path_for_test(), vec![11]);
         l.expand();
         assert_eq!(l.focused_label(), Some("Suspend".to_string()));
         l.move_down();
