@@ -8,6 +8,8 @@ description = "A TUI desktop environment for the terminal"
 repository = "https://github.com/tetronos/tetron-wm"
 
 [dependencies]
+# Drive discovery and mounting for the Files app; a library crate so it moves with Files.
+tetron-drives = { path = "crates/tetron-drives" }
 # The app catalog library, from tetron-appstore (WMCAT-008, WMCAT-012), pinned
 # to a release tag (WMDEP-001).
 tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", tag = "v0.15.2" }
@@ -55,3 +57,6 @@ path = "src/main.rs"
 [dev-dependencies]
 # Tests read only the built-in catalog, never a downloaded one (WMCAT-008).
 tetron-catalog = { git = "https://github.com/tetronos/tetron-appstore", tag = "v0.15.2", features = ["builtin-only"] }
+
+[workspace]
+members = ["crates/tetron-drives"]

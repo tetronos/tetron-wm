@@ -133,6 +133,9 @@ COMMANDS:\n\
 \x20 type [--enter] [text]  paste text (or stdin) into the focused app, clipboard untouched;\n\
 \x20                       from the focused window itself it goes to the clipboard (dictation)\n\
 \x20 dictation-state STATE [MODE]  the tetron-stt TUI reports its state for the tray mic\n\
+\x20 drives [mount|unmount|eject|unlock DEV]  the drives the Files left pane lists; mount\n\
+\x20                       (under /media/<login>), unmount, eject (unmount, power off), unlock (LUKS,\n\
+\x20                       passphrase on stdin). Needs udisks2 (tetronos-storage on TetronOS)\n\
 \x20 cast [--device NAME]  cast the desktop to a Chromecast (optional: needs casttui); `cast off`\n\
 \x20                       stops it, `cast status` reports, `cast --url` prints a URL (a secret) to\n\
 \x20                       watch in a browser on the LAN. Leader o toggles; the red CAST marker stops it\n\

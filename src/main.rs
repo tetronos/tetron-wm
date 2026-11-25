@@ -151,6 +151,7 @@ fn main() -> std::io::Result<()> {
         Some("tile") => ctl(&tetron_wm::session::ClientMsg::TileAll),
         Some("type") => type_cmd(&rest),
         Some("dictation-state") => dictation_state_cmd(&rest),
+        Some("drives") => drives_cmd(&rest),
         Some("screensaver") => screensaver_cmd(&rest),
         Some("theme") => match rest.first().map(String::as_str) {
             // List every theme name (built-ins + file themes).
@@ -244,6 +245,56 @@ fn dictation_state_cmd(rest: &[String]) -> std::io::Result<()> {
     };
     let ev = tetron_wm::dictation::DictationEvent::State { state: state.clone(), mode: rest.get(1).cloned() };
     if !send_control(&tetron_wm::session::ClientMsg::Dictation(ev))? {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+/// `tetron-wm drives [mount|unmount|eject|unlock DEV]`: the drives the Files
+/// left pane lists, and its actions (udisksctl; no sudo on TetronOS).
+fn drives_cmd(rest: &[String]) -> std::io::Result<()> {
+    let all = tetron_drives::list();
+    let usage = || {
+        eprintln!("usage: tetron-wm drives [mount|unmount|eject|unlock DEV]   (unlock reads the passphrase from stdin)");
+        std::process::exit(2)
+    };
+    let Some(verb) = rest.first().map(String::as_str) else {
+        for d in &all {
+            let state = match (&d.mountpoint, d.locked) {
+                (_, true) => "locked".to_string(),
+                (Some(m), _) => m.display().to_string(),
+                (None, _) => "-".to_string(),
+            };
+            println!(
+                "{:<12} {:<16} {:>6} {:<8} {:<4} {}",
+                d.dev,
+                d.title(),
+                tetron_drives::human_size(d.size),
+                d.fstype.as_deref().unwrap_or("-"),
+                if d.removable { "rm" } else { "-" },
+                state
+            );
+        }
+        return Ok(());
+    };
+    let Some(dev) = rest.get(1) else { usage() };
+    let Some(d) = tetron_drives::find(&all, dev) else {
+        eprintln!("tetron-wm drives: {dev} is not a listed drive (see: tetron-wm drives)");
+        std::process::exit(1);
+    };
+    let r = match verb {
+        "mount" => tetron_drives::mount(&d.dev).map(|m| println!("{}", m.display())),
+        "unmount" => tetron_drives::unmount(d),
+        "eject" => tetron_drives::eject(d, &all),
+        "unlock" => {
+            let mut pass = String::new();
+            std::io::stdin().read_line(&mut pass)?;
+            tetron_drives::unlock(&d.dev, pass.trim_end_matches(['\n', '\r'])).map(|c| println!("{c}"))
+        }
+        _ => usage(),
+    };
+    if let Err(e) = r {
+        eprintln!("tetron-wm drives: {verb} {}: {e}", d.title());
         std::process::exit(1);
     }
     Ok(())

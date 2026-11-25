@@ -617,7 +617,9 @@ pub fn run(stream: UnixStream, takeover: bool) -> std::io::Result<ClientExit> {
                             (KeyCode::Char('.'), false) => send(&mut out_stream, &ClientMsg::FileManagerToggleHidden)?,
                             (KeyCode::Char('t'), true) => send(&mut out_stream, &ClientMsg::FileManagerNewTab)?,
                             (KeyCode::Char('w'), true) => send(&mut out_stream, &ClientMsg::FileManagerCloseTab)?,
-                            (KeyCode::Tab, false) => send(&mut out_stream, &ClientMsg::FileManagerNextTab)?,
+                            // Tab: keyboard focus between the left pane (places, drives) and the listing.
+                            (KeyCode::Tab, false) => send(&mut out_stream, &ClientMsg::FileManagerFocusPane)?,
+                            (KeyCode::PageDown, true) => send(&mut out_stream, &ClientMsg::FileManagerNextTab)?,
                             _ => {}
                         }
                     } else if f.desktop_editing {

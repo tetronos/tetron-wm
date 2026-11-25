@@ -77,6 +77,16 @@ pub enum MenuAction {
     Encrypt,
     /// Pack the entry into this format beside it, in a window.
     PackAs(Pack),
+    /// Files left pane, a drive: mount it, then open it.
+    DriveMountOpen,
+    /// Files left pane, a drive: mount it and stay.
+    DriveMount,
+    /// Files left pane, a locked encrypted drive: ask the passphrase, unlock, mount, open.
+    DriveUnlockOpen,
+    DriveUnmount,
+    /// Unmount every filesystem of the disk, then power it off.
+    DriveEject,
+    DriveProperties,
     // Window (title bar) actions.
     Minimize,
     Maximize,
@@ -92,6 +102,12 @@ impl MenuAction {
             MenuAction::DictationToggle => "Start / stop listening".into(),
             MenuAction::DictationMode => "Switch mode (segment / final)".into(),
             MenuAction::DictationSettings => "Dictation settings\u{2026}".into(),
+            MenuAction::DriveMountOpen => "Mount and open".into(),
+            MenuAction::DriveMount => "Mount".into(),
+            MenuAction::DriveUnlockOpen => "Unlock and open\u{2026}".into(),
+            MenuAction::DriveUnmount => "Unmount".into(),
+            MenuAction::DriveEject => "Eject (safe to unplug)".into(),
+            MenuAction::DriveProperties => "Properties".into(),
             MenuAction::Open => "Open".into(),
             MenuAction::OpenWith => "Open with\u{2026}".into(),
             MenuAction::OpenWithApp(cmd) if cmd == "@image" => "Image viewer".into(),
