@@ -35,7 +35,7 @@ memchr = "2"
 # async/tokio client helpers in the poller. rmp-serde does that framing.
 # Pinned to a tetron core release tag of this minor (WMDEP-001); moved by
 # contrib/bump-proto.sh. Both are optional, behind the `mesh` feature (WMDEP-004).
-tetron-proto = { git = "https://github.com/tetronos/tetron", tag = "v0.15.6", optional = true }
+tetron-proto = { git = "https://github.com/tetronos/tetron", tag = "v0.15.8", optional = true }
 rmp-serde = { version = "1", optional = true }
 
 [features]
